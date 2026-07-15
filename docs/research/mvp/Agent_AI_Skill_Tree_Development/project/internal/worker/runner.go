@@ -14,6 +14,7 @@ import (
 	"github.com/helixdevelopment/skill-system/internal/config"
 	"github.com/helixdevelopment/skill-system/internal/db"
 	"github.com/helixdevelopment/skill-system/internal/models"
+	"github.com/helixdevelopment/skill-system/internal/registry"
 	"github.com/helixdevelopment/skill-system/internal/skill"
 	"go.uber.org/zap"
 )
@@ -47,6 +48,18 @@ const (
 // Runner
 // ---------------------------------------------------------------------------
 
+// registryReviewer is the minimal seam the registry-review ticker cycle
+// (runRegistryReview, below) needs: run one full review pass and report
+// whether it succeeded. It is satisfied in production by
+// *registry.Registry (registry.Registry.RunReviewOnce, wired in NewRunner)
+// and, in unit tests, by a spy that never touches a real database
+// (registryreview_unit_test.go) -- the interface exists so that seam can be
+// exercised at the unit level per §11.4.27 (mocks/spies are permitted ONLY
+// in unit tests).
+type registryReviewer interface {
+	RunReviewOnce(ctx context.Context) error
+}
+
 // Runner manages background job execution for the skill graph system.
 // It coordinates multiple worker goroutines, handles graceful shutdown,
 // and persists job state to the database for API status endpoints.
@@ -61,6 +74,7 @@ type Runner struct {
 	running    bool
 	jobChan    chan Job
 	metrics    Metrics
+	registry   registryReviewer
 }
 
 // Job represents a unit of background work.
@@ -96,13 +110,21 @@ type JobResult struct {
 }
 
 // NewRunner creates a new background job runner.
+//
+// The registry-review ticker cycle (registryReviewWorker/runRegistryReview,
+// below) is wired here to the full review logic via a fresh
+// *registry.Registry over the same pool (research/
+// p05_high_defect_fix_designs.md §4.3 step 1) -- a trivial, dependency-free
+// construction (registry.Registry{pool}) that introduces no second
+// goroutine and no second scheduling cadence.
 func NewRunner(pool *db.Pool, store *skill.Store, cfg config.Config, logger *zap.Logger) *Runner {
 	return &Runner{
-		pool:   pool,
-		store:  store,
-		cfg:    cfg,
-		logger: logger,
-		jobChan: make(chan Job, 100),
+		pool:     pool,
+		store:    store,
+		cfg:      cfg,
+		logger:   logger,
+		jobChan:  make(chan Job, 100),
+		registry: registry.NewRegistry(pool),
 	}
 }
 
@@ -506,22 +528,32 @@ func (r *Runner) runValidationCycle(ctx context.Context) {
 	}
 }
 
+// runRegistryReview is the registry-review ticker cycle: it runs the full
+// review pass (mark stale skills, recalculate coverage, recalculate missing
+// dependencies) via the encapsulated review logic, registryReviewer.
+// RunReviewOnce.
+//
+// G32 remediation (research/p05_high_defect_fix_designs.md §4): this cycle
+// previously called ONLY r.store.GetCoverage(ctx, "") -- a read-only report
+// that never marked anything stale, never recalculated coverage, and never
+// recalculated missing dependencies -- while the full review logic
+// (registry.Registry.RunReviewOnce, reachable via the ReviewScheduler
+// flagship mechanism) had zero callers anywhere in the codebase. Rather
+// than start a second, independently-scheduled goroutine (which would race
+// this ticker against the same skill_registry rows -- the exact clash the
+// design doc rejects at §4.2), this already-wired, already-config-driven
+// ticker is retargeted to call the single, consolidated review
+// implementation directly, making it the sole owner of the review cycle.
 func (r *Runner) runRegistryReview(ctx context.Context) {
-	// Update registry entries: mark stale skills, recalculate coverage
-	coverage, err := r.store.GetCoverage(ctx, "")
-	if err != nil {
-		r.logger.Error("registry review: failed to get coverage", zap.Error(err))
+	if err := r.registry.RunReviewOnce(ctx); err != nil {
+		r.logger.Error("registry review: run review once failed", zap.Error(err))
 		return
 	}
 
-	r.logger.Info("registry review completed",
-		zap.Int("total_skills", coverage["total_skills"].(int)),
-		zap.String("coverage", coverage["coverage_percentage"].(string)),
-	)
+	r.logger.Info("registry review completed")
 
 	// Audit log
-	details, _ := json.Marshal(coverage)
-	if err := db.LogEvent(ctx, r.pool, db.AuditEventExpansionStarted, nil, details); err != nil {
+	if err := db.LogEvent(ctx, r.pool, db.AuditEventExpansionStarted, nil, nil); err != nil {
 		r.logger.Error("failed to log registry review", zap.Error(err))
 	}
 }
