@@ -27,9 +27,8 @@
 #
 # Dependencies: _lib.sh, systemctl (systemd --user).
 #
-# Cross-references: uninstall.sh, deploy/systemd/helix-skills.service.
-#   (A docs/scripts/install.md companion guide is not yet created - out of
-#   this task's strict scripts/+deploy/-only scope; tracked as a follow-up.)
+# Cross-references: uninstall.sh, deploy/systemd/helix-skills.service,
+#   docs/scripts/install.md (companion user guide).
 # Last verified: 2026-07-15
 # =============================================================================
 set -euo pipefail

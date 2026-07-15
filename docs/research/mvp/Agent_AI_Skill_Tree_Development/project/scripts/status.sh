@@ -28,9 +28,8 @@
 #   {docker, podman, podman-compose} optional (absence is reported, not
 #   required).
 #
-# Cross-references: start.sh, stop.sh, restart.sh. (A docs/scripts/status.md
-#   companion guide is not yet created - out of this task's strict
-#   scripts/+deploy/-only scope; tracked as a follow-up.)
+# Cross-references: start.sh, stop.sh, restart.sh, docs/scripts/status.md
+#   (companion user guide).
 # Last verified: 2026-07-15
 # =============================================================================
 set -euo pipefail

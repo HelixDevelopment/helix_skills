@@ -33,10 +33,8 @@
 #
 # Dependencies: bash >= 4, coreutils, one of {docker, podman, podman-compose}.
 #
-# Cross-references: deploy/docker-compose.yml, deploy/.env.example. (A
-#   docs/scripts/_lib.md companion user guide is not yet created - out of
-#   this task's strict scripts/+deploy/-only scope; tracked as a
-#   follow-up.)
+# Cross-references: deploy/docker-compose.yml, deploy/.env.example,
+#   docs/scripts/_lib.md (companion user guide).
 # Last verified: 2026-07-15
 # =============================================================================
 

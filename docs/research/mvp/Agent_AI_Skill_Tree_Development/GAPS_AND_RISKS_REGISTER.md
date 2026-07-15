@@ -458,6 +458,20 @@ PASS (real run).
 The **R23 full re-run at project completion** (every anchor re-audited to zero real
 violations, CM-gates + a §11.4.32 project sweep wired) is the terminal compliance gate.
 
+## Additional findings (post-R23 audit)
+
+- **G51 (MED, §11.4.201):** `scripts/migrate.sh` runs `psql` without
+  `-v ON_ERROR_STOP=on` and discards its stderr (`2>/dev/null`); `psql` exits
+  `0` even when an individual SQL statement inside a migration errors, so a
+  partially-failed `up` is still logged `"Applied migration ${version}"` and
+  recorded in `schema_migrations`, and a partially-failed `down` still deletes
+  the version's row — a silent migration-state desync. Fix: add
+  `-v ON_ERROR_STOP=on` (up + down) + stop discarding `psql` stderr. Surfaced
+  by the `migrate.md` doc-review lane (post-R23; the doc at
+  `project/docs/scripts/migrate.md` describes this behaviour and cites this id).
+  (Next free id: G50 is SUPERSEDED per register line ~410, so this is G51.)
+  **STATUS:** FILED.
+
 ---
 
 ## Adjudication of the 8 mandated open items

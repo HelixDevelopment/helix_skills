@@ -1,0 +1,171 @@
+# `scripts/migrate.sh` — database migration runner
+
+**Revision:** 3
+**Last modified:** 2026-07-15T20:57:53Z
+
+## Overview
+
+A small SQL-migration runner that applies/rolls back/creates/inspects
+versioned SQL migration files under `project/migrations/*.up.sql` /
+`*.down.sql`, tracked in a `schema_migrations` table it creates on demand.
+It executes SQL directly inside the `db` compose service via `compose exec
+... psql`.
+
+**Note on which compose stack this targets:** like `backup.sh`/
+`restore.sh`, this script is part of the older project-root-based family
+(`INSTALL_DIR = project/`, `project/.env`) — see "Two coexisting script
+families" in this project's top-level `README.md`. It is distinct from
+whatever migration mechanism (if any) the Go backend under
+`project/internal/db/` invokes at application startup; this document
+covers only the standalone `scripts/migrate.sh` CLI.
+
+## Prerequisites
+
+- One of: Docker with `docker compose`, `docker-compose`, or
+  `podman-compose`.
+- A running `db` compose service.
+- `project/.env` (optional; falls back to `DB_HOST=db`, `DB_PORT=5432`,
+  `DB_NAME=skilldb`, `DB_USER=skilluser`, `DB_PASSWORD=skillpassword`).
+- `project/migrations/` directory (created automatically if absent).
+
+## Usage
+
+```
+./migrate.sh [up | down | status | create <name> | version]
+```
+
+| Command | Effect |
+|---|---|
+| `up` (default) | Apply all pending migrations in filename order. |
+| `down` | Roll back exactly one migration (the current highest applied version). |
+| `status` | Print a table of every discovered migration file and whether it is `applied`/`pending`. |
+| `create <name>` | Create a new `<timestamp>_<name>.up.sql` / `.down.sql` pair with boilerplate `BEGIN;`/`COMMIT;` blocks. |
+| `version` | Print the current schema version (max applied `version`, or `0`). |
+| `--help`, `-h` | Print usage and exit 0. |
+
+### Examples
+
+```bash
+./migrate.sh                     # apply all pending (default = up)
+./migrate.sh status              # show applied/pending table
+./migrate.sh create add_skills   # scaffold a new migration pair
+./migrate.sh down                # roll back the last migration
+./migrate.sh version             # print current schema version
+```
+
+## Inputs
+
+`project/migrations/*.up.sql` / `*.down.sql` (migration file pairs, named
+`<version>_<description>.up.sql` / `.down.sql`, where `<version>` is the
+leading numeric prefix used both for ordering and as the primary key in
+`schema_migrations`).
+
+## Outputs
+
+- `up`: applies every `*.up.sql` file whose numeric version is not yet
+  recorded in `schema_migrations`, in ascending filename order; prints a
+  count of applied migrations and the resulting current version.
+- `down`: applies the `<version>_*.down.sql` file matching the current
+  highest applied version, then deletes that version's row from
+  `schema_migrations`.
+- `status`: a table of `Version | Status | Description` for every
+  discovered `*.up.sql` file.
+- `create <name>`: writes two new files under `project/migrations/`.
+- `version`: a single integer.
+
+## Side-effects
+
+Creates/modifies the `schema_migrations` table and application schema
+inside the target Postgres database; `create` writes two new files to
+disk; `down` can delete a version's tracking row even when no matching
+`.down.sql` file exists (see Edge cases).
+
+## Edge cases
+
+- **No compose command found:** `log_error` + `exit 1`, same pattern as
+  `backup.sh`/`restore.sh`.
+- **`schema_migrations` table missing:** created automatically by
+  `ensure_migrations_table()` on first use of any subcommand that needs
+  it (`up`, `down`, `status`, `version`).
+- **The `psql` invocation itself fails (`up`)** — e.g. the `db` service is
+  unreachable or `compose exec` cannot run at all: the loop stops
+  immediately (`log_error` + `exit 1`) — migrations after the failing one
+  in the same `up` invocation are never attempted, and the failing
+  migration's own partial effect is **not** automatically rolled back by
+  this script (whatever the failed SQL script itself did or did not wrap
+  in a transaction determines the actual database state).
+- **Silent SQL-error quirk (honest as-written behavior, `up` and
+  `down`):** the migration-apply `psql` calls at `migrate.sh:118` (`up`)
+  and `migrate.sh:160` (`down`) run WITHOUT `-v ON_ERROR_STOP=1` and
+  discard `psql`'s stderr (`2>/dev/null`). Per `psql`'s own documented
+  exit-status contract, `psql` exits `0` even when an individual SQL
+  statement inside the script errors (bad syntax, a constraint violation,
+  a reference to a table/column that doesn't exist) — a non-zero exit is
+  reserved for a fatal condition (backend unreachable, `psql` itself
+  failing to start), which is the ONLY class of failure the bullet above
+  actually catches. Practical consequence: a migration whose SQL genuinely
+  errors partway through can still be logged `"Applied migration ${version}"`
+  and recorded as applied in `schema_migrations` (`up`), and a `down`
+  rollback whose SQL genuinely errors can still have its version row
+  deleted from `schema_migrations` (`down`) — in both cases the script
+  proceeds as if the SQL had fully succeeded. This is a real, currently
+  unfixed gap in this script (filed as **G51** in
+  `GAPS_AND_RISKS_REGISTER.md` — the `ON_ERROR_STOP` + stderr-discard
+  fix, §11.4.201 — not addressed by this document), not a hypothetical;
+  documented here so it is not mistaken for "SQL errors are caught."
+- **`down` with current version `0`:** logs a warning ("No migrations to
+  rollback") and returns without error.
+- **`down` with no matching `.down.sql` file for the current version:**
+  logs a warning and still **removes the version's row from
+  `schema_migrations`** without running any rollback SQL — this makes the
+  schema_migrations bookkeeping inconsistent with the actual schema state
+  if the corresponding `.down.sql` file is genuinely missing (not merely
+  misnamed); this is the script's actual, as-written behavior, not a
+  hypothetical.
+- **`create` with no `<name>` argument:** `log_error` ("Migration name
+  required") + `exit 1`.
+- **Migration filename parsing:** the numeric `<version>` is extracted via
+  `grep -o '^[0-9]*'` on the basename, and the `<description>` via `sed`
+  stripping the leading digits and the `.up.sql`/`.down.sql` suffix and
+  converting underscores to spaces — a non-conforming filename (no leading
+  digits) yields an empty `<version>`, which will not match any real
+  schema version and will be treated as "not yet applied" every time
+  `up`/`status` runs.
+
+## Internal behavior
+
+1. `load_env()` / `detect_compose()` — same pattern as `backup.sh`.
+2. `exec_sql()` runs a single SQL statement via `compose exec -T db psql
+   ... -t -c "$sql"`.
+3. `ensure_migrations_table()` idempotently creates `schema_migrations
+   (version BIGINT PRIMARY KEY, applied_at TIMESTAMP DEFAULT
+   CURRENT_TIMESTAMP, description TEXT)`.
+4. `get_current_version()` returns `MAX(version)` or `0`.
+5. `migrate_up()` iterates `*.up.sql` files sorted by filename, skips
+   already-applied versions, applies + records each pending one via
+   `psql ... < "$migration"` followed by an `INSERT INTO
+   schema_migrations`.
+6. `migrate_down()` finds and applies the `.down.sql` file for the current
+   version, then deletes its `schema_migrations` row.
+7. `migrate_status()` prints the applied/pending table.
+8. `create_migration()` scaffolds a timestamp-versioned file pair.
+9. `main()` dispatches on the first positional argument (default `up`),
+   ensuring `project/migrations/` exists first.
+
+## Dependencies
+
+`bash`, one of `{docker compose, docker-compose, podman-compose}`,
+`psql` (inside the `db` container), `grep`, `sed`, `date`.
+
+## Cross-references
+
+None directly invoked by other scripts in `project/scripts/`; operates
+independently against `project/migrations/`. Compare/contrast with
+whatever Go-native migration path exists under `project/internal/db/`
+(out of scope for this document — see that package's own code for its
+migration mechanism).
+
+## Last verified
+
+2026-07-16, against `project/scripts/migrate.sh` (9485 bytes, last
+modified 2026-07-15).

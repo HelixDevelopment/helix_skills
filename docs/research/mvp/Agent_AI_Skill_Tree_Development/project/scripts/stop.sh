@@ -23,9 +23,8 @@
 # Dependencies: _lib.sh, one of {docker, podman, podman-compose}.
 #
 # Cross-references: start.sh, restart.sh, status.sh, deploy/docker-compose.yml,
-#   deploy/systemd/helix-skills.service. (A docs/scripts/stop.md companion
-#   guide is not yet created - out of this task's strict scripts/+deploy/-
-#   only scope; tracked as a follow-up.)
+#   deploy/systemd/helix-skills.service, docs/scripts/stop.md (companion
+#   user guide).
 # Last verified: 2026-07-15
 # =============================================================================
 set -euo pipefail

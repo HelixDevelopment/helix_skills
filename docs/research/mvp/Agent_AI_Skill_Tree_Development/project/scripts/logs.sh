@@ -20,9 +20,8 @@
 #
 # Dependencies: _lib.sh, one of {docker, podman, podman-compose}.
 #
-# Cross-references: start.sh, stop.sh, status.sh. (A docs/scripts/logs.md
-#   companion guide is not yet created - out of this task's strict
-#   scripts/+deploy/-only scope; tracked as a follow-up.)
+# Cross-references: start.sh, stop.sh, status.sh, docs/scripts/logs.md
+#   (companion user guide).
 # Last verified: 2026-07-15
 # =============================================================================
 set -euo pipefail
