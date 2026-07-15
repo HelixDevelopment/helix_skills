@@ -1,7 +1,7 @@
 # CONTINUATION — HelixKnowledge Skill Graph System (MVP)
 
-**Revision:** 3
-**Last modified:** 2026-07-15T16:25:25Z
+**Revision:** 4
+**Last modified:** 2026-07-15T16:43:28Z
 **Purpose:** §12.10 / §11.4.131 standing session-resumption file. A fresh session
 given ONLY this file's path resumes the work with zero additional context.
 Keep in sync on every material state change.
@@ -42,17 +42,23 @@ g06_g07_skilltree_dag_design, + R18 doc-delivery design landing).
 - **PHASE:** P0.5 critical remediation (security + correctness) before feature phases.
 - **DONE (proven, committed):** G01 — runtime security hole (double-bound wildcard-CORS +
   unauth MCP write surface) CLOSED, Fable-xhigh GO, 6 §1.1 mutations RED-verified. HEAD `255061b`.
-- **DESIGN DONE + verified (held in working tree for the next batch commit):** G06/G07 DAG
-  (`research/g06_g07_skilltree_dag_design.md`); G11 worker panic-safety
-  (`research/g11_worker_design.md`, 9 tests — source claims re-verified vs `255061b`); P1.T1
-  granularity migration `002` (`research/p1t1_granularity_schema_migration.md`, 13 tests, L1–L16
-  lockstep); R18 doc-delivery (`research/r18_documentation_delivery_design.md`, Rev 2 — its false
-  "Go doesn't build (P0 FAILS)" claim CORRECTED: backend compiles clean, `go build ./...`=0 at
-  `255061b`; the REQUIREMENTS.md baseline "FAILS" line is the pre-`5532e2b` history, now marked
-  superseded). Register STATUS lines added for G06/G07/G10/G11.
-- **NEXT (Go spine, serialized — ONE Go mutator at a time §11.4.84):** (1) await + verify the
-  in-flight G02/G03/G05/G16/G21 Go impl → §11.4.209 Fable-xhigh review → batch commit (Go impl +
-  the 4 design docs + register/CONTINUATION). (2) P1.T1 migration `002` impl (MUST precede G06/G07).
+- **ALL P0.5 DESIGN DOCS DONE + spot-verified vs `255061b` (design lane exhausted):** G06/G07 DAG;
+  G11 worker (9 tests); P1.T1 migration `002` (13 tests, L1–L16); R18 doc-delivery (Rev 2, false
+  "Go doesn't build" claim CORRECTED); **G12 tree-sitter** (`research/g12_treesitter_design.md`, 13
+  tests); **G10/G27 embedding-dim** (`research/g10_embedding_provider_design.md`, 23 tests); **ops
+  bundle G13/G17/G22/G23/G24** (`research/ops_hardening_design.md`, 35 tests). Committed: g11/p1t1/r18
+  at `5504400`; g12/g10/ops in the next doc batch. Register STATUS lines for G06/G07/G10/G11/G12/G13.
+- **G02/G03/G05/G16/G21 Go impl DONE + INDEPENDENTLY VERIFIED (not yet committed):** build=0, vet=0,
+  `go test ./...`=0 (all pkgs PASS), host-exec paths DELETED (grep=0 for executeProcess/executeGoSnippet/
+  WASMSandbox/LD_PRELOAD/os/exec), zero mutation residue. Fail-closed StaticValidator (executes nothing),
+  empty-jury BLOCKS, SSRF egress guard, MCP `skill_create` validates-before-persist + persists-as-`draft`.
+  Honest boundaries disclosed: REST `api.Server` create path is dead code until G01 consolidation; MCP path
+  parks-as-draft (not hard-reject); PodmanIsolatedExecutor unimplemented (SKIPs honestly). **GATED on the
+  §11.4.209 Fable-xhigh review (running) → then commit.**
+- **NEXT (Go spine, serialized — ONE Go mutator at a time §11.4.84):** (1) G02/G03/G05/G16/G21 Go impl
+  DONE + verified (build/vet/test=0) → **Fable-xhigh review RUNNING** → on GO, commit the Go change to all
+  upstreams; on NO-GO, fix findings → re-review to zero (§11.4.134) → commit. (2) P1.T1 migration `002` impl
+  (MUST precede G06/G07 — the next Go mutator, starts only AFTER G02 is committed).
   (3) G06/G07 DAG. (4) G11 worker. (5) ops hardening G13/G17/G22/G23/G24 (design in flight). (6) G10
   embedding dim + G27 (design in flight). (7) G12 tree-sitter; G09/G08 spec/TOON. G14/X1 submodule
   policy → operator (§11.4.66), blocks R18 Docs-Chain/OpenDesign vendoring lane.
@@ -63,13 +69,15 @@ g06_g07_skilltree_dag_design, + R18 doc-delivery design landing).
 
 - **Fleet target 3–4 parallel:** 1 Go-source mutator at a time (§11.4.84) + 2–3 read-only
   design-research streams (each writes only its own `research/*.md`, tied to a tracked gap).
-- **Live fleet (moment-valid, HEAD `255061b`, nothing new committed yet):** (1) G02/G03/G05/G16/G21
-  Go impl — the SOLE Go mutator, RUNNING; (2) ops-hardening design G13/G17/G22/G23/G24 — read-only,
-  RUNNING; (3) G10 embedding + G27 design — read-only, RUNNING. Design streams read Go source only
-  from `git show 255061b:...` (tree is mid-mutation). **Commit HELD** (§11.4.84): no commit while the
-  G02 mutation gate is live — the working tree carries the 4 design docs + REQUIREMENTS baseline note +
-  register/CONTINUATION edits, all narrow-staged + residue-scanned + committed once G02 is quiescent
-  and its Go changes pass the §11.4.209 Fable-xhigh review.
+- **Live fleet (moment-valid, HEAD `5504400`; G02 Go change uncommitted in working tree):** the Go tree
+  is QUIESCENT (G02 mutator done). RUNNING: the §11.4.209 Fable-xhigh review of the G02 change (gates its
+  commit) + the next design wave (G09 OpenAPI drift, G15 Aurora/HarmonyOS client feasibility, G20 auto-expand
+  + G25/G26). **Bottleneck honesty (§11.4.6):** the design lane is well ahead; the single-threaded Go-impl
+  lane (§11.4.84 one mutator, gated by the Fable review) is the true throughput constraint — more design
+  docs are queued-not-abandoned (§11.4.197), not extra Go throughput.
+- **§11.4.84 commit discipline:** with the uncommitted G02 Go change in the tree, doc commits narrow-stage
+  ONLY explicit doc paths (never `git add -A`; assert zero `project/` staged) + residue-scan the staged diff.
+  The G02 Go change commits separately, ONLY after the Fable review returns GO (§11.4.134 iterate-to-zero).
 - **G01 outcome:** see the G01 STATUS block in the register for the full forensic trail
   (attempt 1 NO-GO → attempt 2 single-hardened-listener → Fable GO). Follow-ups O1 (SSE 30s
   timeout), O2 (unset-var inert key) tracked; O3 dead `internal/api.Server` consolidation

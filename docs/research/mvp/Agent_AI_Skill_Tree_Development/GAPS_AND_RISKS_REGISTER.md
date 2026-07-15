@@ -139,7 +139,7 @@ flow from this.
 - **Test coverage:** contract (spec-validation per endpoint + route-parity), integration, regression, smoke, mutation (rename a route → parity test fails). **Challenges:** yes. **HelixQA:** yes.
 
 ### G10 — Embedding dimension: no model↔column assertion; `vector(768)` hard-coded; OpenAI vector length unchecked; non-openai/local providers unsupported
-- **STATUS (2026-07-15):** DESIGN IN PROGRESS (read-only design-research stream, → `research/g10_embedding_provider_design.md`; also covers G27 `EmbedAsync`/`sanitizeTableName`). Go impl PENDING.
+- **STATUS (2026-07-15):** DESIGN DONE + spot-verified vs `255061b` (`vector(768)` hard-coded at `001_initial.up.sql:14`) → `research/g10_embedding_provider_design.md` (23 tests; also covers G27 `EmbedAsync`/`sanitizeTableName`). Decision = `(provider,model)→dim` registry + fail-closed boot-time `AssertEmbeddingDimension` (§11.4.201) + templated `vector(N)` + OpenAI length check + `validateTableName` reject-not-strip. Go impl PENDING — needs embedder-construction wiring (`cmd/*`); composes P1.T1 additively (zero embedding-DDL overlap).
 - **Category:** danger-zone / inconsistency
 - **Severity:** high — the 768/1536/384 conflict is "resolved" only by two unenforced constants that can silently disagree at runtime.
 - **Evidence:**
@@ -161,6 +161,7 @@ flow from this.
 - **Test coverage:** unit (cycle calls pipeline; coverage type-safety), integration (worker creates a real skill from a seeded gap), chaos (malformed coverage map ⇒ logged error not panic), mutation (reintroduce bare assertion → panic test fails). **Challenges:** yes. **HelixQA:** yes.
 
 ### G12 — tree-sitter is a stub: native parsing always fails; regex-only; Kotlin/C# unsupported despite being configured
+- **STATUS (2026-07-15):** DESIGN DONE + spot-verified vs `255061b` (`treesitter.go` `initNativeParser` unconditionally errors; `config.go:204` kotlin default-enabled) → `research/g12_treesitter_design.md`. Decision = official `tree-sitter/go-tree-sitter` + per-lang grammars behind the `cgo` build tag, explicit `Tree.Fidelity` + `ErrNoPatternsForLanguage` (never silent), interim Kotlin/C# regex patterns. 13 tests (7 RED now). Extra silent-zero defects found in Bash/Dart (tracked follow-up). Go impl PENDING.
 - **Category:** gap
 - **Severity:** high — R2 requires tree-sitter as a *working POC, not a stub*; learn-from-codebase (R2/R6/P5) rests on it.
 - **Evidence:** `initNativeParser` **always** returns an error (`internal/codeanalysis/treesitter.go:106-131`); `parseNative`/`extractImportsNative`/`extractFunctionsNative`/`extractClassesNative` all return `"not implemented"` (`treesitter.go:160, 230, 235, 240`). Only regex fallback runs. `compilePatterns` has **no `kotlin` or `csharp` case** (`treesitter.go:264-296`), yet `kotlin` is in the default analysis languages (`config.go:194`) and normalizeLanguage maps `kt`→`kotlin` (`treesitter.go:558-559`) — Kotlin files yield an empty pattern set ⇒ zero extraction.
@@ -169,6 +170,7 @@ flow from this.
 - **Test coverage:** unit (per-language extraction incl. kotlin), integration (parse a real Android/Kotlin repo → real symbols), fuzz (malformed source doesn't crash), mutation (remove a grammar → extraction test fails). **Challenges:** yes.
 
 ### G13 — Two rival `docker-compose.yml` files (rival-copy risk)
+- **STATUS (2026-07-15):** DESIGN DONE for the whole ops bundle **G13/G17/G22/G23/G24** + spot-verified vs `255061b` (`config.go:177 Password:"secret"`, `config/config.toml:35 password="secret"`) → `research/ops_hardening_design.md` (35 tests, 7 §1.1 mutations). Decisions: G13 canonicalize on `deploy/` via compose `profiles:` (no silent drop §11.4.122/§11.4.124); G17 remove `"secret"` default + fail-closed on empty/sentinel password (§11.4.10/§11.4.201) + enum-validate provider/sandbox/level/transport; G22 `x/time/rate` token-bucket + wire `MaxBodySize` + capture Brotli errors on the LIVE `buildRouter`; G23 `embed.FS` migrations + fail-CLOSED before bind; G24 keep `/health` open + gate `/metrics`+`/version` + fix the openapi 401 divergence. Ops doc corrected a stale register note (live `buildRouter` registers `/health` open + NO `/metrics`/`/version`, contra the pre-G01 `main.go:151` note). Go impl PENDING.
 - **Category:** ops
 - **Severity:** high — P12.T4 explicitly requires one canonical compose; two exist now.
 - **Evidence:** `project/docker-compose.yml` (9198 bytes) **and** `project/deploy/docker-compose.yml` (3332 bytes) both present. `IMPLEMENTATION_PLAN.md:258` (P12.T4) calls for exactly one; the scripts/systemd unit must reference a single file.
