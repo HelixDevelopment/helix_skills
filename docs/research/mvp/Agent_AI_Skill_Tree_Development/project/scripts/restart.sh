@@ -1,136 +1,82 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # =============================================================================
-# HelixKnowledge Skill Graph System - Restart Script
+# restart.sh - restart the HelixKnowledge Skill Graph datastore stack
 # =============================================================================
-# Usage: ./restart.sh [--quick | --full]
-#   --quick  Rolling restart (default)
-#   --full   Full stop, rebuild, and start
+# Purpose:
+#   Thin composition of stop.sh + start.sh so there is exactly one
+#   implementation of each. This is the ExecReload command of the
+#   systemctl --user unit (deploy/systemd/helix-skills.service) as well as
+#   the manual entry point.
+#
+# Usage:
+#   scripts/restart.sh [--timeout SECONDS] [--quiet] [-h|--help]
+#
+# Inputs:
+#   deploy/docker-compose.yml (required), deploy/.env (optional).
+#
+# Outputs:
+#   Stack stopped then started again; exits non-zero if either step fails
+#   (mirrors stop.sh/start.sh exit codes).
+#
+# Side-effects: same as stop.sh followed by start.sh.
+#
+# Dependencies: _lib.sh, stop.sh, start.sh.
+#
+# Cross-references: start.sh, stop.sh, status.sh. (A docs/scripts/restart.md
+#   companion guide is not yet created - out of this task's strict
+#   scripts/+deploy/-only scope; tracked as a follow-up.)
+# Last verified: 2026-07-15
 # =============================================================================
-
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-INSTALL_DIR="$(dirname "$SCRIPT_DIR")"
-SERVICE_NAME="skill-system"
+# shellcheck source-path=SCRIPTDIR
+# shellcheck source=_lib.sh
+source "${SCRIPT_DIR}/_lib.sh"
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
+usage() {
+    cat <<'EOF'
+Usage: restart.sh [--timeout SECONDS] [--quiet] [-h|--help]
 
-log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
-log_success() { echo -e "${GREEN}[OK]${NC} $1"; }
-log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
-log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+Restart the HelixKnowledge Skill Graph datastore stack (stop.sh then
+start.sh).
 
-# Detect compose command
-detect_compose() {
-    if docker compose version &> /dev/null; then
-        COMPOSE_CMD="docker compose"
-    elif command -v docker-compose &> /dev/null; then
-        COMPOSE_CMD="docker-compose"
-    elif command -v podman-compose &> /dev/null; then
-        COMPOSE_CMD="podman-compose"
-    fi
+Options:
+  --timeout SECONDS  Forwarded to start.sh (max seconds to wait for
+                      Postgres readiness after the restart; default: 60).
+  --quiet, -q         Suppress informational (non-error) output.
+  -h, --help          Show this help and exit.
+EOF
 }
 
-# Quick rolling restart
-restart_quick() {
-    log_info "Performing quick rolling restart..."
-    cd "$INSTALL_DIR"
-    
-    # Restart worker first (no external ports)
-    log_info "Restarting worker..."
-    $COMPOSE_CMD restart worker
-    sleep 2
-    
-    # Restart API
-    log_info "Restarting API..."
-    $COMPOSE_CMD restart api
-    sleep 2
-    
-    # Verify API is up
-    local retries=30
-    while [ $retries -gt 0 ]; do
-        if curl -sf http://localhost:8080/health &> /dev/null; then
-            log_success "API is healthy after restart"
-            return 0
-        fi
-        retries=$((retries - 1))
-        echo -n "."
-        sleep 2
-    done
-    
-    log_warn "API not responding after restart. Check logs."
-    return 1
-}
+timeout_seconds=60
 
-# Full restart with rebuild
-restart_full() {
-    log_info "Performing full restart with rebuild..."
-    
-    # Stop
-    "$SCRIPT_DIR/stop.sh"
-    
-    # Rebuild images
-    log_info "Rebuilding images..."
-    cd "$INSTALL_DIR"
-    $COMPOSE_CMD build --no-cache
-    
-    # Start
-    "$SCRIPT_DIR/start.sh"
-    
-    log_success "Full restart complete"
-}
-
-# Main
-main() {
-    detect_compose
-    
-    local mode="quick"
-    
-    while [ $# -gt 0 ]; do
-        case "$1" in
-            --quick)
-                mode="quick"
-                ;;
-            --full)
-                mode="full"
-                ;;
-            --help|-h)
-                echo "Usage: $0 [--quick | --full]"
-                echo ""
-                echo "Options:"
-                echo "  --quick  Rolling restart (default)"
-                echo "  --full   Full stop, rebuild, and start"
-                echo "  --help   Show this help"
-                exit 0
-                ;;
-            *)
-                log_error "Unknown option: $1"
-                exit 1
-                ;;
-        esac
-        shift
-    done
-    
-    log_info "Restarting Skill Graph System (mode: $mode)..."
-    
-    case "$mode" in
-        quick)
-            restart_quick
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --timeout)
+            [[ $# -ge 2 ]] || { echo "restart.sh: --timeout requires an argument" >&2; exit 2; }
+            timeout_seconds="$2"
+            shift 2
             ;;
-        full)
-            restart_full
+        --quiet|-q)
+            HX_QUIET=1
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "restart.sh: unknown argument: $1" >&2
+            usage >&2
+            exit 2
             ;;
     esac
-    
-    echo ""
-    log_success "Restart complete!"
-    echo "  API: http://localhost:8080"
-    echo "  Run ./scripts/status.sh for details"
-}
+done
 
-main "$@"
+quiet_flag=()
+[[ "${HX_QUIET}" == "1" ]] && quiet_flag=(--quiet)
+
+hx_log "Restarting: stop then start ..."
+"${SCRIPT_DIR}/stop.sh" "${quiet_flag[@]}"
+"${SCRIPT_DIR}/start.sh" --timeout "${timeout_seconds}" "${quiet_flag[@]}"

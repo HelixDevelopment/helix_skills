@@ -1,0 +1,35 @@
+# =============================================================================
+# HelixKnowledge Skill Graph Service - systemd --user unit (R15)
+# =============================================================================
+# This is a TEMPLATE checked into the repo. It is not installed as-is:
+# `scripts/install.sh` renders it into ~/.config/systemd/user/helix-skills.service,
+# replacing every project-root placeholder token below with the absolute
+# path to this checkout (resolved at install time, since that path is not
+# known until install). Do not `systemctl link`/copy this file directly -
+# use `scripts/install.sh` instead.
+#
+# Scope: USER service only. No sudo, no system-wide unit, no root daemon.
+# Brings the datastore compose stack (deploy/docker-compose.yml) up on
+# start and down on stop, via the project's own start.sh/stop.sh wrappers
+# (which resolve the docker/podman compose engine and wait for Postgres to
+# report healthy) rather than duplicating that logic inline here.
+# =============================================================================
+
+[Unit]
+Description=HelixKnowledge Skill Graph Service - datastore (Postgres+pgvector via compose, user scope)
+Documentation=file://@HELIX_SKILLS_PROJECT_ROOT@/README.md
+After=network-online.target podman.socket
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=@HELIX_SKILLS_PROJECT_ROOT@/deploy
+ExecStart=@HELIX_SKILLS_PROJECT_ROOT@/scripts/start.sh --quiet
+ExecStop=@HELIX_SKILLS_PROJECT_ROOT@/scripts/stop.sh --quiet
+ExecReload=@HELIX_SKILLS_PROJECT_ROOT@/scripts/restart.sh --quiet
+TimeoutStartSec=300
+TimeoutStopSec=120
+
+[Install]
+WantedBy=default.target

@@ -1,177 +1,100 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # =============================================================================
-# HelixKnowledge Skill Graph System - Start Script
+# start.sh - bring the HelixKnowledge Skill Graph datastore stack up
 # =============================================================================
-# Usage: ./start.sh [--compose | --systemd | --foreground]
-# Defaults to systemd if available, falls back to docker compose.
+# Purpose:
+#   Runs `compose up -d` against deploy/docker-compose.yml (via whichever of
+#   docker compose / podman compose / podman-compose is available) and waits
+#   for the postgres service to report healthy before returning. This is the
+#   ExecStart command of the systemctl --user unit (deploy/systemd/
+#   helix-skills.service) as well as the manual entry point.
+#
+# Usage:
+#   scripts/start.sh [--timeout SECONDS] [--quiet] [-h|--help]
+#
+# Inputs:
+#   deploy/docker-compose.yml (required), deploy/.env (optional).
+#
+# Outputs:
+#   Container stack started; prints compose ps output; exits non-zero if
+#   Postgres never becomes ready within the timeout (the stack is left
+#   running so `scripts/logs.sh` / `scripts/status.sh` can diagnose it).
+#
+# Side-effects: starts containers/volumes/networks via the container engine.
+#
+# Dependencies: _lib.sh, one of {docker, podman, podman-compose}.
+#
+# Cross-references: stop.sh, restart.sh, status.sh, deploy/docker-compose.yml,
+#   deploy/systemd/helix-skills.service. (A docs/scripts/start.md companion
+#   guide is not yet created - out of this task's strict scripts/+deploy/-
+#   only scope; tracked as a follow-up.)
+# Last verified: 2026-07-15
 # =============================================================================
-
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-INSTALL_DIR="$(dirname "$SCRIPT_DIR")"
-SERVICE_NAME="skill-system"
+# shellcheck source-path=SCRIPTDIR
+# shellcheck source=_lib.sh
+source "${SCRIPT_DIR}/_lib.sh"
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
+usage() {
+    cat <<'EOF'
+Usage: start.sh [--timeout SECONDS] [--quiet] [-h|--help]
 
-log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
-log_success() { echo -e "${GREEN}[OK]${NC} $1"; }
-log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
-log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+Bring the HelixKnowledge Skill Graph datastore (Postgres + pgvector) up via
+docker compose / podman compose / podman-compose, then wait for Postgres to
+report healthy.
 
-# Detect container runtime and compose
-detect_runtime() {
-    if command -v docker &> /dev/null; then
-        CONTAINER_RUNTIME="docker"
-        if docker compose version &> /dev/null; then
-            COMPOSE_CMD="docker compose"
-        elif command -v docker-compose &> /dev/null; then
-            COMPOSE_CMD="docker-compose"
-        fi
-    elif command -v podman &> /dev/null; then
-        CONTAINER_RUNTIME="podman"
-        if command -v podman-compose &> /dev/null; then
-            COMPOSE_CMD="podman-compose"
-        fi
-    else
-        log_error "No container runtime found"
-        exit 1
-    fi
+Options:
+  --timeout SECONDS  Max seconds to wait for Postgres readiness (default: 60).
+  --quiet, -q         Suppress informational (non-error) output.
+  -h, --help          Show this help and exit.
+EOF
 }
 
-# Check if systemd user service is available
-has_systemd() {
-    systemctl --user status &> /dev/null && \
-        [ -f "$HOME/.config/systemd/user/${SERVICE_NAME}.service" ]
-}
+timeout_seconds=60
 
-# Start via systemd
-start_systemd() {
-    log_info "Starting via systemd user service..."
-    systemctl --user start "$SERVICE_NAME"
-    sleep 3
-    
-    if systemctl --user is-active "$SERVICE_NAME" &> /dev/null; then
-        log_success "Service started successfully"
-        systemctl --user status "$SERVICE_NAME" --no-pager
-    else
-        log_error "Failed to start service"
-        journalctl --user -u "$SERVICE_NAME" --no-pager -n 20
-        exit 1
-    fi
-}
-
-# Start via docker compose
-start_compose() {
-    log_info "Starting via $COMPOSE_CMD..."
-    cd "$INSTALL_DIR"
-    
-    # Pull latest images
-    log_info "Pulling images..."
-    $COMPOSE_CMD pull
-    
-    # Start services
-    $COMPOSE_CMD up -d --remove-orphans
-    
-    log_success "Stack started"
-    $COMPOSE_CMD ps
-}
-
-# Start in foreground (for debugging)
-start_foreground() {
-    log_info "Starting in foreground mode..."
-    cd "$INSTALL_DIR"
-    $COMPOSE_CMD up --remove-orphans
-}
-
-# Wait for health check
-wait_for_health() {
-    log_info "Waiting for API health check..."
-    local retries=30
-    
-    while [ $retries -gt 0 ]; do
-        if curl -sf http://localhost:8080/health &> /dev/null; then
-            log_success "API is healthy"
-            return 0
-        fi
-        retries=$((retries - 1))
-        echo -n "."
-        sleep 2
-    done
-    
-    log_warn "API not responding yet. Check logs with: ./scripts/status.sh"
-    return 1
-}
-
-# Main
-main() {
-    detect_runtime
-    
-    local mode=""
-    
-    # Parse arguments
-    while [ $# -gt 0 ]; do
-        case "$1" in
-            --systemd)
-                mode="systemd"
-                ;;
-            --compose)
-                mode="compose"
-                ;;
-            --foreground)
-                mode="foreground"
-                ;;
-            --help|-h)
-                echo "Usage: $0 [--compose | --systemd | --foreground]"
-                echo ""
-                echo "Options:"
-                echo "  --compose     Start via docker/podman compose (default fallback)"
-                echo "  --systemd     Start via systemd user service"
-                echo "  --foreground  Start in foreground for debugging"
-                echo "  --help        Show this help"
-                exit 0
-                ;;
-            *)
-                log_error "Unknown option: $1"
-                exit 1
-                ;;
-        esac
-        shift
-    done
-    
-    # Auto-detect mode
-    if [ -z "$mode" ]; then
-        if has_systemd; then
-            mode="systemd"
-        else
-            mode="compose"
-        fi
-    fi
-    
-    log_info "Starting Skill Graph System (mode: $mode)..."
-    
-    case "$mode" in
-        systemd)
-            start_systemd
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --timeout)
+            [[ $# -ge 2 ]] || { echo "start.sh: --timeout requires an argument" >&2; exit 2; }
+            timeout_seconds="$2"
+            shift 2
             ;;
-        compose)
-            start_compose
-            wait_for_health
+        --quiet|-q)
+            export HX_QUIET=1
+            shift
             ;;
-        foreground)
-            start_foreground
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "start.sh: unknown argument: $1" >&2
+            usage >&2
+            exit 2
             ;;
     esac
-    
-    echo ""
-    log_success "Skill Graph System is running!"
-    echo "  API:     http://localhost:8080"
-    echo "  Health:  curl http://localhost:8080/health"
-}
+done
 
-main "$@"
+hx_load_env
+hx_require_compose_file
+hx_detect_engine
+
+hx_log "Using compose engine: ${HX_COMPOSE_BIN[*]}"
+hx_log "Bringing up '${COMPOSE_PROJECT_NAME}' stack from ${HX_COMPOSE_FILE} ..."
+
+hx_compose up -d
+
+hx_log "Waiting up to ${timeout_seconds}s for postgres to report healthy ..."
+if hx_wait_for_postgres "${timeout_seconds}"; then
+    hx_log "postgres is ready."
+    hx_compose ps
+    hx_log "Stack is up."
+    exit 0
+else
+    hx_err "postgres did not become ready within ${timeout_seconds}s."
+    hx_compose ps || true
+    hx_err "Check logs with: scripts/logs.sh postgres"
+    exit 1
+fi

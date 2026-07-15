@@ -1,295 +1,138 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # =============================================================================
-# HelixKnowledge Skill Graph System - Status Script
+# status.sh - report status of the HelixKnowledge Skill Graph datastore stack
 # =============================================================================
-# Usage: ./status.sh [--watch | --json]
-#   --watch  Continuous monitoring mode (refresh every 5s)
-#   --json   Output in JSON format
+# Purpose:
+#   Reports three independent signals: the systemctl --user unit state
+#   (best-effort - never fatal if the unit isn't installed or systemd --user
+#   isn't reachable), `compose ps` for the stack, and a live pg_isready
+#   probe. Never crashes on a missing container engine or missing unit -
+#   those are reported as part of the "down" verdict, not script failures.
+#
+# Usage:
+#   scripts/status.sh [-h|--help]
+#
+# Inputs:
+#   deploy/docker-compose.yml, deploy/.env (both optional for this script -
+#   their absence is reported, not fatal).
+#
+# Outputs:
+#   Human-readable report on stdout. Exit code: 0 if Postgres is reachable
+#   and ready (the stack is genuinely "up"); non-zero (1) otherwise - this
+#   includes "no container engine installed" and "compose file missing",
+#   both of which are unambiguously "down".
+#
+# Side-effects: none (read-only probes only).
+#
+# Dependencies: _lib.sh; systemctl optional; one of
+#   {docker, podman, podman-compose} optional (absence is reported, not
+#   required).
+#
+# Cross-references: start.sh, stop.sh, restart.sh. (A docs/scripts/status.md
+#   companion guide is not yet created - out of this task's strict
+#   scripts/+deploy/-only scope; tracked as a follow-up.)
+# Last verified: 2026-07-15
 # =============================================================================
-
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-INSTALL_DIR="$(dirname "$SCRIPT_DIR")"
-SERVICE_NAME="skill-system"
+# shellcheck source-path=SCRIPTDIR
+# shellcheck source=_lib.sh
+source "${SCRIPT_DIR}/_lib.sh"
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-BOLD='\033[1m'
-NC='\033[0m'
+usage() {
+    cat <<'EOF'
+Usage: status.sh [-h|--help]
 
-log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
-log_success() { echo -e "${GREEN}[OK]${NC} $1"; }
-log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
-log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+Report status of the HelixKnowledge Skill Graph datastore stack:
+  1. systemctl --user unit state (best-effort).
+  2. `compose ps` for the deploy/docker-compose.yml stack.
+  3. A live pg_isready probe against the postgres service.
 
-# Detect compose command
-detect_compose() {
-    if docker compose version &> /dev/null; then
-        COMPOSE_CMD="docker compose"
-        CONTAINER_RUNTIME="docker"
-    elif command -v docker-compose &> /dev/null; then
-        COMPOSE_CMD="docker-compose"
-        CONTAINER_RUNTIME="docker"
-    elif command -v podman-compose &> /dev/null; then
-        COMPOSE_CMD="podman-compose"
-        CONTAINER_RUNTIME="podman"
-    else
-        echo "No compose command found"
-        exit 1
-    fi
-}
+Exit code: 0 if postgres is up and ready, non-zero otherwise (this
+includes "no container engine found" and "compose file missing" - both
+are unambiguously "down").
 
-# Show container status
-show_containers() {
-    echo -e "\n${BOLD}Container Status${NC}"
-    echo "═══════════════════════════════════════════════════════════════"
-    
-    cd "$INSTALL_DIR"
-    
-    local containers=$("$COMPOSE_CMD" ps --format json 2>/dev/null || "$COMPOSE_CMD" ps 2>/dev/null)
-    
-    if [ -z "$containers" ]; then
-        log_warn "No containers running"
-        return
-    fi
-    
-    # Try JSON format first
-    if echo "$containers" | head -1 | grep -q '{'; then
-        echo "$containers" | while read -r line; do
-            local name=$(echo "$line" | jq -r '.Name // .name // "unknown"' 2>/dev/null || echo "unknown")
-            local state=$(echo "$line" | jq -r '.State // .state // "unknown"' 2>/dev/null || echo "unknown")
-            local health=$(echo "$line" | jq -r '.Health // .health // "N/A"' 2>/dev/null || echo "N/A")
-            local status=$(echo "$line" | jq -r '.Status // .status // ""' 2>/dev/null || echo "")
-            
-            local state_color="$RED"
-            [ "$state" = "running" ] && state_color="$GREEN"
-            
-            printf "  %-20s ${state_color}%-10s${NC} Health: %-10s %s\n" \
-                "$name" "$state" "$health" "$status"
-        done
-    else
-        # Fallback to table format
-        "$COMPOSE_CMD" ps
-    fi
-}
-
-# Show systemd status
-show_systemd() {
-    if [ -f "$HOME/.config/systemd/user/${SERVICE_NAME}.service" ]; then
-        echo -e "\n${BOLD}systemd Service${NC}"
-        echo "═══════════════════════════════════════════════════════════════"
-        
-        local status=$(systemctl --user is-active "$SERVICE_NAME" 2>/dev/null || echo "inactive")
-        local enabled=$(systemctl --user is-enabled "$SERVICE_NAME" 2>/dev/null || echo "disabled")
-        
-        local status_color="$RED"
-        [ "$status" = "active" ] && status_color="$GREEN"
-        
-        printf "  Service:  ${status_color}%s${NC}\n" "$status"
-        printf "  Enabled:  %s\n" "$enabled"
-        
-        if [ "$status" = "active" ]; then
-            local uptime=$(systemctl --user show "$SERVICE_NAME" --property=ActiveEnterTimestamp --value 2>/dev/null)
-            printf "  Uptime:   %s\n" "$uptime"
-        fi
-    fi
-}
-
-# Check API health
-check_api_health() {
-    echo -e "\n${BOLD}API Health${NC}"
-    echo "═══════════════════════════════════════════════════════════════"
-    
-    if command -v curl &> /dev/null; then
-        local response
-        response=$(curl -sf http://localhost:8080/health 2>/dev/null || echo "")
-        
-        if [ -n "$response" ]; then
-            log_success "API responding"
-            
-            if command -v jq &> /dev/null; then
-                local status=$(echo "$response" | jq -r '.status // "unknown"' 2>/dev/null)
-                local version=$(echo "$response" | jq -r '.version // "unknown"' 2>/dev/null)
-                local db=$(echo "$response" | jq -r '.database // "unknown"' 2>/dev/null)
-                
-                printf "  Status:   %s\n" "$status"
-                printf "  Version:  %s\n" "$version"
-                printf "  Database: %s\n" "$db"
-            else
-                echo "  Response: $response"
-            fi
-        else
-            log_error "API not responding at http://localhost:8080/health"
-        fi
-    else
-        log_warn "curl not available, skipping API health check"
-    fi
-}
-
-# Check database
-check_database() {
-    echo -e "\n${BOLD}Database${NC}"
-    echo "═══════════════════════════════════════════════════════════════"
-    
-    cd "$INSTALL_DIR"
-    
-    if "$COMPOSE_CMD" exec -T db pg_isready -U skilluser -d skilldb &> /dev/null; then
-        log_success "PostgreSQL is ready"
-        
-        # Get database stats
-        local stats
-        stats=$("$COMPOSE_CMD" exec -T db psql -U skilluser -d skilldb -t -c "
-            SELECT 
-                (SELECT COUNT(*) FROM skills) as skills,
-                (SELECT COUNT(*) FROM skill_relationships) as relationships,
-                (SELECT COUNT(*) FROM evidence) as evidence,
-                pg_size_pretty(pg_database_size('skilldb')) as db_size;
-        " 2>/dev/null || echo "")
-        
-        if [ -n "$stats" ]; then
-            echo "  Stats:"
-            echo "$stats" | while read -r line; do
-                echo "    $line"
-            done
-        fi
-    else
-        log_error "PostgreSQL not ready"
-    fi
-}
-
-# Show recent logs
-show_logs() {
-    echo -e "\n${BOLD}Recent Logs (last 20 lines)${NC}"
-    echo "═══════════════════════════════════════════════════════════════"
-    
-    cd "$INSTALL_DIR"
-    "$COMPOSE_CMD" logs --tail=20 --no-log-prefix 2>/dev/null || true
-}
-
-# Show resource usage
-show_resources() {
-    echo -e "\n${BOLD}Resource Usage${NC}"
-    echo "═══════════════════════════════════════════════════════════════"
-    
-    cd "$INSTALL_DIR"
-    local containers
-    containers=$("$COMPOSE_CMD" ps -q 2>/dev/null || true)
-    
-    if [ -n "$containers" ]; then
-        for container in $containers; do
-            local name=$($CONTAINER_RUNTIME inspect --format='{{.Name}}' "$container" 2>/dev/null | sed 's/\///')
-            local mem_usage=$($CONTAINER_RUNTIME stats --no-stream --format='{{.MemUsage}}' "$container" 2>/dev/null || echo "N/A")
-            local cpu_usage=$($CONTAINER_RUNTIME stats --no-stream --format='{{.CPUPerc}}' "$container" 2>/dev/null || echo "N/A")
-            
-            printf "  %-20s CPU: %-8s MEM: %s\n" "$name" "$cpu_usage" "$mem_usage"
-        done
-    fi
-}
-
-# JSON output
-json_output() {
-    local api_response=""
-    local api_status="unhealthy"
-    
-    if command -v curl &> /dev/null; then
-        api_response=$(curl -sf http://localhost:8080/health 2>/dev/null || echo "")
-        [ -n "$api_response" ] && api_status="healthy"
-    fi
-    
-    cd "$INSTALL_DIR"
-    local container_json
-    container_json=$("$COMPOSE_CMD" ps --format json 2>/dev/null || echo "[]")
-    
-    cat << EOF
-{
-    "service": "$SERVICE_NAME",
-    "timestamp": "$(date -Iseconds)",
-    "api": {
-        "status": "$api_status",
-        "response": $(echo "$api_response" | jq . 2>/dev/null || echo "null")
-    },
-    "containers": $container_json
-}
+Options:
+  -h, --help  Show this help and exit.
 EOF
 }
 
-# Watch mode
-watch_mode() {
-    while true; do
-        clear
-        echo -e "${CYAN}$(date '+%Y-%m-%d %H:%M:%S') - Skill Graph System Monitor${NC}"
-        echo "Press Ctrl+C to exit"
-        
-        show_systemd
-        show_containers
-        check_api_health
-        check_database
-        show_resources
-        
-        sleep 5
-    done
-}
-
-# Main
-main() {
-    detect_compose
-    
-    local mode=""
-    
-    while [ $# -gt 0 ]; do
-        case "$1" in
-            --watch)
-                mode="watch"
-                ;;
-            --json)
-                mode="json"
-                ;;
-            --help|-h)
-                echo "Usage: $0 [--watch | --json]"
-                echo ""
-                echo "Options:"
-                echo "  --watch  Continuous monitoring mode"
-                echo "  --json   JSON output"
-                echo "  --help   Show this help"
-                exit 0
-                ;;
-            *)
-                log_error "Unknown option: $1"
-                exit 1
-                ;;
-        esac
-        shift
-    done
-    
-    case "$mode" in
-        watch)
-            watch_mode
-            ;;
-        json)
-            json_output
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -h|--help)
+            usage
+            exit 0
             ;;
         *)
-            # Default status display
-            echo -e "${BOLD}"
-            echo "╔═══════════════════════════════════════════════════════════════╗"
-            echo "║         Skill Graph System Status                             ║"
-            echo "╚═══════════════════════════════════════════════════════════════╝"
-            echo -e "${NC}"
-            
-            show_systemd
-            show_containers
-            check_api_health
-            check_database
-            show_resources
-            
-            echo -e "\n${CYAN}Run with --watch for continuous monitoring${NC}"
+            echo "status.sh: unknown argument: $1" >&2
+            usage >&2
+            exit 2
             ;;
     esac
-}
+done
 
-main "$@"
+hx_load_env
+
+echo "== HelixKnowledge Skill Graph datastore status (project: ${COMPOSE_PROJECT_NAME}) =="
+
+# -------------------------------------------------------------------
+# 1) systemctl --user unit (best-effort; never fatal).
+# -------------------------------------------------------------------
+unit_path="$(hx_systemd_unit_path)"
+echo
+echo "-- systemd --user unit --"
+if hx_has_systemd_user; then
+    if [[ -f "${unit_path}" ]]; then
+        hx_systemctl_user status "${HX_UNIT_FILENAME}" --no-pager 2>&1 || true
+    else
+        echo "not installed: ${unit_path} does not exist (run scripts/install.sh)."
+    fi
+else
+    echo "systemctl --user is not reachable (absent, or not responding within ${HX_SYSTEMCTL_TIMEOUT}s)."
+fi
+
+# -------------------------------------------------------------------
+# 2) compose ps (best-effort; absence of an engine is reported, not a
+#    script crash).
+# -------------------------------------------------------------------
+echo
+echo "-- compose ps --"
+engine_found=0
+if hx_detect_engine_soft; then
+    engine_found=1
+    echo "engine: ${HX_COMPOSE_BIN[*]}"
+    if [[ -f "${HX_COMPOSE_FILE}" ]]; then
+        hx_compose ps || true
+    else
+        echo "compose file not found: ${HX_COMPOSE_FILE}"
+    fi
+else
+    echo "No container engine with compose support found (checked: docker compose, podman compose, podman-compose)."
+fi
+
+# -------------------------------------------------------------------
+# 3) live pg_isready probe.
+# -------------------------------------------------------------------
+echo
+echo "-- postgres readiness (pg_isready) --"
+pg_ready=0
+if [[ "${engine_found}" == "1" && -f "${HX_COMPOSE_FILE}" ]]; then
+    if hx_pg_isready; then
+        echo "READY: postgres is accepting connections (db=${DB_NAME}, user=${DB_USER})."
+        pg_ready=1
+    else
+        echo "NOT READY: postgres is not accepting connections (stack down, still starting, or unreachable)."
+    fi
+else
+    echo "SKIPPED: cannot probe postgres (no container engine and/or missing compose file - see above)."
+fi
+
+echo
+if [[ "${pg_ready}" == "1" ]]; then
+    echo "OVERALL: UP"
+    exit 0
+else
+    echo "OVERALL: DOWN"
+    exit 1
+fi

@@ -1,420 +1,165 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # =============================================================================
-# HelixKnowledge Skill Graph System - One-Command Installer
+# install.sh - install the HelixKnowledge Skill Graph systemd --user unit
 # =============================================================================
-# Usage: ./install.sh [install-dir]
-# Default install directory: /opt/skill-system
-# 
-# This script:
-#   1. Checks dependencies (docker/podman, compose)
-#   2. Creates install directory
-#   3. Copies deployment files
-#   4. Pulls container images
-#   5. Runs database migrations
-#   6. Creates systemd user service
-#   7. Starts the stack
-#   8. Prints status and next steps
+# Purpose:
+#   Renders deploy/systemd/helix-skills.service (substituting the
+#   @HELIX_SKILLS_PROJECT_ROOT@ placeholder with this checkout's absolute
+#   path) into ~/.config/systemd/user/helix-skills.service, then runs
+#   `systemctl --user daemon-reload`. USER SCOPE ONLY - never writes a
+#   system-wide unit, never invokes sudo.
+#
+# Usage:
+#   scripts/install.sh [--dry-run] [-h|--help]
+#
+# Inputs:
+#   deploy/systemd/helix-skills.service (required template).
+#
+# Outputs:
+#   ~/.config/systemd/user/helix-skills.service written (unless --dry-run);
+#   `systemctl --user daemon-reload` run; instructions for enabling the unit
+#   and (optionally) `loginctl enable-linger` printed.
+#
+# Side-effects: writes one file under ~/.config/systemd/user/, runs
+#   `systemctl --user daemon-reload`. Idempotent: re-running with the same
+#   checkout path is a no-op write (content compared before writing) and
+#   daemon-reload is always safe to repeat.
+#
+# Dependencies: _lib.sh, systemctl (systemd --user).
+#
+# Cross-references: uninstall.sh, deploy/systemd/helix-skills.service.
+#   (A docs/scripts/install.md companion guide is not yet created - out of
+#   this task's strict scripts/+deploy/-only scope; tracked as a follow-up.)
+# Last verified: 2026-07-15
 # =============================================================================
-
 set -euo pipefail
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-
-# Configuration
-INSTALL_DIR="${1:-/opt/skill-system}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-SERVICE_NAME="skill-system"
+# shellcheck source-path=SCRIPTDIR
+# shellcheck source=_lib.sh
+source "${SCRIPT_DIR}/_lib.sh"
 
-# Logging functions
-log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
-log_success() { echo -e "${GREEN}[OK]${NC} $1"; }
-log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
-log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+usage() {
+    cat <<'EOF'
+Usage: install.sh [--dry-run] [-h|--help]
 
-# Print banner
-print_banner() {
-    echo -e "${BLUE}"
-    echo "╔═══════════════════════════════════════════════════════════════╗"
-    echo "║         HelixKnowledge Skill Graph System Installer           ║"
-    echo "║                                                               ║"
-    echo "║  AI-powered skill tracking with auto-growth and validation   ║"
-    echo "╚═══════════════════════════════════════════════════════════════╝"
-    echo -e "${NC}"
+Install the HelixKnowledge Skill Graph datastore as a systemctl --user unit
+(no sudo, no system-wide unit). Renders
+deploy/systemd/helix-skills.service into
+~/.config/systemd/user/helix-skills.service with this checkout's absolute
+path substituted in, then runs `systemctl --user daemon-reload`.
+Idempotent - safe to re-run.
+
+Options:
+  --dry-run   Show what would be written/run without changing anything.
+  -h, --help  Show this help and exit.
+EOF
 }
 
-# Check if command exists
-check_command() {
-    if command -v "$1" &> /dev/null; then
-        return 0
-    else
-        return 1
-    fi
-}
+dry_run=0
 
-# Check dependencies
-check_dependencies() {
-    log_info "Checking dependencies..."
-    
-    # Check for container runtime (docker or podman)
-    if check_command docker; then
-        CONTAINER_RUNTIME="docker"
-        log_success "Found Docker: $(docker --version)"
-    elif check_command podman; then
-        CONTAINER_RUNTIME="podman"
-        log_success "Found Podman: $(podman --version)"
-    else
-        log_error "Neither Docker nor Podman found. Please install one of them first."
-        echo ""
-        echo "  Docker: https://docs.docker.com/get-docker/"
-        echo "  Podman: https://podman.io/getting-started/installation"
-        exit 1
-    fi
-    
-    # Check for compose plugin
-    if $CONTAINER_RUNTIME compose version &> /dev/null; then
-        COMPOSE_CMD="$CONTAINER_RUNTIME compose"
-        log_success "Found Compose plugin"
-    elif check_command docker-compose; then
-        COMPOSE_CMD="docker-compose"
-        log_success "Found docker-compose"
-    elif check_command podman-compose; then
-        COMPOSE_CMD="podman-compose"
-        log_success "Found podman-compose"
-    else
-        log_error "No compose plugin found. Please install docker-compose or podman-compose."
-        exit 1
-    fi
-    
-    # Check for curl
-    if ! check_command curl; then
-        log_warn "curl not found. Health checks will be limited."
-    fi
-    
-    # Check for jq
-    if ! check_command jq; then
-        log_warn "jq not found. JSON parsing will be limited."
-    fi
-    
-    # Check systemd availability for user services
-    if ! systemctl --user status &> /dev/null; then
-        log_warn "systemd user services not available. Will use direct compose commands."
-        USE_SYSTEMD=false
-    else
-        USE_SYSTEMD=true
-        log_success "systemd user services available"
-    fi
-    
-    # Check available resources
-    if check_command free; then
-        AVAILABLE_MEM=$(free -m | awk '/^Mem:/{print $7}')
-        if [ "$AVAILABLE_MEM" -lt 2048 ]; then
-            log_warn "Available memory is ${AVAILABLE_MEM}MB. Recommended: 4096MB+"
-        else
-            log_success "Available memory: ${AVAILABLE_MEM}MB"
-        fi
-    fi
-    
-    log_success "All required dependencies found"
-}
-
-# Create install directory
-setup_install_dir() {
-    log_info "Setting up installation directory: $INSTALL_DIR"
-    
-    if [ -d "$INSTALL_DIR" ]; then
-        log_warn "Directory $INSTALL_DIR already exists"
-        read -p "Overwrite existing installation? [y/N]: " confirm
-        if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
-            log_info "Installation cancelled"
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --dry-run)
+            dry_run=1
+            shift
+            ;;
+        -h|--help)
+            usage
             exit 0
-        fi
-        BACKUP_DIR="${INSTALL_DIR}.backup.$(date +%Y%m%d%H%M%S)"
-        log_info "Backing up existing installation to $BACKUP_DIR"
-        cp -r "$INSTALL_DIR" "$BACKUP_DIR"
+            ;;
+        *)
+            echo "install.sh: unknown argument: $1" >&2
+            usage >&2
+            exit 2
+            ;;
+    esac
+done
+
+template_path="${HX_DEPLOY_DIR}/systemd/${HX_UNIT_FILENAME}"
+[[ -f "${template_path}" ]] || hx_die "systemd unit template not found: ${template_path}"
+
+unit_dir="${HOME}/.config/systemd/user"
+unit_path="$(hx_systemd_unit_path)"
+
+# -----------------------------------------------------------------------
+# Render the template: substitute @HELIX_SKILLS_PROJECT_ROOT@ with this
+# checkout's absolute path. Uses bash parameter expansion (not sed) so an
+# unusual path (containing characters special to sed) can never corrupt
+# the substitution.
+# -----------------------------------------------------------------------
+render_unit() {
+    local line
+    while IFS= read -r line || [[ -n "${line}" ]]; do
+        printf '%s\n' "${line//@HELIX_SKILLS_PROJECT_ROOT@/${HX_PROJECT_ROOT}}"
+    done < "${template_path}"
+}
+
+rendered="$(render_unit)"
+existing=""
+[[ -f "${unit_path}" ]] && existing="$(cat "${unit_path}")"
+
+hx_log "Project root:      ${HX_PROJECT_ROOT}"
+hx_log "Unit template:     ${template_path}"
+hx_log "Target unit path:  ${unit_path}"
+
+if [[ "${dry_run}" == "1" ]]; then
+    echo "--- DRY RUN: no files written, no systemctl commands run ---"
+    if [[ "${existing}" == "${rendered}" && -n "${existing}" ]]; then
+        echo "Would leave unchanged (already installed and identical): ${unit_path}"
+    elif [[ -f "${unit_path}" ]]; then
+        echo "Would OVERWRITE existing unit at: ${unit_path}"
+    else
+        echo "Would CREATE new unit at: ${unit_path}"
     fi
-    
-    mkdir -p "$INSTALL_DIR"
-    mkdir -p "$INSTALL_DIR"/{scripts,config,docs,data/evidence,data/backups}
-    
-    # Copy files
-    cp "$PROJECT_DIR/docker-compose.yml" "$INSTALL_DIR/"
-    cp "$PROJECT_DIR/Dockerfile" "$INSTALL_DIR/"
-    cp "$PROJECT_DIR/Makefile" "$INSTALL_DIR/" 2>/dev/null || true
-    cp -r "$PROJECT_DIR/scripts/"* "$INSTALL_DIR/scripts/"
-    cp -r "$PROJECT_DIR/config/"* "$INSTALL_DIR/config/" 2>/dev/null || true
-    cp -r "$PROJECT_DIR/migrations" "$INSTALL_DIR/" 2>/dev/null || true
-    
-    # Create .env from example if it doesn't exist
-    if [ ! -f "$INSTALL_DIR/.env" ]; then
-        if [ -f "$PROJECT_DIR/.env.example" ]; then
-            cp "$PROJECT_DIR/.env.example" "$INSTALL_DIR/.env"
-            log_info "Created .env from template. Please review and customize it."
-        else
-            # Create minimal .env
-            cat > "$INSTALL_DIR/.env" << 'EOF'
-VERSION=1.0.0
-DB_NAME=skilldb
-DB_USER=skilluser
-DB_PASSWORD=skillpassword
-LOG_LEVEL=info
-HTTP_PORT=8080
-HTTP3_PORT=8443
-ENABLE_HTTP3=true
-EMBEDDING_PROVIDER=local
-EMBEDDING_DIMENSION=768
-AUTO_EXPAND_ENABLED=true
+    echo
+    echo "--- Rendered unit content ---"
+    printf '%s\n' "${rendered}"
+    echo "--- end ---"
+    echo
+    echo "Would then run: systemctl --user daemon-reload"
+    exit 0
+fi
+
+mkdir -p "${unit_dir}"
+
+if [[ "${existing}" == "${rendered}" && -n "${existing}" ]]; then
+    hx_log "Unit already installed and unchanged: ${unit_path}"
+else
+    # Write atomically: temp file in the same directory, then rename.
+    tmp_file="$(mktemp "${unit_dir}/.${HX_UNIT_FILENAME}.XXXXXX")"
+    printf '%s\n' "${rendered}" > "${tmp_file}"
+    mv -f "${tmp_file}" "${unit_path}"
+    hx_log "Wrote unit: ${unit_path}"
+fi
+
+if command -v systemctl >/dev/null 2>&1; then
+    if hx_systemctl_user daemon-reload; then
+        hx_log "Ran: systemctl --user daemon-reload"
+    else
+        hx_die "systemctl --user daemon-reload failed or did not respond within \
+${HX_SYSTEMCTL_TIMEOUT}s. The unit file was written to ${unit_path} - this \
+step only registers it with the running systemd --user manager, so it is \
+safe to retry: 'systemctl --user daemon-reload' by hand once that manager \
+is responsive again, or re-run this script."
+    fi
+else
+    hx_warn "systemctl not found; skipped daemon-reload. Install systemd (user session) to use this unit."
+fi
+
+cat <<EOF
+
+Install complete. Next steps:
+
+  1. Enable and start the service now:
+       systemctl --user enable --now ${HX_UNIT_FILENAME}
+
+  2. (Recommended for boot persistence) Allow this user's systemd --user
+     instance to run without an active login session:
+       loginctl enable-linger ${USER}
+
+  3. Check status any time with:
+       scripts/status.sh
+     or:
+       systemctl --user status ${HX_UNIT_FILENAME}
 EOF
-        fi
-    fi
-    
-    # Make scripts executable
-    chmod +x "$INSTALL_DIR/scripts/"*.sh
-    
-    log_success "Installation directory prepared"
-}
-
-# Pull container images
-pull_images() {
-    log_info "Pulling container images..."
-    cd "$INSTALL_DIR"
-    $COMPOSE_CMD pull
-    log_success "Images pulled"
-}
-
-# Run database migrations
-run_migrations() {
-    log_info "Running database migrations..."
-    cd "$INSTALL_DIR"
-    
-    # Start database first
-    $COMPOSE_CMD up -d db
-    
-    # Wait for database to be ready
-    log_info "Waiting for database to be ready..."
-    sleep 5
-    
-    local retries=30
-    while [ $retries -gt 0 ]; do
-        if $COMPOSE_CMD exec -T db pg_isready -U skilluser -d skilldb &> /dev/null; then
-            log_success "Database is ready"
-            break
-        fi
-        retries=$((retries - 1))
-        sleep 2
-    done
-    
-    if [ $retries -eq 0 ]; then
-        log_error "Database failed to start"
-        exit 1
-    fi
-    
-    # Run migrations using skillctl or direct SQL
-    if [ -f "$INSTALL_DIR/migrations/001_initial.up.sql" ]; then
-        log_info "Applying initial schema..."
-        $COMPOSE_CMD exec -T db psql -U skilluser -d skilldb < \
-            "$INSTALL_DIR/migrations/001_initial.up.sql"
-        log_success "Initial schema applied"
-    fi
-    
-    log_success "Database migrations complete"
-}
-
-# Create systemd user service
-create_systemd_service() {
-    if [ "$USE_SYSTEMD" != true ]; then
-        log_warn "Skipping systemd service creation"
-        return
-    fi
-    
-    log_info "Creating systemd user service..."
-    
-    # Determine compose command for service file
-    if [ "$CONTAINER_RUNTIME" = "podman" ]; then
-        COMPOSE_BIN="podman-compose"
-    else
-        COMPOSE_BIN="docker compose"
-    fi
-    
-    # Create systemd user directory
-    mkdir -p "$HOME/.config/systemd/user"
-    
-    # Create service file
-    cat > "$HOME/.config/systemd/user/${SERVICE_NAME}.service" << EOF
-[Unit]
-Description=HelixKnowledge Skill Graph System
-Documentation=https://github.com/helixdevelopment/skill-system
-Requires=${CONTAINER_RUNTIME}.socket
-After=${CONTAINER_RUNTIME}.socket network-online.target
-
-[Service]
-Type=simple
-WorkingDirectory=${INSTALL_DIR}
-Environment="COMPOSE_CMD=${COMPOSE_CMD}"
-Environment="PATH=/usr/local/bin:/usr/bin:/bin"
-Environment="CONTAINER_RUNTIME=${CONTAINER_RUNTIME}"
-
-# Load environment from .env file
-EnvironmentFile=${INSTALL_DIR}/.env
-
-# Start command
-ExecStartPre=-${COMPOSE_BIN} -f ${INSTALL_DIR}/docker-compose.yml pull
-ExecStart=${COMPOSE_BIN} -f ${INSTALL_DIR}/docker-compose.yml up --remove-orphans
-
-# Stop command
-ExecStop=${COMPOSE_BIN} -f ${INSTALL_DIR}/docker-compose.yml down --timeout 30
-
-# Restart policy
-Restart=on-failure
-RestartSec=10
-StartLimitInterval=60
-StartLimitBurst=3
-
-# Graceful shutdown
-TimeoutStopSec=60
-KillSignal=SIGTERM
-
-[Install]
-WantedBy=default.target
-EOF
-    
-    # Reload systemd
-    systemctl --user daemon-reload
-    
-    # Enable service
-    systemctl --user enable "$SERVICE_NAME"
-    
-    log_success "systemd user service created"
-    log_info "Service file: $HOME/.config/systemd/user/${SERVICE_NAME}.service"
-}
-
-# Start the stack
-start_stack() {
-    log_info "Starting the stack..."
-    cd "$INSTALL_DIR"
-    
-    if [ "$USE_SYSTEMD" = true ]; then
-        systemctl --user start "$SERVICE_NAME"
-        sleep 5
-        
-        if systemctl --user is-active "$SERVICE_NAME" &> /dev/null; then
-            log_success "Stack started via systemd"
-        else
-            log_error "Failed to start stack via systemd"
-            systemctl --user status "$SERVICE_NAME" --no-pager
-            exit 1
-        fi
-    else
-        $COMPOSE_CMD up -d
-        sleep 5
-        log_success "Stack started via compose"
-    fi
-}
-
-# Wait for services to be healthy
-wait_for_healthy() {
-    log_info "Waiting for services to be healthy..."
-    cd "$INSTALL_DIR"
-    
-    local retries=30
-    while [ $retries -gt 0 ]; do
-        local all_healthy=true
-        
-        # Check API health
-        if curl -sf http://localhost:8080/health &> /dev/null; then
-            log_success "API is healthy"
-            break
-        else
-            all_healthy=false
-        fi
-        
-        if [ "$all_healthy" = false ]; then
-            retries=$((retries - 1))
-            echo -n "."
-            sleep 2
-        fi
-    done
-    
-    if [ $retries -eq 0 ]; then
-        log_warn "Services may not be fully healthy yet. Check logs with: ./scripts/status.sh"
-    else
-        log_success "All services are healthy"
-    fi
-}
-
-# Print status and next steps
-print_next_steps() {
-    echo ""
-    echo -e "${GREEN}╔═══════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${GREEN}║              Installation Complete!                           ║${NC}"
-    echo -e "${GREEN}╚═══════════════════════════════════════════════════════════════╝${NC}"
-    echo ""
-    echo -e "${BLUE}Installation Directory:${NC} $INSTALL_DIR"
-    echo -e "${BLUE}Container Runtime:${NC} $CONTAINER_RUNTIME"
-    echo -e "${BLUE}Compose Command:${NC} $COMPOSE_CMD"
-    echo ""
-    echo -e "${BLUE}Services:${NC}"
-    echo "  API Server:     http://localhost:8080"
-    echo "  HTTP/3 API:     https://localhost:8443 (UDP)"
-    echo "  PostgreSQL:     localhost:5432"
-    echo ""
-    echo -e "${BLUE}Useful Commands:${NC}"
-    if [ "$USE_SYSTEMD" = true ]; then
-        echo "  Start:          systemctl --user start $SERVICE_NAME"
-        echo "  Stop:           systemctl --user stop $SERVICE_NAME"
-        echo "  Status:         systemctl --user status $SERVICE_NAME"
-        echo "  Logs:           journalctl --user -u $SERVICE_NAME -f"
-    fi
-    echo "  Compose:        cd $INSTALL_DIR && $COMPOSE_CMD ps"
-    echo "  Health:         curl http://localhost:8080/health"
-    echo "  API Docs:       curl http://localhost:8080/api/v1/docs"
-    echo ""
-    echo -e "${BLUE}Management Scripts:${NC}"
-    echo "  $INSTALL_DIR/scripts/start.sh   - Start the stack"
-    echo "  $INSTALL_DIR/scripts/stop.sh    - Stop the stack"
-    echo "  $INSTALL_DIR/scripts/status.sh  - Show stack status"
-    echo "  $INSTALL_DIR/scripts/backup.sh  - Create backup"
-    echo "  $INSTALL_DIR/scripts/migrate.sh - Run migrations"
-    echo ""
-    echo -e "${YELLOW}Next Steps:${NC}"
-    echo "  1. Review configuration in: $INSTALL_DIR/.env"
-    echo "  2. Access the API at: http://localhost:8080"
-    echo "  3. Read the documentation: $INSTALL_DIR/docs/"
-    echo "  4. Set up MCP integration: docs/MCP_INTEGRATION.md"
-    echo ""
-    echo -e "${YELLOW}Security Note:${NC}"
-    echo "  - Change default database password in .env"
-    echo "  - Set JWT_SECRET and API_KEY for production"
-    echo "  - Configure firewall rules for ports 8080, 8443, 5432"
-    echo ""
-}
-
-# Main installation flow
-main() {
-    print_banner
-    
-    log_info "Starting installation..."
-    log_info "Install directory: $INSTALL_DIR"
-    
-    check_dependencies
-    setup_install_dir
-    pull_images
-    run_migrations
-    create_systemd_service
-    start_stack
-    wait_for_healthy
-    print_next_steps
-    
-    log_success "Installation complete!"
-}
-
-# Handle interrupts
-trap 'log_error "Installation interrupted"; exit 130' INT TERM
-
-# Run main function
-main "$@"

@@ -1,123 +1,79 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # =============================================================================
-# HelixKnowledge Skill Graph System - Stop Script
+# stop.sh - bring the HelixKnowledge Skill Graph datastore stack down
 # =============================================================================
-# Usage: ./stop.sh [--systemd | --compose | --kill]
-# Defaults to systemd if available, falls back to docker compose.
+# Purpose:
+#   Runs `compose down` against deploy/docker-compose.yml. This is the
+#   ExecStop command of the systemctl --user unit (deploy/systemd/
+#   helix-skills.service) as well as the manual entry point.
+#
+# Usage:
+#   scripts/stop.sh [--quiet] [-h|--help]
+#
+# Inputs:
+#   deploy/docker-compose.yml (required), deploy/.env (optional).
+#
+# Outputs:
+#   Containers stopped and removed (named volumes are preserved - data
+#   survives a stop/start cycle).
+#
+# Side-effects: stops/removes containers + the compose network via the
+#   container engine. Never removes named volumes.
+#
+# Dependencies: _lib.sh, one of {docker, podman, podman-compose}.
+#
+# Cross-references: start.sh, restart.sh, status.sh, deploy/docker-compose.yml,
+#   deploy/systemd/helix-skills.service. (A docs/scripts/stop.md companion
+#   guide is not yet created - out of this task's strict scripts/+deploy/-
+#   only scope; tracked as a follow-up.)
+# Last verified: 2026-07-15
 # =============================================================================
-
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-INSTALL_DIR="$(dirname "$SCRIPT_DIR")"
-SERVICE_NAME="skill-system"
+# shellcheck source-path=SCRIPTDIR
+# shellcheck source=_lib.sh
+source "${SCRIPT_DIR}/_lib.sh"
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
+usage() {
+    cat <<'EOF'
+Usage: stop.sh [--quiet] [-h|--help]
 
-log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
-log_success() { echo -e "${GREEN}[OK]${NC} $1"; }
-log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
-log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+Bring the HelixKnowledge Skill Graph datastore (Postgres + pgvector) down via
+docker compose / podman compose / podman-compose. Named volumes (the
+Postgres data directory) are preserved.
 
-# Detect compose command
-detect_compose() {
-    if docker compose version &> /dev/null; then
-        COMPOSE_CMD="docker compose"
-    elif command -v docker-compose &> /dev/null; then
-        COMPOSE_CMD="docker-compose"
-    elif command -v podman-compose &> /dev/null; then
-        COMPOSE_CMD="podman-compose"
-    fi
+Options:
+  --quiet, -q  Suppress informational (non-error) output.
+  -h, --help   Show this help and exit.
+EOF
 }
 
-# Stop via systemd
-stop_systemd() {
-    log_info "Stopping via systemd..."
-    systemctl --user stop "$SERVICE_NAME"
-    log_success "Service stopped"
-}
-
-# Stop via compose
-stop_compose() {
-    log_info "Stopping via compose..."
-    cd "$INSTALL_DIR"
-    $COMPOSE_CMD down --timeout 30
-    log_success "Stack stopped"
-}
-
-# Kill all containers (emergency)
-stop_kill() {
-    log_warn "Forcefully stopping all containers..."
-    cd "$INSTALL_DIR"
-    $COMPOSE_CMD kill
-    $COMPOSE_CMD down
-    log_success "Containers killed"
-}
-
-# Main
-main() {
-    detect_compose
-    
-    local mode=""
-    
-    while [ $# -gt 0 ]; do
-        case "$1" in
-            --systemd)
-                mode="systemd"
-                ;;
-            --compose)
-                mode="compose"
-                ;;
-            --kill)
-                mode="kill"
-                ;;
-            --help|-h)
-                echo "Usage: $0 [--compose | --systemd | --kill]"
-                echo ""
-                echo "Options:"
-                echo "  --compose  Stop via docker/podman compose"
-                echo "  --systemd  Stop via systemd user service"
-                echo "  --kill     Force kill all containers"
-                echo "  --help     Show this help"
-                exit 0
-                ;;
-            *)
-                log_error "Unknown option: $1"
-                exit 1
-                ;;
-        esac
-        shift
-    done
-    
-    # Auto-detect mode
-    if [ -z "$mode" ]; then
-        if systemctl --user is-active "$SERVICE_NAME" &> /dev/null; then
-            mode="systemd"
-        else
-            mode="compose"
-        fi
-    fi
-    
-    log_info "Stopping Skill Graph System (mode: $mode)..."
-    
-    case "$mode" in
-        systemd)
-            stop_systemd
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --quiet|-q)
+            export HX_QUIET=1
+            shift
             ;;
-        compose)
-            stop_compose
+        -h|--help)
+            usage
+            exit 0
             ;;
-        kill)
-            stop_kill
+        *)
+            echo "stop.sh: unknown argument: $1" >&2
+            usage >&2
+            exit 2
             ;;
     esac
-    
-    log_success "Skill Graph System stopped"
-}
+done
 
-main "$@"
+hx_load_env
+hx_require_compose_file
+hx_detect_engine
+
+hx_log "Using compose engine: ${HX_COMPOSE_BIN[*]}"
+hx_log "Bringing down '${COMPOSE_PROJECT_NAME}' stack from ${HX_COMPOSE_FILE} ..."
+
+hx_compose down
+
+hx_log "Stack is down."
