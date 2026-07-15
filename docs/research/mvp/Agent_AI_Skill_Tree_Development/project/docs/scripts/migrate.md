@@ -1,7 +1,7 @@
 # `scripts/migrate.sh` — database migration runner
 
-**Revision:** 3
-**Last modified:** 2026-07-15T20:57:53Z
+**Revision:** 4
+**Last modified:** 2026-07-15T23:26:33Z
 
 ## Overview
 
@@ -87,32 +87,41 @@ disk; `down` can delete a version's tracking row even when no matching
 - **`schema_migrations` table missing:** created automatically by
   `ensure_migrations_table()` on first use of any subcommand that needs
   it (`up`, `down`, `status`, `version`).
-- **The `psql` invocation itself fails (`up`)** — e.g. the `db` service is
-  unreachable or `compose exec` cannot run at all: the loop stops
-  immediately (`log_error` + `exit 1`) — migrations after the failing one
-  in the same `up` invocation are never attempted, and the failing
-  migration's own partial effect is **not** automatically rolled back by
-  this script (whatever the failed SQL script itself did or did not wrap
-  in a transaction determines the actual database state).
-- **Silent SQL-error quirk (honest as-written behavior, `up` and
-  `down`):** the migration-apply `psql` calls at `migrate.sh:118` (`up`)
-  and `migrate.sh:160` (`down`) run WITHOUT `-v ON_ERROR_STOP=1` and
-  discard `psql`'s stderr (`2>/dev/null`). Per `psql`'s own documented
-  exit-status contract, `psql` exits `0` even when an individual SQL
-  statement inside the script errors (bad syntax, a constraint violation,
-  a reference to a table/column that doesn't exist) — a non-zero exit is
-  reserved for a fatal condition (backend unreachable, `psql` itself
-  failing to start), which is the ONLY class of failure the bullet above
-  actually catches. Practical consequence: a migration whose SQL genuinely
-  errors partway through can still be logged `"Applied migration ${version}"`
-  and recorded as applied in `schema_migrations` (`up`), and a `down`
-  rollback whose SQL genuinely errors can still have its version row
-  deleted from `schema_migrations` (`down`) — in both cases the script
-  proceeds as if the SQL had fully succeeded. This is a real, currently
-  unfixed gap in this script (filed as **G51** in
-  `GAPS_AND_RISKS_REGISTER.md` — the `ON_ERROR_STOP` + stderr-discard
-  fix, §11.4.201 — not addressed by this document), not a hypothetical;
-  documented here so it is not mistaken for "SQL errors are caught."
+- **The `psql` invocation fails (`up`)** — because the `db` service is
+  unreachable / `compose exec` cannot run at all, OR (since the G51 fix,
+  see below) because any individual SQL statement inside the migration
+  errors under `-v ON_ERROR_STOP=1`: the loop stops immediately
+  (`log_error` + `exit 1`) — migrations after the failing one in the same
+  `up` invocation are never attempted, and the failing migration's own
+  partial effect is **not** automatically rolled back by this script
+  (whatever the failed SQL script itself did or did not wrap in a
+  transaction determines the actual database state; a `BEGIN;`/`COMMIT;`-wrapped
+  migration that errors is rolled back in full by Postgres).
+- **In-migration SQL errors are caught and fail fast (`up` and `down`) —
+  G51 FIXED:** the migration-apply `psql` calls at `migrate.sh` (`up`, in
+  `migrate_up`; `down`, in `migrate_down`) now run WITH `-v ON_ERROR_STOP=1`
+  and NO LONGER discard `psql`'s stderr (the previous `2>/dev/null` was
+  removed). Per `psql`'s documented exit-status contract, a bare `psql`
+  exits `0` even when an individual SQL statement inside the script errors
+  (bad syntax, a constraint violation, a reference to a table/column that
+  doesn't exist); `-v ON_ERROR_STOP=1` changes this so `psql` stops at the
+  first statement error and exits **non-zero**, and the real error text is
+  now printed to stderr instead of being swallowed. Consequences of the
+  fix: (1) `up` — a migration whose SQL genuinely errors partway through
+  now makes `psql` exit non-zero, so the `if … then` branch is NOT taken,
+  the version is NOT logged `"Applied migration ${version}"`, and NO row is
+  inserted into `schema_migrations`; the loop stops with `log_error` +
+  `exit 1` and the underlying error is visible on stderr. (2) `down` — a
+  rollback whose SQL genuinely errors now makes `psql` exit non-zero, so
+  `set -e` aborts the script **before** the `DELETE FROM schema_migrations`
+  line runs, leaving the version's row intact rather than silently deleting
+  it. In both cases the previous silent `schema_migrations`↔schema desync
+  (recorded-as-applied / row-deleted while the SQL had actually failed) can
+  no longer occur. This closes **G51** (filed in
+  `GAPS_AND_RISKS_REGISTER.md`, §11.4.201). Note this catches errors WITHIN
+  a migration's SQL; it does not change the two adjacent edge cases below
+  (a missing `.down.sql` file, and a non-conforming migration filename),
+  which are independent of `ON_ERROR_STOP`.
 - **`down` with current version `0`:** logs a warning ("No migrations to
   rollback") and returns without error.
 - **`down` with no matching `.down.sql` file for the current version:**
@@ -167,5 +176,6 @@ migration mechanism).
 
 ## Last verified
 
-2026-07-16, against `project/scripts/migrate.sh` (9485 bytes, last
-modified 2026-07-15).
+2026-07-16, against `project/scripts/migrate.sh` (10248 bytes, last
+modified 2026-07-16) after the G51 fix (`-v ON_ERROR_STOP=1` + surfaced
+stderr on the `up`/`down` migration-apply `psql` calls).

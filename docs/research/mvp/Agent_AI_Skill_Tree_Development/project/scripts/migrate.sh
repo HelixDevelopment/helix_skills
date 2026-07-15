@@ -114,8 +114,13 @@ migrate_up() {
             log_info "Applying migration ${version}: ${description}..."
             
             # Execute migration
+            # -v ON_ERROR_STOP=1: psql exits non-zero on ANY in-migration SQL
+            # error (psql otherwise exits 0 on a statement error, silently
+            # desyncing schema_migrations). stderr is surfaced (not discarded)
+            # so a real failure is visible and caught by the else/exit 1 path.
+            # See G51 in GAPS_AND_RISKS_REGISTER.md (§11.4.201).
             cd "$INSTALL_DIR"
-            if $COMPOSE_CMD exec -T db psql -U "$DB_USER" -d "$DB_NAME" < "$migration" 2>/dev/null; then
+            if $COMPOSE_CMD exec -T db psql -v ON_ERROR_STOP=1 -U "$DB_USER" -d "$DB_NAME" < "$migration"; then
                 exec_sql "INSERT INTO schema_migrations (version, description) VALUES (${version}, '${description}');"
                 log_success "Applied migration ${version}"
                 applied=$((applied + 1))
@@ -157,7 +162,12 @@ migrate_down() {
     if [ -n "$down_file" ] && [ -f "$down_file" ]; then
         log_info "Applying rollback: $(basename "$down_file")..."
         cd "$INSTALL_DIR"
-        $COMPOSE_CMD exec -T db psql -U "$DB_USER" -d "$DB_NAME" < "$down_file" 2>/dev/null
+        # -v ON_ERROR_STOP=1 + surfaced stderr: psql exits non-zero on ANY
+        # in-rollback SQL error, so `set -e` aborts BEFORE the DELETE below and
+        # the schema_migrations row is NOT removed on a failed rollback (psql
+        # otherwise exits 0 on a statement error, silently desyncing state).
+        # See G51 in GAPS_AND_RISKS_REGISTER.md (§11.4.201).
+        $COMPOSE_CMD exec -T db psql -v ON_ERROR_STOP=1 -U "$DB_USER" -d "$DB_NAME" < "$down_file"
         exec_sql "DELETE FROM schema_migrations WHERE version = ${current_version};"
         log_success "Rolled back migration ${current_version}"
     else
