@@ -76,32 +76,32 @@ curl -H "Accept: application/toml" http://localhost:8080/api/v1/skills
 
 ## Authentication
 
+The `/api/v1` and `/mcp/v1` surfaces share one API-key scheme, governed by
+`api_keys` and `auth_disabled` in `config/config.toml`. The key is read from the
+**`X-API-Key`** header only — there is no JWT, OAuth, bearer token, or
+`/auth/token` endpoint in the system.
+
 ### API Key Authentication
 
-For programmatic access:
+For programmatic access, send the key in the `X-API-Key` header:
 
 ```bash
 curl -H "X-API-Key: your-api-key" http://localhost:8080/api/v1/skills
 ```
 
-### JWT Authentication
+Configure the accepted keys via the `HELIX_API_KEYS` environment variable
+(comma-separated) or the `api_keys` list in `config/config.toml`.
 
-For user-authenticated access:
+### Fail-closed by default
 
-```bash
-# Obtain token (if auth is enabled)
-curl -X POST http://localhost:8080/api/v1/auth/token \
-  -d '{"username": "user", "password": "pass"}'
+Authentication is **fail-closed**. With no `api_keys` configured and
+`auth_disabled=false` (the default), every `/api/v1` and `/mcp/v1` request is
+rejected with **`503 auth_not_configured`** until keys are configured — the API
+is *never* silently served without authentication.
 
-# Use token
-curl -H "Authorization: Bearer <token>" http://localhost:8080/api/v1/skills
-```
-
-### No Authentication (Development)
-
-By default, the API does not require authentication for local development.
-
-**Production**: Set `API_KEY` and `JWT_SECRET` environment variables.
+To run with no authentication (local development only), set `auth_disabled=true`
+in `config/config.toml`; the server then logs a loud warning that `/api/v1` is
+publicly accessible.
 
 ---
 

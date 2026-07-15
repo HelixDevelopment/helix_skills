@@ -79,11 +79,11 @@ func NewSkillCommand() *cobra.Command {
 	// skill update <name> --file skill.toml
 	var updateFile string
 	updateCmd := &cobra.Command{
-		Use:   "update <name>",
-		Short: "Update an existing skill",
-		Long:  `Update a skill's properties from a definition file.`,
+		Use:     "update <name>",
+		Short:   "Update an existing skill",
+		Long:    `Update a skill's properties from a definition file.`,
 		Example: `  skill-system skill update go-concurrency --file skill.toml`,
-		Args: cobra.ExactArgs(1),
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if updateFile == "" {
 				return fmt.Errorf("--file flag is required")
@@ -96,11 +96,11 @@ func NewSkillCommand() *cobra.Command {
 
 	// skill delete <name>
 	deleteCmd := &cobra.Command{
-		Use:   "delete <name>",
-		Short: "Delete a skill",
-		Long:  `Delete a skill from the graph. This operation cannot be undone.`,
+		Use:     "delete <name>",
+		Short:   "Delete a skill",
+		Long:    `Delete a skill from the graph. This operation cannot be undone.`,
 		Example: `  skill-system skill delete old-skill`,
-		Args: cobra.ExactArgs(1),
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runSkillDelete(cmd, args[0])
 		},
@@ -109,9 +109,9 @@ func NewSkillCommand() *cobra.Command {
 	// skill import --file skills.toml
 	var importFile string
 	importCmd := &cobra.Command{
-		Use:   "import",
-		Short: "Import skills from file",
-		Long:  `Import multiple skills from a TOML or JSON file.`,
+		Use:     "import",
+		Short:   "Import skills from file",
+		Long:    `Import multiple skills from a TOML or JSON file.`,
 		Example: `  skill-system skill import --file skills.toml`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if importFile == "" {
@@ -277,9 +277,7 @@ func runSkillCreate(cmd *cobra.Command, filename string) error {
 		return fmt.Errorf("create request: %w", err)
 	}
 	req.Header.Set("Content-Type", contentType)
-	if client.APIKey != "" {
-		req.Header.Set("Authorization", "Bearer "+client.APIKey)
-	}
+	SetAuthHeader(req, client.APIKey)
 
 	resp, err := client.Client.Do(req)
 	if err != nil {
@@ -323,9 +321,7 @@ func runSkillUpdate(cmd *cobra.Command, name, filename string) error {
 		return fmt.Errorf("create request: %w", err)
 	}
 	req.Header.Set("Content-Type", contentType)
-	if client.APIKey != "" {
-		req.Header.Set("Authorization", "Bearer "+client.APIKey)
-	}
+	SetAuthHeader(req, client.APIKey)
 
 	resp, err := client.Client.Do(req)
 	if err != nil {
@@ -376,9 +372,7 @@ func runSkillImport(cmd *cobra.Command, filename string) error {
 	} else {
 		req.Header.Set("Content-Type", "application/json")
 	}
-	if client.APIKey != "" {
-		req.Header.Set("Authorization", "Bearer "+client.APIKey)
-	}
+	SetAuthHeader(req, client.APIKey)
 
 	resp, err := client.Client.Do(req)
 	if err != nil {
@@ -429,9 +423,7 @@ func runSkillExport(cmd *cobra.Command, name, outputFile string) error {
 	} else {
 		req.Header.Set("Accept", "application/json")
 	}
-	if client.APIKey != "" {
-		req.Header.Set("Authorization", "Bearer "+client.APIKey)
-	}
+	SetAuthHeader(req, client.APIKey)
 
 	resp, err := client.Client.Do(req)
 	if err != nil {

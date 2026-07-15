@@ -63,9 +63,11 @@ func (c *APIClient) Request(ctx context.Context, method, path string, body io.Re
 	if body != nil {
 		req.Header.Set("Content-Type", contentType)
 	}
-	if c.APIKey != "" {
-		req.Header.Set("Authorization", "Bearer "+c.APIKey)
-	}
+	// Route through the single first-party auth seam (see commands.SetAuthHeader):
+	// the key travels in the server-canonical X-API-Key header, never as
+	// "Authorization: Bearer" which the server does not read and 401s under
+	// enforced auth (G35). This dedupes the config client onto the shared seam.
+	commands.SetAuthHeader(req, c.APIKey)
 
 	resp, err := c.Client.Do(req)
 	if err != nil {

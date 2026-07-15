@@ -73,7 +73,10 @@ func (c *APIClient) request(ctx context.Context, method, path string, body io.Re
 		req.Header.Set("Content-Type", "application/json")
 	}
 	if c.apiKey != "" {
-		req.Header.Set("Authorization", "Bearer "+c.apiKey)
+		// Send the key in the server-canonical X-API-Key header (see
+		// internal/api/middleware.go APIKeyAuth, which reads X-API-Key). Sending
+		// "Authorization: Bearer" here would 401 the moment auth is enforced (G35).
+		req.Header.Set("X-API-Key", c.apiKey)
 	}
 
 	resp, err := c.client.Do(req)

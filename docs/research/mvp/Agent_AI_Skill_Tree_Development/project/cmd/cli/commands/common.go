@@ -51,9 +51,7 @@ func (c *APIClient) Request(ctx context.Context, method, path string, body io.Re
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
-	if c.APIKey != "" {
-		req.Header.Set("Authorization", "Bearer "+c.APIKey)
-	}
+	SetAuthHeader(req, c.APIKey)
 
 	resp, err := c.Client.Do(req)
 	if err != nil {
@@ -69,6 +67,26 @@ func (c *APIClient) Request(ctx context.Context, method, path string, body io.Re
 	return resp, nil
 }
 
+// SetAuthHeader is the single seam every first-party request to THIS project's
+// server routes through to apply the API key. It sends the key in the
+// server-canonical X-API-Key header (see internal/api/middleware.go APIKeyAuth /
+// ResolveAPIKeyAuth, which reads X-API-Key ONLY). Sending "Authorization: Bearer"
+// here would 401 the moment auth is enforced (G35) — so every CLI sender
+// (commands.APIClient.Request, the raw-HTTP skill create/update/import/export
+// requests in skill.go, and the duplicate config client in cmd/cli/main.go) uses
+// THIS one function, giving a single guarded place that can never drift back to
+// Bearer. An empty key sets no auth header at all.
+//
+// This is deliberately NOT used by the external OpenAI-compatible clients
+// (internal/autoexpand/llm.go, internal/db/embedding.go), which correctly send
+// "Authorization: Bearer" to their upstream provider APIs.
+func SetAuthHeader(req *http.Request, apiKey string) {
+	if apiKey == "" {
+		return
+	}
+	req.Header.Set("X-API-Key", apiKey)
+}
+
 // Output prints data in JSON format
 func (c *APIClient) Output(v interface{}) error {
 	enc := json.NewEncoder(os.Stdout)
@@ -79,9 +97,9 @@ func (c *APIClient) Output(v interface{}) error {
 // Terminal color codes (low-saturation professional palette)
 var (
 	colorReset  = "\033[0m"
-	colorRed    = "\033[38;5;167m"  // Soft red for errors/issues
-	colorGreen  = "\033[38;5;114m"  // Soft green for success
-	colorBlue   = "\033[38;5;110m"  // Soft blue for info/running
-	colorYellow = "\033[38;5;180m"  // Soft yellow for warnings
-	colorGray   = "\033[38;5;245m"  // Gray for secondary text
+	colorRed    = "\033[38;5;167m" // Soft red for errors/issues
+	colorGreen  = "\033[38;5;114m" // Soft green for success
+	colorBlue   = "\033[38;5;110m" // Soft blue for info/running
+	colorYellow = "\033[38;5;180m" // Soft yellow for warnings
+	colorGray   = "\033[38;5;245m" // Gray for secondary text
 )
