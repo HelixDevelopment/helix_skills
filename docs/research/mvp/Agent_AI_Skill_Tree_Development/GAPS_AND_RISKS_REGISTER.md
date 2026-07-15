@@ -401,6 +401,63 @@ flow from this.
 - **Test coverage:** hook test (a simulated prompt appends exactly one correctly-shaped row), paired mutation (hook stripped → gate FAILs), regression.
 - **STATUS (2026-07-15):** FILED (R24 / §11.4.208(D)). Wiring PENDING — honestly recorded in the ledger's boundary note, never claimed as automatic.
 
+## Constitutional-compliance violations (R23 audit, 2026-07-15) — G39–G49
+
+**Source:** `research/constitution_compliance_audit.md` (independent R23 audit — 230
+anchors enumerated: **47 COMPLIANT · 34 VIOLATION · 26 PENDING-AT-COMPLETION · 108
+N-A · 15 UNCONFIRMED**). Full per-anchor evidence lives in that doc; this register
+tracks the actionable violations. Audit-internal ids reconciled to **G39+** (audit's
+`G50` "no request-history doc" is **SUPERSEDED** — `requests/history.md` created this
+session; its remaining auto-capture-hook facet = **G38**).
+
+**§11.4.201 gate-methodology note (NOT project violations):** the 10
+`CM-COVENANT-114-NNN-PROPAGATION` gate "failures" are FALSE POSITIVES — `helix_skills`
+is a thin consumer using the sanctioned `@import constitution/CLAUDE.md` pointer form
+(§11.4.35), which recursively inherits every anchor, but the gates `grep` for literal
+anchor copies; the gates also default their scan root to `..` and swept 1167 unrelated
+sibling-project hits until scoped with `CONSUMER_ROOT`. These are §11.4.201
+guard-asserts-real-condition issues in the gate SCRIPTS (constitution-submodule scope),
+not project non-compliance. `CM-CONTINUUM-RESUME-ENGINE-PRESENT` FAIL is likewise an
+engine-internal decoupling issue out of this project's scope. `CM-REPORTING-DIRECTIVES`
+PASS (real run).
+
+- **G39 (HIGH, §11.4.161/§11.4.76/§11.4.173):** `project/Makefile:36`
+  `CONTAINER_RUNTIME ?= docker` (rootful default) — MUST default rootless (podman).
+  One-line fix; lands in the ops lane (project/ owned by the P1.T1 mutator now). Test:
+  Makefile-default assertion + paired mutation. **STATUS:** FILED; verify+fix PENDING.
+- **G40 (HIGH, §11.4.93/§11.4.95):** no SQLite `workable_items.db` single-source-of-truth;
+  39 findings tracked in this markdown register instead. The constitution's own Go
+  workable-items engine (`constitution/scripts/workable-items/`) exists + is unused →
+  adoption-only. **STATUS:** FILED; adopt-engine PENDING (register is rich +
+  evidence-backed; migration is additive, low-risk).
+- **G41 (HIGH, §11.4.109):** `.claude/settings.local.json` wires ZERO hooks — the
+  `guard-forbidden-commands.sh` PreToolUse guard (+ §11.4.182/§11.4.191 guards) not
+  installed. **STATUS:** FILED; wire PENDING.
+- **G42 (HIGH, §11.4.27/§11.4.52/§11.4.85/§11.4.169):** only ~10 unit-ish tests; no
+  stress/chaos/e2e/security-suite/Challenges/HelixQA coverage yet (expands G04). Lands
+  per-package as the Go spine proceeds. **STATUS:** FILED; PENDING (phased with impl).
+- **G43 (HIGH, §11.4.12/§11.4.65/§11.4.106):** zero `.html`/`.pdf` exports of any tracked
+  doc; Docs Chain declared in `helix-deps.yaml` but never invoked. **STATUS:** FILED;
+  wire Docs Chain + export pipeline PENDING (R18/R10).
+- **G44 (MED, §11.4.44):** only `CONTINUATION.md` + `requests/history.md` carry the
+  revision header; `REQUIREMENTS.md`/`IMPLEMENTATION_PLAN.md`/`SPEC.md`/this register/all
+  research docs lack it. **STATUS:** FILED; backfill PENDING.
+- **G45 (MED, §11.4.15/§11.4.16/§11.4.34):** status/type/reopens closed-vocabulary not
+  applied to the G0x findings. **STATUS:** FILED (couples with G40 DB adoption).
+- **G46 (LOW, §11.4.18):** shell scripts under `project/scripts/` lack the companion
+  `docs/scripts/<name>.md`. **STATUS:** FILED.
+- **G47 (MED, §11.4.54 — OPERATOR-DECISION):** project uses G0x/R0x/P0x ids
+  cross-referenced across 20+ docs, not ATM-NNN; a destructive rename is riskier than
+  (a) documenting G0x as an approved alias OR (b) minting parallel ATM-NNN without
+  renaming. Surface via §11.4.66. **STATUS:** FILED; operator-decision PENDING.
+- **G48 (LOW, §11.4.57):** README lacks the `Tracked-Items` doc-link section. **STATUS:** FILED.
+- **G49 (LOW, §11.4.157):** no `QWEN.md`/`GEMINI.md` mirrors of the project
+  CLAUDE.md/AGENTS.md (would themselves be thin `@import` pointers per the consumer
+  model). **STATUS:** FILED.
+
+The **R23 full re-run at project completion** (every anchor re-audited to zero real
+violations, CM-gates + a §11.4.32 project sweep wired) is the terminal compliance gate.
+
 ---
 
 ## Adjudication of the 8 mandated open items

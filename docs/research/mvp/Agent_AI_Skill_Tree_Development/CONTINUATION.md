@@ -1,7 +1,7 @@
 # CONTINUATION — HelixKnowledge Skill Graph System (MVP)
 
-**Revision:** 6
-**Last modified:** 2026-07-15T17:40:21Z
+**Revision:** 7
+**Last modified:** 2026-07-15T17:53:32Z
 **Purpose:** §12.10 / §11.4.131 standing session-resumption file. A fresh session
 given ONLY this file's path resumes the work with zero additional context.
 Keep in sync on every material state change.
@@ -20,7 +20,29 @@ correctness gaps from the R17 register) as a single serialized Go-mutator lane w
 mandatory **§11.4.209 Fable-xhigh review before every commit**, keeping 2–3
 design-research streams one step ahead in parallel (3–4 total per operator mandate).
 
-## LATE-SESSION DELTA — Rev 6 (2026-07-15T17:40Z) — supersedes stale lines below
+## LATE-SESSION DELTA — Rev 7 (2026-07-15T17:53Z) — supersedes stale lines below
+
+- **R23 compliance audit LANDED** (`research/constitution_compliance_audit.md`): 230
+  anchors → 47 COMPLIANT / 34 VIOLATION / 26 PENDING-AT-COMPLETION / 108 N-A / 15
+  UNCONFIRMED. Violations filed **G39–G49** (register). HIGH: G39 Makefile rootful-docker
+  default (§11.4.161), G40 no SQLite workable_items.db SoT (§11.4.93 — adopt the
+  constitution's own engine), G41 no PreToolUse hook wired (§11.4.109), G42 test-type
+  coverage (§11.4.27/.52/.85), G43 no html/pdf exports + Docs-Chain unwired (§11.4.106).
+  **§11.4.201 note:** the 10 CM-COVENANT-PROPAGATION "failures" are gate-methodology
+  FALSE POSITIVES (this project uses the sanctioned `@import` pointer form §11.4.35; gates
+  grep literals + default scan-root `..`), NOT real violations. R23 full re-run at
+  completion is the terminal gate.
+- **P1.T1 Go mutator DONE** (a6f8b52): migration `002_granularity` + 13 tests (M1–M10
+  live-DB 10/10 PASS on isolated `pgvector/pgvector:pg16` @ :55433, Mμ1–Mμ3 mutation
+  RED→GREEN). Modified SPEC.md + `project/internal/{models/skill.go, skill/graph.go,
+  skill/store.go, skill/import_export.go}` + `seed/validate_dag.py`; created 002 up/down +
+  3 test files. **In-scope root-caused fix:** `GetByName` now wraps `ErrSkillNotFound`
+  (was plain `fmt.Errorf` → `import_export`'s `errors.Is` guard always failed → every
+  new-skill `ImportFromTOML` silently broke, incl. the MCP `skill_create_draft` path).
+  G02 files byte-identical (independently confirmed). **GATED on the §11.4.209 Fable-xhigh
+  review + my independent build/vet/test re-verify BEFORE commit** (§11.4.134 iterate-to-GO).
+  This is now the §11.4.84 active Go change-set (SPEC.md commits WITH it, not in doc batches).
+
 
 - **G02-family COMMITTED (`2befa77`):** G02/G03/G05/G16/G21 Go impl — Fable-xhigh
   RE-review returned **GO** (5 security invariants PROVEN on the live surface,
