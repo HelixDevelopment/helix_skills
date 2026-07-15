@@ -422,6 +422,50 @@ format = "console"
 	}
 }
 
+// TestLoad_MCPTransportACPIsAccepted proves the "acp" MCP transport value
+// (NEW-2 wire-in of the previously-dead internal/mcp/acp_adapter.go as a
+// selectable `--mcp acp` / `mcp.transport = "acp"` transport) is accepted by
+// config validation -- Load() must not reject it, and the loaded value must
+// round-trip unchanged so cmd/server's transport switch actually sees "acp".
+func TestLoad_MCPTransportACPIsAccepted(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.toml")
+
+	tomlContent := `
+[mcp]
+enabled = true
+transport = "acp"
+`
+	if err := os.WriteFile(path, []byte(tomlContent), 0o644); err != nil {
+		t.Fatalf("write temp config: %v", err)
+	}
+
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf(`Load() with mcp.transport = "acp" returned unexpected error: %v`, err)
+	}
+	if cfg.MCP.Transport != "acp" {
+		t.Errorf("MCP.Transport = %q, want %q", cfg.MCP.Transport, "acp")
+	}
+	if !cfg.MCP.Enabled {
+		t.Error("MCP.Enabled = false, want true (from TOML)")
+	}
+}
+
+// TestApplyEnvOverrides_MCPTransportACP proves the HELIX_MCP_TRANSPORT
+// explicit-override path (used by --mcp acp via cmd/server's CLI-flag
+// override, and directly by the env var) also accepts "acp" unchanged.
+func TestApplyEnvOverrides_MCPTransportACP(t *testing.T) {
+	t.Setenv("HELIX_MCP_TRANSPORT", "acp")
+
+	cfg := defaultConfig()
+	applyEnvOverrides(&cfg)
+
+	if cfg.MCP.Transport != "acp" {
+		t.Errorf("MCP.Transport = %q, want %q", cfg.MCP.Transport, "acp")
+	}
+}
+
 func TestLoad_MissingFileReturnsError(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "does-not-exist.toml")

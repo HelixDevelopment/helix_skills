@@ -136,6 +136,7 @@ type StdioTransport struct {
 	initialized bool
 	logger      *zap.Logger
 	stopCh      chan struct{}
+	stopOnce    sync.Once
 	wg          sync.WaitGroup
 }
 
@@ -192,9 +193,17 @@ func (t *StdioTransport) Run() error {
 	}
 }
 
-// Stop signals the transport to stop reading and exit.
+// Stop signals the transport to stop reading and exit. It is idempotent and
+// safe to call concurrently (and from multiple lifecycle paths): handleShutdown
+// fires `go t.Stop()` for every JSON-RPC shutdown request while
+// MCPServer.Shutdown also calls Stop() directly, so in `both` mode a client
+// shutdown followed by graceful shutdown would double-close t.stopCh and panic
+// with "close of closed channel" (O1). The sync.Once guards the single close;
+// every caller still waits for the Run loop to finish.
 func (t *StdioTransport) Stop() {
-	close(t.stopCh)
+	t.stopOnce.Do(func() {
+		close(t.stopCh)
+	})
 	t.wg.Wait()
 }
 

@@ -110,6 +110,7 @@ type ACPAdapter struct {
 	mu          sync.Mutex
 	logger      *zap.Logger
 	stopCh      chan struct{}
+	stopOnce    sync.Once
 	wg          sync.WaitGroup
 	initialized bool
 }
@@ -160,9 +161,16 @@ func (a *ACPAdapter) Run() error {
 	}
 }
 
-// Stop signals the adapter to exit.
+// Stop signals the adapter to exit. It is idempotent and safe to call
+// concurrently (and from multiple lifecycle paths): handleShutdown fires
+// `go a.Stop()` for every agent/shutdown request while MCPServer.Shutdown also
+// calls Stop() directly, so a bare close(a.stopCh) would panic with "close of
+// closed channel" on the second call (F1). The sync.Once guards the single
+// close; every caller still waits for the Run loop to finish.
 func (a *ACPAdapter) Stop() {
-	close(a.stopCh)
+	a.stopOnce.Do(func() {
+		close(a.stopCh)
+	})
 	a.wg.Wait()
 }
 

@@ -2,13 +2,15 @@
 //
 // Usage:
 //
-//	go run ./cmd/server [--config path/to/config.toml] [--mcp stdio|http|both]
+//	go run ./cmd/server [--config path/to/config.toml] [--mcp stdio|http|both|acp]
 //
 // Modes:
 //   - API mode (default): Runs the HTTP REST API server on the configured port
 //   - MCP stdio mode (--mcp stdio): Runs the MCP server over stdin/stdout for CLI agents
 //   - MCP HTTP mode (--mcp http): Runs the MCP server over HTTP/SSE
 //   - MCP both mode (--mcp both): Runs both stdio and HTTP transports
+//   - MCP acp mode (--mcp acp): Runs the Agent Client Protocol (ACP) adapter
+//     over stdin/stdout for ACP-speaking CLI agents (no HTTP listener)
 //
 // Environment variables:
 //
@@ -40,7 +42,7 @@ import (
 func main() {
 	// Parse command-line flags
 	configPath := flag.String("config", "", "Path to TOML config file (optional)")
-	mcpTransport := flag.String("mcp", "", "MCP transport: stdio, http, both (overrides config)")
+	mcpTransport := flag.String("mcp", "", "MCP transport: stdio, http, both, acp (overrides config)")
 	flag.Parse()
 
 	// 1. Load configuration
@@ -106,8 +108,19 @@ func main() {
 	case "stdio":
 		// Pure MCP stdio mode - no HTTP listener at all.
 		logger.Info("Running in MCP stdio mode (stdout reserved for JSON-RPC)")
-		if err := mcpServer.RunStdio(); err != nil {
+		if _, err := runBlockingTransport(mode, mcpServer); err != nil {
 			logger.Fatal("MCP stdio server failed", zap.Error(err))
+		}
+
+	case "acp":
+		// Pure ACP (Agent Client Protocol) mode - no HTTP listener at all.
+		// Wires the previously-unwired internal/mcp/acp_adapter.go in as a
+		// selectable transport, mirroring the "stdio" case above exactly
+		// (same blocking, stdout-reserved-for-JSON-RPC discipline; only the
+		// wire protocol dialect differs).
+		logger.Info("MCP acp mode (stdout reserved for JSON-RPC)")
+		if _, err := runBlockingTransport(mode, mcpServer); err != nil {
+			logger.Fatal("MCP acp server failed", zap.Error(err))
 		}
 
 	case "both":

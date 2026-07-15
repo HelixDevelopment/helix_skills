@@ -37,9 +37,10 @@ type MCPServer struct {
 	pool              *db.Pool
 	cfg               *config.Config
 	logger            *zap.Logger
-	transport         string // "stdio" | "http" | "both"
+	transport         string // "stdio" | "http" | "both" | "acp"
 	stdio             *StdioTransport
 	http              *HTTPTransport
+	acp               *ACPAdapter
 	validator         skillValidator
 	validationEnabled bool
 }
@@ -180,6 +181,19 @@ func (s *MCPServer) RunStdio() error {
 	return s.stdio.Run()
 }
 
+// RunACP starts the ACP (Agent Client Protocol) adapter for CLI agents that
+// speak ACP JSON-RPC over stdio instead of raw MCP JSON-RPC (blocking).
+// Exactly like RunStdio, ALL logs are written to stderr only -- stdout is
+// reserved for ACP JSON-RPC responses (see acp_adapter.go's writeStdout,
+// which mirrors stdio.go's own stdout discipline).
+func (s *MCPServer) RunACP() error {
+	s.acp = NewACPAdapter(s)
+	s.logger.Info("Starting MCP acp adapter",
+		zap.String("note", "All output on stdout is ACP JSON-RPC; logs go to stderr"),
+	)
+	return s.acp.Run()
+}
+
 // RegisterHTTPRoutes mounts the MCP HTTP routes (/mcp/v1/*) onto the provided
 // shared Gin router, guarded by authMW. This replaces the previous standalone
 // MCP HTTP listener: the process now serves exactly ONE HTTP listener (the
@@ -204,10 +218,13 @@ func (s *MCPServer) Shutdown(_ context.Context) error {
 	if s.stdio != nil {
 		s.stdio.Stop()
 	}
+	if s.acp != nil {
+		s.acp.Stop()
+	}
 
 	// The HTTP transport no longer owns a listener — its /mcp/v1 routes are
 	// mounted on the shared API server (see RegisterHTTPRoutes), whose lifecycle
-	// the caller (cmd/server) manages. Only stdio needs an explicit stop here.
+	// the caller (cmd/server) manages. Only stdio/acp need an explicit stop here.
 
 	s.logger.Info("MCP server shutdown complete")
 	return nil
