@@ -34,7 +34,7 @@ type Import struct {
 
 // Pattern represents an architectural pattern detected in source code.
 type Pattern struct {
-	Type       string  `json:"type"`       // e.g., "mvvm", "repository", "dependency-injection"
+	Type       string  `json:"type"` // e.g., "mvvm", "repository", "dependency-injection"
 	File       string  `json:"file"`
 	Line       int     `json:"line"`
 	Snippet    string  `json:"snippet"`
@@ -51,12 +51,12 @@ type SkillMapping struct {
 
 // AnalysisResult captures the complete analysis of a project.
 type AnalysisResult struct {
-	ProjectPath string          `json:"project_path"`
-	Languages   map[string]int  `json:"languages"`    // language -> file count
-	Imports     []Import        `json:"imports"`
-	Patterns    []Pattern       `json:"patterns"`
-	Mappings    []SkillMapping  `json:"mappings"`
-	NewPatterns []Pattern       `json:"new_patterns"` // patterns not matching any existing skill
+	ProjectPath string         `json:"project_path"`
+	Languages   map[string]int `json:"languages"` // language -> file count
+	Imports     []Import       `json:"imports"`
+	Patterns    []Pattern      `json:"patterns"`
+	Mappings    []SkillMapping `json:"mappings"`
+	NewPatterns []Pattern      `json:"new_patterns"` // patterns not matching any existing skill
 }
 
 // fileInfo holds information about a discovered source file.
@@ -98,7 +98,22 @@ func NewAnalyzer(cfg config.CodeAnalysisConfig, logger *zap.Logger) *Analyzer {
 // AnalyzeProject scans a project directory and extracts patterns, imports,
 // and language statistics. It maps discovered patterns to existing skills
 // and identifies new patterns that don't match any known skill.
+//
+// projectPath is validated against a.cfg.AllowedRoot (§G31 path-traversal /
+// LFI guard) BEFORE any filesystem walk starts -- fail-closed, so an
+// unconfigured allowed root or an escaping path is rejected here rather than
+// walked. This is defense-in-depth alongside the caller-side guard in
+// internal/mcp's learn_from_project handler: whatever future caller reaches
+// this method, the walk itself can never be pointed outside the allowlisted
+// root.
 func (a *Analyzer) AnalyzeProject(ctx context.Context, projectPath string) (*AnalysisResult, error) {
+	canonPath, err := ValidateProjectPath(projectPath, a.cfg.AllowedRoot)
+	if err != nil {
+		a.logger.Warn("rejected project_path", zap.String("path", projectPath), zap.Error(err))
+		return nil, fmt.Errorf("analyze project: %w", err)
+	}
+	projectPath = canonPath
+
 	a.logger.Info("analyzing project", zap.String("path", projectPath))
 
 	result := &AnalysisResult{

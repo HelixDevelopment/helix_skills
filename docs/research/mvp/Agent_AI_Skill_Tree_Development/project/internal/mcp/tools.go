@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/helixdevelopment/skill-system/internal/codeanalysis"
 	"github.com/helixdevelopment/skill-system/internal/models"
 
 	mcp_go "github.com/mark3labs/mcp-go/mcp"
@@ -324,6 +325,24 @@ func (s *MCPServer) registerLearnFromProject() {
 		if projectPath == "" {
 			return s.newToolError("project_path parameter is required"), nil
 		}
+
+		// §G31 path-traversal / LFI guard (GAPS_AND_RISKS_REGISTER.md): reject
+		// BEFORE the analyzer ever walks the filesystem, fail-closed. This is
+		// the primary enforcement point -- the (currently unauthenticated) MCP
+		// surface must never let a caller-supplied project_path resolve
+		// outside the configured allowlisted root, whether via ".." traversal,
+		// an absolute host path, or a symlink planted inside the root that
+		// resolves outside it. See also the defense-in-depth check inside
+		// codeanalysis.Analyzer.AnalyzeProject itself.
+		canonPath, err := codeanalysis.ValidateProjectPath(projectPath, s.cfg.CodeAnalysis.AllowedRoot)
+		if err != nil {
+			s.logger.Warn("learn_from_project rejected project_path",
+				zap.String("path", projectPath),
+				zap.Error(err),
+			)
+			return s.newToolError(fmt.Sprintf("Rejected project_path: %v", err)), nil
+		}
+		projectPath = canonPath
 
 		var languages []string
 		if langs, ok := request.GetArguments()["languages"]; ok {

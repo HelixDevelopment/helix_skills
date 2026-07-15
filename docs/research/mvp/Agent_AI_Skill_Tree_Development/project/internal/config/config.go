@@ -135,6 +135,23 @@ type CodeAnalysisConfig struct {
 	Languages       []string `toml:"languages"`
 	MaxFileSizeKB   int      `toml:"max_file_size_kb"`
 	ExcludePatterns []string `toml:"exclude_patterns"`
+	// AllowedRoot is the single allowlisted filesystem root that a submitted
+	// project_path (learn_from_project MCP tool, and any other code-analysis
+	// entry point) MUST canonicalize inside (§G31 path-traversal / LFI
+	// guard -- GAPS_AND_RISKS_REGISTER.md). Canonicalization resolves
+	// symlinks (filepath.EvalSymlinks) so a symlink planted inside
+	// AllowedRoot cannot be used to escape it.
+	//
+	// FAIL-CLOSED BY DEFAULT: an empty AllowedRoot rejects EVERY
+	// project_path submission rather than silently allow-listing the whole
+	// filesystem (same fail-closed posture as Server.APIKeys/AuthDisabled
+	// and Server.AllowedOrigins above). Operators MUST set this deliberately
+	// to the directory tree learn_from_project is meant to scan (e.g. a
+	// dedicated projects/workspaces root) before the tool accepts any
+	// submission. Prefer the HELIX_CODEANALYSIS_ALLOWED_ROOT environment
+	// override, or ${VAR} interpolation in the TOML value, so the path
+	// never needs to be hardcoded into tracked config.
+	AllowedRoot string `toml:"allowed_root"`
 }
 
 // MCPConfig controls the Model Context Protocol integration.
@@ -325,6 +342,9 @@ func substituteEnv(cfg *Config) error {
 	cfg.AutoExpand.LLMProvider = sub(cfg.AutoExpand.LLMProvider)
 	cfg.AutoExpand.LLMModel = sub(cfg.AutoExpand.LLMModel)
 
+	// CodeAnalysis
+	cfg.CodeAnalysis.AllowedRoot = sub(cfg.CodeAnalysis.AllowedRoot)
+
 	// MCP
 	cfg.MCP.Transport = sub(cfg.MCP.Transport)
 
@@ -400,6 +420,9 @@ func applyEnvOverrides(cfg *Config) {
 	}
 	if v := os.Getenv("HELIX_AUTH_DISABLED"); v != "" {
 		cfg.Server.AuthDisabled = v == "1" || strings.EqualFold(v, "true")
+	}
+	if v := os.Getenv("HELIX_CODEANALYSIS_ALLOWED_ROOT"); v != "" {
+		cfg.CodeAnalysis.AllowedRoot = v
 	}
 }
 

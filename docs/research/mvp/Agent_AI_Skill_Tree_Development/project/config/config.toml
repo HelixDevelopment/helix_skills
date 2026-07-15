@@ -62,6 +62,13 @@ enabled = true
 languages = ["java", "kotlin", "c", "cpp", "python", "go"]
 max_file_size_kb = 500
 exclude_patterns = ["vendor/", "node_modules/", ".git/", "build/"]
+# allowed_root: the SINGLE filesystem root that a submitted project_path
+# (learn_from_project MCP tool) MUST canonicalize inside (§G31 path-traversal
+# / LFI guard). Empty (the default) is FAIL-CLOSED -- every project_path
+# submission is rejected until this is set. Set to a dedicated
+# projects/workspaces directory before relying on learn_from_project, or
+# supply it via the HELIX_CODEANALYSIS_ALLOWED_ROOT environment variable.
+# allowed_root = ""
 
 [mcp]
 enabled = true
