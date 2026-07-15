@@ -1,0 +1,423 @@
+package api
+
+import (
+	"fmt"
+	"io"
+	"net/http"
+	"runtime/debug"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/andybalholm/brotli"
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"go.uber.org/zap"
+)
+
+// Prometheus metrics for API monitoring.
+var (
+	httpRequestsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "helix",
+		Subsystem: "api",
+		Name:      "http_requests_total",
+		Help:      "Total number of HTTP requests",
+	}, []string{"method", "endpoint", "status"})
+
+	httpRequestDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace: "helix",
+		Subsystem: "api",
+		Name:      "http_request_duration_seconds",
+		Help:      "HTTP request latency in seconds",
+		Buckets:   prometheus.DefBuckets,
+	}, []string{"method", "endpoint"})
+
+	httpRequestSize = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace: "helix",
+		Subsystem: "api",
+		Name:      "http_request_size_bytes",
+		Help:      "HTTP request size in bytes",
+		Buckets:   []float64{100, 1000, 10000, 100000, 1000000},
+	}, []string{"method", "endpoint"})
+
+	httpResponseSize = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace: "helix",
+		Subsystem: "api",
+		Name:      "http_response_size_bytes",
+		Help:      "HTTP response size in bytes",
+		Buckets:   []float64{100, 1000, 10000, 100000, 1000000},
+	}, []string{"method", "endpoint"})
+)
+
+// BrotliWriter wraps gin.ResponseWriter with Brotli compression.
+type BrotliWriter struct {
+	gin.ResponseWriter
+	writer *brotli.Writer
+}
+
+// Write implements http.ResponseWriter.
+func (w *BrotliWriter) Write(data []byte) (int, error) {
+	return w.writer.Write(data)
+}
+
+// WriteString implements gin.ResponseWriter.
+func (w *BrotliWriter) WriteString(s string) (int, error) {
+	return w.writer.Write([]byte(s))
+}
+
+// BrotliMiddleware adds Brotli compression for responses when the client
+// advertises support via Accept-Encoding.
+func BrotliMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Check if client accepts Brotli
+		if !strings.Contains(c.GetHeader("Accept-Encoding"), "br") {
+			c.Next()
+			return
+		}
+
+		// Skip compression for small responses or already-compressed content
+		contentType := c.Writer.Header().Get("Content-Type")
+		if strings.Contains(contentType, "br") ||
+			strings.Contains(contentType, "gzip") ||
+			strings.Contains(contentType, "video/") ||
+			strings.Contains(contentType, "audio/") ||
+			strings.Contains(contentType, "image/") {
+			c.Next()
+			return
+		}
+
+		// Set Brotli encoding header
+		c.Header("Content-Encoding", "br")
+		c.Header("Vary", "Accept-Encoding")
+		c.Writer.Header().Del("Content-Length") // Length will change
+
+		// Wrap writer with Brotli compressor
+		bw := &BrotliWriter{
+			ResponseWriter: c.Writer,
+			writer:         brotli.NewWriterLevel(c.Writer, brotli.DefaultCompression),
+		}
+		c.Writer = bw
+
+		defer func() {
+			// Ensure proper flush and close
+			bw.writer.Flush()
+			bw.writer.Close()
+		}()
+
+		c.Next()
+	}
+}
+
+// ContentNegotiation parses the Accept header and determines the response format.
+// It sets the negotiated format in the Gin context for downstream handlers.
+func ContentNegotiation() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		accept := c.GetHeader("Accept")
+
+		// Default to JSON
+		format := FormatJSON
+
+		if accept != "" {
+			// Check for TOML preference
+			if strings.Contains(accept, "application/toml") {
+				format = FormatTOML
+			} else if strings.Contains(accept, "text/x-toml") {
+				format = FormatTOML
+			} else if strings.Contains(accept, "application/json") {
+				format = FormatJSON
+			}
+			// */* or missing Accept defaults to JSON
+		}
+
+		// Check for format query parameter override
+		if qf := c.Query("format"); qf != "" {
+			switch strings.ToLower(qf) {
+			case "toml":
+				format = FormatTOML
+			case "json":
+				format = FormatJSON
+			}
+		}
+
+		SetResponseFormat(c, format)
+		c.Next()
+	}
+}
+
+// RequestID generates and attaches a unique request ID to each request.
+// It checks for an existing X-Request-ID header first; if not present,
+// it generates a new UUID.
+func RequestID() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		rid := c.GetHeader("X-Request-ID")
+		if rid == "" {
+			rid = uuid.New().String()
+		}
+		c.Set("request_id", rid)
+		c.Header("X-Request-ID", rid)
+		c.Next()
+	}
+}
+
+// Logger returns a Gin middleware that logs all HTTP requests with structured fields.
+func Logger(logger *zap.Logger) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+		path := c.Request.URL.Path
+		raw := c.Request.URL.RawQuery
+		method := c.Request.Method
+
+		// Process request
+		c.Next()
+
+		// Collect log fields
+		latency := time.Since(start)
+		status := c.Writer.Status()
+		clientIP := c.ClientIP()
+		errorMsg := c.Errors.ByType(gin.ErrorTypePrivate).String()
+		rid, _ := c.Get("request_id")
+
+		fields := []zap.Field{
+			zap.String("request_id", rid.(string)),
+			zap.Time("ts", start),
+			zap.Duration("latency", latency),
+			zap.String("client_ip", clientIP),
+			zap.String("method", method),
+			zap.String("path", path),
+			zap.Int("status", status),
+			zap.Int("body_size", c.Writer.Size()),
+		}
+		if raw != "" {
+			fields = append(fields, zap.String("query", raw))
+		}
+		if errorMsg != "" {
+			fields = append(fields, zap.String("error", errorMsg))
+		}
+
+		// Log at appropriate level based on status code
+		switch {
+		case status >= http.StatusInternalServerError:
+			logger.Error("HTTP request", fields...)
+		case status >= http.StatusBadRequest:
+			logger.Warn("HTTP request", fields...)
+		default:
+			logger.Info("HTTP request", fields...)
+		}
+	}
+}
+
+// Recovery returns a Gin middleware that recovers from panics,
+// logs the stack trace, and returns a 500 Internal Server Error.
+func Recovery() gin.HandlerFunc {
+	return gin.CustomRecovery(func(c *gin.Context, recovered interface{}) {
+		rid, _ := c.Get("request_id")
+
+		if err, ok := recovered.(error); ok {
+			zap.L().Error("panic recovered",
+				zap.String("request_id", rid.(string)),
+				zap.Error(err),
+				zap.String("stack", string(debug.Stack())),
+			)
+		} else {
+			zap.L().Error("panic recovered",
+				zap.String("request_id", rid.(string)),
+				zap.Any("panic", recovered),
+				zap.String("stack", string(debug.Stack())),
+			)
+		}
+
+		RespondError(c, http.StatusInternalServerError,
+			"An internal server error occurred. Please try again later.")
+		c.Abort()
+	})
+}
+
+// APIKeyAuth validates requests against a set of valid API keys.
+// It checks the X-API-Key header and aborts with 401 if invalid.
+func APIKeyAuth(validKeys []string) gin.HandlerFunc {
+	// Build a lookup map for O(1) validation
+	keySet := make(map[string]struct{}, len(validKeys))
+	for _, k := range validKeys {
+		keySet[k] = struct{}{}
+	}
+
+	return func(c *gin.Context) {
+		// Extract API key from header
+		key := c.GetHeader("X-API-Key")
+		if key == "" {
+			// Also check query parameter for WebSocket support
+			key = c.Query("api_key")
+		}
+
+		if key == "" {
+			RespondErrorWithCode(c, http.StatusUnauthorized, "missing_api_key",
+				"API key required. Provide it via X-API-Key header or api_key query parameter.")
+			c.Abort()
+			return
+		}
+
+		if _, valid := keySet[key]; !valid {
+			RespondErrorWithCode(c, http.StatusUnauthorized, "invalid_api_key",
+				"The provided API key is invalid or has been revoked.")
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
+}
+
+// CORS returns a middleware that sets Cross-Origin Resource Sharing headers.
+func CORS() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		origin := c.GetHeader("Origin")
+		if origin == "" {
+			origin = "*"
+		}
+
+		c.Header("Access-Control-Allow-Origin", origin)
+		c.Header("Access-Control-Allow-Credentials", "true")
+		c.Header("Access-Control-Allow-Headers",
+			"Content-Type, Content-Length, Accept, Accept-Encoding, Authorization, X-API-Key, X-Request-ID")
+		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+		c.Header("Access-Control-Expose-Headers", "X-Request-ID, Content-Type")
+		c.Header("Access-Control-Max-Age", "86400")
+
+		// Handle preflight requests
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(http.StatusNoContent)
+			return
+		}
+
+		c.Next()
+	}
+}
+
+// MetricsMiddleware records Prometheus metrics for each request.
+func MetricsMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+		method := c.Request.Method
+		endpoint := c.FullPath()
+		if endpoint == "" {
+			endpoint = "unknown"
+		}
+
+		// Record request size
+		if cl := c.GetHeader("Content-Length"); cl != "" {
+			if size, err := strconv.ParseInt(cl, 10, 64); err == nil {
+				httpRequestSize.WithLabelValues(method, endpoint).Observe(float64(size))
+			}
+		}
+
+		c.Next()
+
+		// Record after request completes
+		status := strconv.Itoa(c.Writer.Status())
+		duration := time.Since(start).Seconds()
+		responseSize := float64(c.Writer.Size())
+
+		httpRequestsTotal.WithLabelValues(method, endpoint, status).Inc()
+		httpRequestDuration.WithLabelValues(method, endpoint).Observe(duration)
+		httpResponseSize.WithLabelValues(method, endpoint).Observe(responseSize)
+	}
+}
+
+// bodyLogWriter captures the response body for logging purposes.
+type bodyLogWriter struct {
+	gin.ResponseWriter
+	body *strings.Builder
+}
+
+func (w *bodyLogWriter) Write(b []byte) (int, error) {
+	w.body.Write(b)
+	return w.ResponseWriter.Write(b)
+}
+
+func (w *bodyLogWriter) WriteString(s string) (int, error) {
+	w.body.WriteString(s)
+	return w.ResponseWriter.WriteString(s)
+}
+
+// MaxBodySize limits the request body size and returns 413 if exceeded.
+func MaxBodySize(maxBytes int64) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBytes)
+		c.Next()
+	}
+}
+
+// DetectContentType automatically detects whether request body is JSON or TOML
+// and sets the "body_format" context key. It reads and restores the body.
+func DetectContentType() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		contentType := c.ContentType()
+
+		// Normalize Content-Type header
+		switch {
+		case strings.Contains(contentType, "application/json"):
+			c.Set("body_format", "json")
+		case strings.Contains(contentType, "application/toml"):
+			c.Set("body_format", "toml")
+		case strings.Contains(contentType, "text/x-toml"):
+			c.Set("body_format", "toml")
+		case contentType == "":
+			// No Content-Type: auto-detect from body
+			bodyBytes, err := io.ReadAll(c.Request.Body)
+			if err != nil {
+				c.Set("body_format", "json")
+				c.Next()
+				return
+			}
+			c.Request.Body = io.NopCloser(strings.NewReader(string(bodyBytes)))
+
+			// Heuristic: TOML starts with key = value, or [section] patterns
+			body := strings.TrimSpace(string(bodyBytes))
+			if len(body) > 0 {
+				if body[0] == '[' || (strings.Contains(body, "= ") && !strings.HasPrefix(body, "{")) {
+					c.Set("body_format", "toml")
+				} else {
+					c.Set("body_format", "json")
+				}
+			} else {
+				c.Set("body_format", "json")
+			}
+		default:
+			c.Set("body_format", "json")
+		}
+
+		c.Next()
+	}
+}
+
+// ValidateContentType ensures the request Content-Type is acceptable for the endpoint.
+func ValidateContentType(allowed ...string) gin.HandlerFunc {
+	allowedSet := make(map[string]struct{}, len(allowed))
+	for _, a := range allowed {
+		allowedSet[a] = struct{}{}
+	}
+
+	return func(c *gin.Context) {
+		ct := c.ContentType()
+		if ct == "" {
+			// Empty Content-Type is acceptable
+			c.Next()
+			return
+		}
+
+		// Strip charset suffix for comparison
+		ct = strings.Split(ct, ";")[0]
+		ct = strings.TrimSpace(ct)
+
+		if _, ok := allowedSet[ct]; !ok {
+			RespondErrorWithCode(c, http.StatusUnsupportedMediaType, "unsupported_media_type",
+				fmt.Sprintf("Content-Type '%s' not supported. Allowed: %s", ct, strings.Join(allowed, ", ")))
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
+}

@@ -1,0 +1,59 @@
+# HelixKnowledge Skill System Configuration
+
+[server]
+host = "0.0.0.0"
+http_port = 8080
+http3_port = 8443
+enable_http3 = false
+enable_brotli = true
+tls_cert = ""
+tls_key = ""
+
+[database]
+host = "db"
+port = 5432
+database = "skilldb"
+user = "skill"
+password = "secret"
+ssl_mode = "disable"
+max_connections = 25
+
+[embedding]
+provider = "openai"
+dimensions = 768
+model = "text-embedding-3-small"
+api_key = ""
+local_endpoint = ""
+
+[validation]
+enabled = true
+sandbox_type = "wasm"
+jury_size = 3
+approval_threshold = 2
+auto_approve_evidence = false
+require_human_review = true
+
+[autoexpand]
+enabled = true
+max_depth = 5
+max_new_skills_per_run = 10
+llm_provider = "openai"
+llm_model = "gpt-4o-mini"
+
+[codeanalysis]
+enabled = true
+languages = ["java", "kotlin", "c", "cpp", "python", "go"]
+max_file_size_kb = 500
+exclude_patterns = ["vendor/", "node_modules/", ".git/", "build/"]
+
+[mcp]
+enabled = true
+transport = "stdio"
+
+[registry]
+review_interval_hours = 24
+coverage_threshold = 0.8
+
+[logging]
+level = "info"
+format = "json"
