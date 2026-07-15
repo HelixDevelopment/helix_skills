@@ -95,6 +95,7 @@ flow from this.
 - **Test coverage:** unit (empty jury ⇒ fail/blocked, not pass), integration (2-of-3 real approvals required), mutation (flip auto-pass back → test fails). **Challenges:** yes. **HelixQA:** yes.
 
 ### G06 — `GetDependencyTree` returns only depth-1 children (recursive tree truncated)
+- **STATUS (2026-07-15):** DESIGN DONE → `research/g06_g07_skilltree_dag_design.md` (reconciles the LIVE tree path vs the rival `GetDependencyTree`). Go impl PENDING — DEPENDS ON the P1.T1 granularity schema migration (design DONE → `research/p1t1_granularity_schema_migration.md`), which must land FIRST (adds `kind` + widened relation_type + PK). Sequenced P1.T1 → G06 → G07 per §11.4.197.
 - **Category:** existing-bug
 - **Severity:** high — the core "recursive dependency DAG" feature is broken; REST `/skills/:id/tree` and MCP `skill_tree` both under-report.
 - **Evidence:** `internal/skill/graph.go:280-307` builds `childrenMap` for all depths but attaches **only** `root.Children = childrenMap[rootSkill.ID]` (`graph.go:306`); grandchildren `Children` are never populated. MCP's recursive serializer (`internal/mcp/tools.go:226-246`) therefore also emits a 1-level tree despite recursing. Contrast `GetAllDependencies` (`graph.go:347-371`) which is correct (flat closure).
@@ -103,6 +104,7 @@ flow from this.
 - **Test coverage:** unit (tree assembly), integration (seed android closure returns known N-level tree), property (tree node count == closure size), regression, mutation (revert to depth-1 → test fails). **Challenges:** yes.
 
 ### G07 — TOML/JSON dependency+resource round-trip is broken (edges silently dropped on import)
+- **STATUS (2026-07-15):** DESIGN DONE → `research/g06_g07_skilltree_dag_design.md` (+ a NEW captured BurntSushi TOML v1.6.0 dotted-tag decode bug that silently starves imports). Go impl PENDING — DEPENDS ON P1.T1 migration (design DONE → `research/p1t1_granularity_schema_migration.md`) for the widened relation-type set + `[[skill.components]]`; the P1.T1 doc flags L11 (TOML normalization/round-trip) as G07-owned to avoid double-ownership. Sequenced P1.T1 → G06 → G07.
 - **Category:** existing-bug
 - **Severity:** high — breaks R14 git-versionable round-trip and the R6 wizard's DAG mapping.
 - **Evidence:**
@@ -137,6 +139,7 @@ flow from this.
 - **Test coverage:** contract (spec-validation per endpoint + route-parity), integration, regression, smoke, mutation (rename a route → parity test fails). **Challenges:** yes. **HelixQA:** yes.
 
 ### G10 — Embedding dimension: no model↔column assertion; `vector(768)` hard-coded; OpenAI vector length unchecked; non-openai/local providers unsupported
+- **STATUS (2026-07-15):** DESIGN IN PROGRESS (read-only design-research stream, → `research/g10_embedding_provider_design.md`; also covers G27 `EmbedAsync`/`sanitizeTableName`). Go impl PENDING.
 - **Category:** danger-zone / inconsistency
 - **Severity:** high — the 768/1536/384 conflict is "resolved" only by two unenforced constants that can silently disagree at runtime.
 - **Evidence:**
@@ -149,6 +152,7 @@ flow from this.
 - **Test coverage:** unit (provider factory incl. helixllm; OpenAI length mismatch rejected), integration (startup fails on dim mismatch; correct dim inserts), contract (config schema), mutation (change column to 1536, keep config 768 → startup assertion fails). **Challenges:** yes.
 
 ### G11 — Worker does no real work and can panic the process (unchecked type assertions in a recover-less goroutine)
+- **STATUS (2026-07-15):** DESIGN DONE + source-claims independently verified against committed baseline (`255061b`) → `research/g11_worker_design.md` (Rev 1). Confirmed: `runner.go` unchecked `coverage["total_skills"].(int)` / `["coverage_percentage"].(string)` + **0** `recover()` in any worker goroutine. Decision = typed `GetCoverageStats` (no assertions) + `supervise()` recover-and-restart wrapper on every loop + per-job recover (§11.4.147) + real cycles composed with `autoexpand`/`validation` (G03). 9 test cases, RED-first. Go impl PENDING — composes the in-flight G03 pipeline wiring; needs an embedder-wiring fix at `cmd/worker/main.go:86-94`.
 - **Category:** existing-bug / gap
 - **Severity:** high — background auto-growth/validation/review are non-functional; a crash vector exists.
 - **Evidence:** stubs at `internal/worker/runner.go:317-368`; cycles that only log (`runner.go:440-507`). `runRegistryReview` does `coverage["total_skills"].(int)` and `coverage["coverage_percentage"].(string)` (`runner.go:518-519`) — unchecked assertions; if `GetCoverage` returns a differently-typed/absent key the goroutine panics, and worker goroutines have **no `recover()`** (`runner.go:375-434`), so the process dies. (The API `Recovery()` middleware, `middleware.go:254-276`, does not cover worker goroutines.)

@@ -1,8 +1,10 @@
 # HelixKnowledge Skill Graph System — Consolidated Requirements (living doc)
 
-Status: **requirements-gathering + research phase.** Foundation (extracted Go
-backend) **does not compile** — see "Baseline". This doc is the single source of
-truth as scope evolves; correct it here.
+Status: **requirements-gathering + research phase → P0.5 critical remediation.**
+Foundation (extracted Go backend) **compiles clean** (`go build ./...`=0 at HEAD
+`255061b`; the original "does not compile" was the pre-P0 Baseline, resolved by the
+build-fix commit `5532e2b` — see "Baseline", now marked SUPERSEDED). This doc is the
+single source of truth as scope evolves; correct it here.
 
 ## Vision
 A **universal**, self-growing Knowledge Skill Graph for AI CLI agents. Users
@@ -118,6 +120,16 @@ PINS / CORRECTS (update the plan):
   sqlx) alongside pgx — incoherent generated skeleton.
 - Security: CORS reflect-origin + `Allow-Credentials: true` (HIGH); api_key via
   query param then logged (MEDIUM). Present in both duplicated copies.
+
+> **SUPERSEDED — this Baseline is the ORIGINAL as-found snapshot, not the current
+> state.** The `go build ./...` **FAILS** finding above was resolved by the P0
+> build-fix (commit `5532e2b`, "Make Go backend build+vet green") — the backend now
+> compiles clean (`go build ./...`=0; single pgx DB layer, the five competing ORMs
+> purged, `go.sum` committed). The CORS + api_key security findings were resolved by
+> the G01 runtime-security fix (commit `1a1a3f3`, single hardened listener) — see the
+> GAPS_AND_RISKS_REGISTER G01 STATUS block. This block is retained as the §11.4.7
+> regression oracle (the known-bad baseline every fix is diffed against); read it as
+> HISTORY, never as the present tree.
 
 ## Global constraints (Constitution)
 No bluffing / positive-evidence only; every gate paired with a mutation; no

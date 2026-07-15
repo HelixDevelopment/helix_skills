@@ -1,10 +1,14 @@
 # CONTINUATION — HelixKnowledge Skill Graph System (MVP)
 
-**Revision:** 2
-**Last modified:** 2026-07-15T21:30:00Z
+**Revision:** 3
+**Last modified:** 2026-07-15T16:25:25Z
 **Purpose:** §12.10 / §11.4.131 standing session-resumption file. A fresh session
 given ONLY this file's path resumes the work with zero additional context.
 Keep in sync on every material state change.
+**TZ note (§11.4.44/§11.4.6):** this host is UTC+05:00; earlier revisions + some
+subagent doc headers stamp LOCAL time as `Z` (e.g. `21:30Z` = `16:30Z` real UTC).
+This Rev 3 uses correct `date -u` UTC (numerically earlier than Rev 2's mis-stamp
+but accurate). Timestamp normalization of the subagent docs is a batch-commit item.
 
 ---
 
@@ -36,12 +40,22 @@ g06_g07_skilltree_dag_design, + R18 doc-delivery design landing).
 ## PHASE / NEXT / terminal goal
 
 - **PHASE:** P0.5 critical remediation (security + correctness) before feature phases.
-- **DONE (proven):** G01 — runtime security hole (double-bound wildcard-CORS + unauth MCP
-  write surface) CLOSED, Fable-xhigh GO, 6 §1.1 mutations RED-verified. Committed + pushed.
-- **NEXT (Go spine, serialized):** implement G02 static-validator + delete host-exec paths +
-  wire validation/autoexpand pipelines live (G03) + jury fail-closed ≥2 votes (G05), against
-  the committed `research/g02_sandbox_faildesign.md`. Then G06/G07 (DAG), G11 (worker panic),
-  G13/G17/G22/G24 (ops hardening), G10 (embedding dim), G14/X1 (submodule policy — operator).
+- **DONE (proven, committed):** G01 — runtime security hole (double-bound wildcard-CORS +
+  unauth MCP write surface) CLOSED, Fable-xhigh GO, 6 §1.1 mutations RED-verified. HEAD `255061b`.
+- **DESIGN DONE + verified (held in working tree for the next batch commit):** G06/G07 DAG
+  (`research/g06_g07_skilltree_dag_design.md`); G11 worker panic-safety
+  (`research/g11_worker_design.md`, 9 tests — source claims re-verified vs `255061b`); P1.T1
+  granularity migration `002` (`research/p1t1_granularity_schema_migration.md`, 13 tests, L1–L16
+  lockstep); R18 doc-delivery (`research/r18_documentation_delivery_design.md`, Rev 2 — its false
+  "Go doesn't build (P0 FAILS)" claim CORRECTED: backend compiles clean, `go build ./...`=0 at
+  `255061b`; the REQUIREMENTS.md baseline "FAILS" line is the pre-`5532e2b` history, now marked
+  superseded). Register STATUS lines added for G06/G07/G10/G11.
+- **NEXT (Go spine, serialized — ONE Go mutator at a time §11.4.84):** (1) await + verify the
+  in-flight G02/G03/G05/G16/G21 Go impl → §11.4.209 Fable-xhigh review → batch commit (Go impl +
+  the 4 design docs + register/CONTINUATION). (2) P1.T1 migration `002` impl (MUST precede G06/G07).
+  (3) G06/G07 DAG. (4) G11 worker. (5) ops hardening G13/G17/G22/G23/G24 (design in flight). (6) G10
+  embedding dim + G27 (design in flight). (7) G12 tree-sitter; G09/G08 spec/TOON. G14/X1 submodule
+  policy → operator (§11.4.66), blocks R18 Docs-Chain/OpenDesign vendoring lane.
 - **Terminal goal:** the full self-growing HelixKnowledge Skill Graph System per R1–R18,
   built BY the system, ~100% test-covered, zero bluff, fully documented + always-in-sync.
 
@@ -49,6 +63,13 @@ g06_g07_skilltree_dag_design, + R18 doc-delivery design landing).
 
 - **Fleet target 3–4 parallel:** 1 Go-source mutator at a time (§11.4.84) + 2–3 read-only
   design-research streams (each writes only its own `research/*.md`, tied to a tracked gap).
+- **Live fleet (moment-valid, HEAD `255061b`, nothing new committed yet):** (1) G02/G03/G05/G16/G21
+  Go impl — the SOLE Go mutator, RUNNING; (2) ops-hardening design G13/G17/G22/G23/G24 — read-only,
+  RUNNING; (3) G10 embedding + G27 design — read-only, RUNNING. Design streams read Go source only
+  from `git show 255061b:...` (tree is mid-mutation). **Commit HELD** (§11.4.84): no commit while the
+  G02 mutation gate is live — the working tree carries the 4 design docs + REQUIREMENTS baseline note +
+  register/CONTINUATION edits, all narrow-staged + residue-scanned + committed once G02 is quiescent
+  and its Go changes pass the §11.4.209 Fable-xhigh review.
 - **G01 outcome:** see the G01 STATUS block in the register for the full forensic trail
   (attempt 1 NO-GO → attempt 2 single-hardened-listener → Fable GO). Follow-ups O1 (SSE 30s
   timeout), O2 (unset-var inert key) tracked; O3 dead `internal/api.Server` consolidation
