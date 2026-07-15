@@ -225,6 +225,19 @@ Each stage lands only with captured build/test evidence; SDD dispatches per task
   ever drifts. Composes R10 + R12 + §11.4.12/.44/.45/.53/.56/.57/.59/.60/.65/.106/
   .168/.170/.190. Architecture design **stream dispatched**
   (research/r18_documentation_delivery_design.md).
+- **R19 — Anthropic API support (first-class ModelProvider + interop):** besides full
+  OpenAPI-contract compatibility (the system's own REST surface, G09), the system MUST
+  support Anthropic's API(s). Primary reading (composes R7 pluggable ModelProvider + R4
+  interop): the ModelProvider/`LLMClient` layer MUST support Anthropic's **Messages API**
+  as a first-class provider — usable for the LLM jury (G05) and auto-growth generation
+  (G20) — decoupled from any concrete `*OpenAILLM` (G20 already removes that coupling +
+  flags the missing `NewLLMClientFromConfig` factory, the R19 plug-in point). Anthropic
+  offers no first-party embeddings API — embeddings stay on the G10 provider set (local /
+  OpenAI-compatible / Voyage), documented explicitly, never faked. Secondary facet
+  (flagged, design resolves): whether to ALSO expose an Anthropic-Messages-compatible
+  surface for R4 Claude-Code/agent interop — surface any genuine sub-decision per §11.4.66.
+  Credentials via the §11.4.10 single-source (field names only, never values). Design
+  **stream dispatched** (research/r19_anthropic_api_support_design.md).
 - **Security:** sync_submodules.sh hardened (fail-closed validation; paired attack
   proof) — committed c473d01.
 - **Seed corpus:** R13 validation corpus + 8 real seed skills committed 0e0bc3b

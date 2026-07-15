@@ -221,6 +221,7 @@ flow from this.
 - **Why it matters:** once G01 is fixed, a browser client still breaks unless `allowed_origins` is documented and set; today it's wildcard-open.
 - **DECISION:** Wire `AllowedOrigins` end-to-end (config→ServerConfig→CORS), document it in `config.toml` + SPEC §8 with a safe example, default empty (fail-closed). **Alternatives rejected:** wildcard default — the security posture R1 removed.
 - **Test coverage:** integration (config allowlist honoured), security (non-allowlisted origin blocked), contract (config documents the key).
+- **STATUS (2026-07-15):** DESIGN DONE + verified vs `255061b` → `research/g18_g25_g26_correctness_bundle.md`. Security half CLOSED by G01 (`cmd/server/main.go:151` `router.Use(api.CORS(cfg.Server.AllowedOrigins))`; wildcard `corsMiddleware` deleted; empty-allowlist proven live by `cmd/server/security_test.go:105 TestNoWildcardCORSOnLivePaths`). Two residuals OPEN: (a) `SPEC.md` §8 config sample still omits `allowed_origins`/`api_keys`/`auth_disabled` (G01 touched no `.md`); (b) no live-`buildRouter` test for a POPULATED allowlist. Narrowed to the SPEC doc update + 1 integration test; runtime-wiring clause closable per §11.4.90 (`superseded-by-later-mandate`, cites G01 `1a1a3f3`). Impl PENDING.
 
 ### G19 — `SPEC.md §8` config sample uses `--` comments (invalid TOML)
 - **Category:** spec-drift / doc
@@ -237,6 +238,7 @@ flow from this.
 - **Why it matters:** once wired, auto-growth would flood the graph with placeholder skills and drop their resources — the opposite of the zero-bluff promise.
 - **DECISION:** Never persist a placeholder as a real skill — either produce genuine LLM content or mark the gap as unfilled; program to the `LLMClient` interface (remove the concrete assertion); persist resources in the same transaction as the skill. **Alternatives rejected:** keeping the minimal-draft fallback for "graceful degradation" — degrades into bluff data.
 - **Test coverage:** unit (nil LLM ⇒ no placeholder persisted; interface pluggability), integration (draft → resources persisted), mutation (reintroduce placeholder-persist → anti-bluff test fails). **Challenges:** yes.
+- **STATUS (2026-07-15):** DESIGN DONE + all file:line claims verified vs `255061b` → `research/g20_autoexpand_realgrowth_design.md`. Confirmed: `internal/autoexpand/pipeline.go:211/226` `createMinimalDraft`, `:215` `p.llm.(*OpenAILLM)` concrete assertion, `:282` the placeholder fabricator; `llm.go:26` `LLMClient` interface; `NewLLMClientFromConfig` factory CONFIRMED ABSENT everywhere (the R19 plug-in point). Decision = delete `createMinimalDraft`, program to `LLMClient` (no `*OpenAILLM` assertion), transactional `Store.CreateWithResources`, compose G05 jury. Composes R19 (`research/r19_anthropic_api_support_design.md` — Anthropic as an `LLMClient` + the missing factory). Go impl PENDING (needs G03 pipeline wiring first).
 
 ### G21 — Resource verification is shallow (HEAD-only, best-effort hash, fail-open on fetch errors)
 - **Category:** weakness
@@ -281,6 +283,7 @@ flow from this.
 - **Impact:** degraded audit fidelity (R11 evidence trail).
 - **DECISION:** Capture names best-effort but record the not-found condition explicitly in the audit detail. **Alternatives rejected:** ignoring silently — weakens the audit trail.
 - **Test coverage:** unit (audit detail records missing name), regression.
+- **STATUS (2026-07-15):** DESIGN DONE + verified vs `255061b` (`internal/skill/graph.go:99 RemoveDependency`, `:103-104` both `_ = tx.QueryRow(...).Scan(...)` discard errors; `graph_test.go` has ZERO `RemoveDependency` coverage) → `research/g18_g25_g26_correctness_bundle.md`. Decision = extract a pure `buildRemovalAuditDetail` helper (unit-testable not-found path, mirrors the file's `collectDepNames` idiom) + 1 `t.Skip`-marked live-DB integration test. 4 tests + 1 mutation. Go impl PENDING.
 
 ### G26 — `${VAR:-default}` cannot resolve to an intentionally-empty value; provider/model env-substitution edge cases
 - **Category:** weakness
@@ -289,6 +292,7 @@ flow from this.
 - **Impact:** surprising config behaviour for empty overrides.
 - **DECISION:** Distinguish "unset" (`os.LookupEnv`) from "empty" so an explicit empty override is honoured. **Alternatives rejected:** documenting the quirk — still astonishing.
 - **Test coverage:** unit (empty-override honoured; unset uses default), regression.
+- **STATUS (2026-07-15):** DESIGN DONE + verified vs `255061b` (`internal/config/config.go:361` `os.Getenv(envKey); v != ""` in `interpolate` — cannot distinguish unset from explicitly-empty) → `research/g18_g25_g26_correctness_bundle.md`. Decision = switch to `os.LookupEnv`; all 6 unset/empty/value×default combos enumerated (no regression to the 4 covered cases). 3 tests + 1 mutation. Go impl PENDING.
 
 ### G27 — `sanitizeTableName` silently strips instead of rejecting; `EmbedAsync` result-channel semantics
 - **Category:** weakness
@@ -297,6 +301,15 @@ flow from this.
 - **Impact:** latent foot-gun if table names ever become user-influenced.
 - **DECISION:** Reject invalid table names outright (return error) and keep the caller set to a fixed allowlist enum. **Alternatives rejected:** silent stripping — masks programmer error.
 - **Test coverage:** unit (invalid table name rejected), security, regression.
+
+### G28 — Anthropic Messages API as a first-class `LLMClient` provider (R19); `NewLLMClientFromConfig` factory absent
+- **Category:** feature / gap (R19 — operator mandate 2026-07-15)
+- **Severity:** medium
+- **Evidence:** the `LLMClient` interface (`internal/autoexpand/llm.go:26-29`, single `Generate(ctx,prompt,maxTokens)`) has ONE impl — `*OpenAILLM`; no `NewLLMClientFromConfig` factory exists anywhere at `255061b` (grep=0), so an Anthropic (or any non-OpenAI) provider cannot be selected by config. R7 pluggability + R19 Anthropic support both block on this. G20's fix removes the `p.llm.(*OpenAILLM)` assertion (the coupling); R19 adds the provider.
+- **Why it matters:** R19 (operator mandate) requires Anthropic's Messages API as a first-class provider for the G05 jury + G20 auto-growth; without the factory + an `AnthropicLLM`, "supports Anthropic" is unmet.
+- **DECISION:** add an `AnthropicLLM` (thin `net/http`, `POST {base}/v1/messages`, `x-api-key` + `anthropic-version: 2023-06-01`, NO temperature/top_p/top_k — newer Claude models 400 on non-default sampling; a policy refusal ⇒ error, never `("",nil)`) implementing `LLMClient`; add `NewLLMClientFromConfig(cfg,logger)` dispatching `openai|anthropic|local|helixllm` (fail-closed on unknown), mirroring `NewEmbedderFromConfig` (`internal/db/embedding.go:293`). Thin client, NOT the `anthropic-sdk-go` submodule (§11.4.28 house-style; avoids a G14-class dep escalation). **Alternatives rejected:** vendoring the full SDK for one endpoint; a verbatim `*OpenAILLM` port (would 400 on sampling params). Embeddings: Anthropic has NO first-party embeddings (§11.4.99-verified live) — stays on G10's provider set; `"anthropic"` is never an `EmbeddingConfig.Provider`.
+- **Test coverage:** 13 — 9 unit (factory dispatch ×4, header/request mapping incl. no-sampling-params, response parse, non-2xx error map, refusal handling), 2 integration (live `Generate` behind `integration` tag + SKIP-without-`ANTHROPIC_API_KEY`; `Pipeline.Run` via Anthropic asserts no placeholder), 2 paired §1.1 mutations. **Challenges:** yes.
+- **STATUS (2026-07-15):** DESIGN DONE + all file:line claims verified vs `255061b` → `research/r19_anthropic_api_support_design.md`. Depends on G20's `DraftSkill` fix landing first (removes the concrete assertion). Go impl PENDING. **OPEN operator sub-decision (§11.4.66, non-blocking):** whether to ALSO expose an Anthropic-Messages-*shaped* server surface for R4 interop — R19's recommendation is NO (R4 already solved via MCP for every named CLI agent); recorded, deferred-safe default = do not build the redundant surface now (§11.4.101).
 
 ---
 
