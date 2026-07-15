@@ -5,6 +5,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -149,6 +150,55 @@ func TestIsBlockedIP(t *testing.T) {
 				t.Errorf("isBlockedIP(%s) = %v (%q), want %v", tt.ip, got, reason, tt.blocked)
 			}
 		})
+	}
+}
+
+// ---------------------------------------------------------------------------
+// G36: the SSRF egress guard blocks the ENTIRE 0.0.0.0/8 "this host on this
+// network" range (RFC 1122), not just the single 0.0.0.0 address. Before the
+// fix, net.IP.IsUnspecified() caught only the exact 0.0.0.0; a non-zero host in
+// 0.x.x.x (e.g. 0.1.2.3) fell through every check and was ALLOWED as an egress
+// target. This is the permanent regression guard (§11.4.135): a RED test on the
+// pre-fix artifact (the range was absent) that flips GREEN once 0.0.0.0/8 is in
+// additionalBlockedRanges.
+//
+// Paired-mutation-real: remove the 0.0.0.0/8 entry from additionalBlockedRanges
+// and this test FAILs on the non-zero 0.x.x.x cases; restore it and it PASSes.
+// ---------------------------------------------------------------------------
+
+func TestIsBlockedIP_G36_ThisNetworkRange(t *testing.T) {
+	tests := []struct {
+		ip      string
+		blocked bool
+	}{
+		// Non-zero 0.0.0.0/8 hosts — the RED cases (were ALLOWED pre-fix; only
+		// blocked once the whole /8 range is listed).
+		{"0.1.2.3", true},
+		{"0.0.0.1", true},
+		{"0.255.255.255", true},
+		// Boundary: the exact 0.0.0.0 (already caught by IsUnspecified) must stay
+		// blocked — the range never weakens the pre-existing block.
+		{"0.0.0.0", true},
+		// No-regression: a normal public address is still ALLOWED.
+		{"8.8.8.8", false},
+		{"93.184.216.34", false},
+		// No-regression: an already-blocked private range stays blocked.
+		{"10.1.2.3", true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.ip, func(t *testing.T) {
+			got, reason := isBlockedIP(net.ParseIP(tt.ip))
+			if got != tt.blocked {
+				t.Errorf("isBlockedIP(%s) = %v (%q), want %v", tt.ip, got, reason, tt.blocked)
+			}
+		})
+	}
+
+	// Prove the non-zero 0.x.x.x block comes from the NEW 0.0.0.0/8 range, not
+	// an accidental other match: its reason names the RFC-1122 "this network".
+	if got, reason := isBlockedIP(net.ParseIP("0.1.2.3")); !got ||
+		!strings.Contains(reason, "this host on this network") {
+		t.Errorf("isBlockedIP(0.1.2.3) = %v (%q); want blocked with the 0.0.0.0/8 reason", got, reason)
 	}
 }
 

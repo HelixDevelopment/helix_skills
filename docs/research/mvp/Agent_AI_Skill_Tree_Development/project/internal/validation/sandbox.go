@@ -212,6 +212,10 @@ func normalizeLanguage(lang string) string {
 // net.IP helper methods used above (loopback/link-local/private/multicast/
 // unspecified) but MUST still be refused as SSRF egress targets:
 //
+//   - 0.0.0.0/8        "this host on this network" (RFC 1122 §3.2.1.3).
+//     net.IP.IsUnspecified() catches only the exact 0.0.0.0; a non-zero host in
+//     0.x.x.x (e.g. 0.1.2.3) is never a legitimate egress target and must be
+//     refused for completeness (§G36).
 //   - 100.64.0.0/10    carrier-grade NAT (RFC 6598) — CONTAINS the Alibaba
 //     Cloud metadata endpoint 100.100.100.200.
 //   - 240.0.0.0/4      reserved / Class E.
@@ -228,6 +232,7 @@ var additionalBlockedRanges = []struct {
 	net    *net.IPNet
 	reason string
 }{
+	{mustParseCIDR("0.0.0.0/8"), "this host on this network (RFC 1122)"},
 	{mustParseCIDR("100.64.0.0/10"), "carrier-grade NAT (RFC 6598, incl. Alibaba Cloud metadata 100.100.100.200)"},
 	{mustParseCIDR("240.0.0.0/4"), "reserved (Class E)"},
 	{mustParseCIDR("192.0.0.0/24"), "IETF protocol assignments"},
