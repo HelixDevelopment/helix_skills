@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -27,9 +28,9 @@ import (
 type JobType string
 
 const (
-	JobTypeAutoExpand    JobType = "autoexpand"
-	JobTypeValidate      JobType = "validate"
-	JobTypeCodeAnalysis  JobType = "codeanalysis"
+	JobTypeAutoExpand     JobType = "autoexpand"
+	JobTypeValidate       JobType = "validate"
+	JobTypeCodeAnalysis   JobType = "codeanalysis"
 	JobTypeRegistryReview JobType = "registry_review"
 )
 
@@ -75,6 +76,12 @@ type Runner struct {
 	jobChan    chan Job
 	metrics    Metrics
 	registry   registryReviewer
+	// restartBackoffBase is the initial delay before a panicked worker
+	// goroutine is restarted by supervise (doubling up to a 30s cap). It is a
+	// field (not a const) purely so tests can shrink it for deterministic,
+	// fast restart assertions (§11.4.50); production uses time.Second
+	// (NewRunner). A zero value falls back to time.Second in supervise.
+	restartBackoffBase time.Duration
 }
 
 // Job represents a unit of background work.
@@ -93,13 +100,25 @@ type Job struct {
 
 // Metrics tracks worker performance statistics.
 type Metrics struct {
-	JobsProcessed   int64         `json:"jobs_processed"`
-	JobsFailed      int64         `json:"jobs_failed"`
-	JobsRetried     int64         `json:"jobs_retried"`
-	AvgDuration     time.Duration `json:"avg_duration"`
-	TotalDuration   time.Duration `json:"total_duration"`
-	LastJobTime     time.Time     `json:"last_job_time"`
+	JobsProcessed int64         `json:"jobs_processed"`
+	JobsFailed    int64         `json:"jobs_failed"`
+	JobsRetried   int64         `json:"jobs_retried"`
+	AvgDuration   time.Duration `json:"avg_duration"`
+	TotalDuration time.Duration `json:"total_duration"`
+	LastJobTime   time.Time     `json:"last_job_time"`
+	// PanicsRecovered counts panics caught + recovered by the worker panic
+	// firewall (supervise / recoverJob, G11). A recovered panic is a TRACKED
+	// signal, never a swallowed error (§11.4.201): a climbing PanicsRecovered
+	// while cycles stall is how a recovered-panic crash-loop is detected.
+	PanicsRecovered int64 `json:"panics_recovered"`
 	mu              sync.RWMutex
+}
+
+// recordPanic increments the recovered-panic counter (safe for concurrent use).
+func (m *Metrics) recordPanic() {
+	m.mu.Lock()
+	m.PanicsRecovered++
+	m.mu.Unlock()
 }
 
 // JobResult is returned after job execution.
@@ -119,12 +138,13 @@ type JobResult struct {
 // goroutine and no second scheduling cadence.
 func NewRunner(pool *db.Pool, store *skill.Store, cfg config.Config, logger *zap.Logger) *Runner {
 	return &Runner{
-		pool:     pool,
-		store:    store,
-		cfg:      cfg,
-		logger:   logger,
-		jobChan:  make(chan Job, 100),
-		registry: registry.NewRegistry(pool),
+		pool:               pool,
+		store:              store,
+		cfg:                cfg,
+		logger:             logger,
+		jobChan:            make(chan Job, 100),
+		registry:           registry.NewRegistry(pool),
+		restartBackoffBase: time.Second,
 	}
 }
 
@@ -150,25 +170,30 @@ func (r *Runner) Start() {
 	r.cancelFunc = cancel
 	r.running = true
 
+	// Every worker loop is launched THROUGH supervise (G11), so an unrecovered
+	// panic in any loop is caught, logged with its stack, counted, and the loop
+	// restarted -- never a process-killing exit(2). supervise owns each
+	// goroutine's wg.Done(), so the loop bodies no longer call it themselves.
+
 	// Start job queue processor
 	r.wg.Add(1)
-	go r.processJobQueue(ctx)
+	go r.supervise(ctx, "job_queue", r.processJobQueue)
 
 	// Start auto-expand worker
 	if r.cfg.AutoExpand.Enabled {
 		r.wg.Add(1)
-		go r.autoExpandWorker(ctx)
+		go r.supervise(ctx, "auto_expand", r.autoExpandWorker)
 	}
 
 	// Start validation worker
 	if r.cfg.Validation.Enabled {
 		r.wg.Add(1)
-		go r.validationWorker(ctx)
+		go r.supervise(ctx, "validation", r.validationWorker)
 	}
 
 	// Start registry review worker
 	r.wg.Add(1)
-	go r.registryReviewWorker(ctx)
+	go r.supervise(ctx, "registry_review", r.registryReviewWorker)
 
 	r.logger.Info("worker runner started",
 		zap.Bool("auto_expand", r.cfg.AutoExpand.Enabled),
@@ -212,6 +237,107 @@ func (r *Runner) IsRunning() bool {
 }
 
 // ---------------------------------------------------------------------------
+// Panic firewall (G11 -- research/g11_worker_design.md §2.2)
+// ---------------------------------------------------------------------------
+//
+// The worker is a SEPARATE process from the server (cmd/worker/main.go) and,
+// unlike the server, has no gin.Recovery() net. In Go an unrecovered panic in
+// ANY goroutine terminates the WHOLE process (runtime exit(2)), so a single
+// runtime error in any cycle would take down job processing, auto-expand,
+// validation, and registry-review together and -- if the triggering condition
+// persists -- systemd would crash-loop the worker. supervise + recoverJob are
+// the two firewalls that make a panic a recovered, logged, counted signal
+// instead of an outage. A recovered panic is NEVER swallowed silently
+// (§11.4.201): it is logged with its full stack and counted in
+// Metrics.PanicsRecovered so a crash-loop is observable.
+
+// supervise runs a long-lived worker loop fn under a panic firewall. It owns
+// the goroutine's wg.Done(). On a panic it logs the stack, counts it, and
+// restarts fn with capped exponential backoff (restartBackoffBase..30s) until
+// ctx is cancelled. A clean return from fn (the loop observed ctx.Done) ends
+// supervision. Backoff bounds a persistently-panicking loop so it neither
+// busy-loops nor hides the defect -- the PanicsRecovered metric + logged stack
+// surface it for systematic debugging (§11.4.102).
+func (r *Runner) supervise(ctx context.Context, name string, fn func(context.Context)) {
+	defer r.wg.Done()
+
+	base := r.restartBackoffBase
+	if base <= 0 {
+		base = time.Second
+	}
+	const maxBackoff = 30 * time.Second
+	backoff := base
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
+		if !r.runGuarded(ctx, name, fn) {
+			// fn returned normally => the loop observed ctx cancellation and
+			// exited. Nothing to restart.
+			return
+		}
+
+		// Panic path: back off (capped) then restart, unless ctx is done.
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(backoff):
+		}
+		backoff *= 2
+		if backoff > maxBackoff {
+			backoff = maxBackoff
+		}
+	}
+}
+
+// runGuarded invokes fn under a deferred recover(), returning true iff fn
+// panicked (recovered here). This recover() is the load-bearing guard: without
+// it, a panic in fn escapes the goroutine and kills the process (its §1.1
+// mutation makes TestSupervise_RecoversPanicAndRestarts_WorkerSurvives die).
+func (r *Runner) runGuarded(ctx context.Context, name string, fn func(context.Context)) (panicked bool) {
+	defer func() {
+		if p := recover(); p != nil {
+			panicked = true
+			r.metrics.recordPanic()
+			r.logger.Error("worker goroutine panic -- recovered, restarting",
+				zap.String("worker", name),
+				zap.Any("panic", p),
+				zap.ByteString("stack", debug.Stack()),
+			)
+		}
+	}()
+	fn(ctx)
+	return false
+}
+
+// recoverJob runs a job handler h under the per-job panic firewall. A panic in
+// h is recovered, logged with its stack, counted, and converted into a failed
+// JobResult that flows into the existing retry/recordFailure path
+// (executeJobWithRetry) -- never a process death (§11.4.147: a crashed job is a
+// recorded, retryable failure, not a lost worker). A non-panicking handler's
+// result is passed through unchanged. The recover() is load-bearing: its §1.1
+// mutation makes TestRecoverJob_HandlerPanic_RecordedNotFatal die.
+func (r *Runner) recoverJob(job Job, h func() JobResult) (result JobResult) {
+	defer func() {
+		if p := recover(); p != nil {
+			r.metrics.recordPanic()
+			r.logger.Error("job handler panic -- recovered, job marked failed",
+				zap.String("job_id", job.ID.String()),
+				zap.String("type", string(job.Type)),
+				zap.Any("panic", p),
+				zap.ByteString("stack", debug.Stack()),
+			)
+			result = JobResult{Success: false, Error: fmt.Sprintf("handler panic: %v", p)}
+		}
+	}()
+	return h()
+}
+
+// ---------------------------------------------------------------------------
 // Job queue processor
 // ---------------------------------------------------------------------------
 
@@ -240,9 +366,9 @@ func (r *Runner) SubmitJob(ctx context.Context, jobType JobType, payload json.Ra
 }
 
 // processJobQueue processes jobs from the channel with retry support.
+// Launched via supervise (G11), which owns the WaitGroup Done and the panic
+// firewall for this loop.
 func (r *Runner) processJobQueue(ctx context.Context) {
-	defer r.wg.Done()
-
 	for {
 		select {
 		case <-ctx.Done():
@@ -308,19 +434,23 @@ func (r *Runner) executeJob(ctx context.Context, job Job) JobResult {
 		r.logger.Error("failed to update job status", zap.Error(err))
 	}
 
-	var result JobResult
-	switch job.Type {
-	case JobTypeAutoExpand:
-		result = r.handleAutoExpand(ctx, job)
-	case JobTypeValidate:
-		result = r.handleValidate(ctx, job)
-	case JobTypeCodeAnalysis:
-		result = r.handleCodeAnalysis(ctx, job)
-	case JobTypeRegistryReview:
-		result = r.handleRegistryReview(ctx, job)
-	default:
-		result = JobResult{Success: false, Error: fmt.Sprintf("unknown job type: %s", job.Type)}
-	}
+	// Dispatch under the per-job panic firewall (G11): a panicking handler
+	// becomes a recorded failed JobResult that flows into the existing
+	// retry/recordFailure path (executeJobWithRetry), never a process death.
+	result := r.recoverJob(job, func() JobResult {
+		switch job.Type {
+		case JobTypeAutoExpand:
+			return r.handleAutoExpand(ctx, job)
+		case JobTypeValidate:
+			return r.handleValidate(ctx, job)
+		case JobTypeCodeAnalysis:
+			return r.handleCodeAnalysis(ctx, job)
+		case JobTypeRegistryReview:
+			return r.handleRegistryReview(ctx, job)
+		default:
+			return JobResult{Success: false, Error: fmt.Sprintf("unknown job type: %s", job.Type)}
+		}
+	})
 
 	duration := time.Since(start)
 	r.metrics.mu.Lock()
@@ -394,9 +524,9 @@ func (r *Runner) handleRegistryReview(ctx context.Context, job Job) JobResult {
 // ---------------------------------------------------------------------------
 
 // autoExpandWorker periodically scans for skills that need expansion.
+// Launched via supervise (G11), which owns the WaitGroup Done and the panic
+// firewall for this loop.
 func (r *Runner) autoExpandWorker(ctx context.Context) {
-	defer r.wg.Done()
-
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
 
@@ -415,9 +545,9 @@ func (r *Runner) autoExpandWorker(ctx context.Context) {
 }
 
 // validationWorker periodically picks up skills pending validation.
+// Launched via supervise (G11), which owns the WaitGroup Done and the panic
+// firewall for this loop.
 func (r *Runner) validationWorker(ctx context.Context) {
-	defer r.wg.Done()
-
 	ticker := time.NewTicker(2 * time.Minute)
 	defer ticker.Stop()
 
@@ -433,9 +563,9 @@ func (r *Runner) validationWorker(ctx context.Context) {
 }
 
 // registryReviewWorker periodically reviews skill registry health.
+// Launched via supervise (G11), which owns the WaitGroup Done and the panic
+// firewall for this loop.
 func (r *Runner) registryReviewWorker(ctx context.Context) {
-	defer r.wg.Done()
-
 	interval := time.Duration(r.cfg.Registry.ReviewIntervalHours) * time.Hour
 	if interval < time.Minute {
 		interval = time.Minute // minimum 1 minute
@@ -654,11 +784,12 @@ func (r *Runner) GetMetrics() Metrics {
 	r.metrics.mu.RLock()
 	defer r.metrics.mu.RUnlock()
 	return Metrics{
-		JobsProcessed: r.metrics.JobsProcessed,
-		JobsFailed:    r.metrics.JobsFailed,
-		JobsRetried:   r.metrics.JobsRetried,
-		AvgDuration:   r.metrics.AvgDuration,
-		TotalDuration: r.metrics.TotalDuration,
-		LastJobTime:   r.metrics.LastJobTime,
+		JobsProcessed:   r.metrics.JobsProcessed,
+		JobsFailed:      r.metrics.JobsFailed,
+		JobsRetried:     r.metrics.JobsRetried,
+		AvgDuration:     r.metrics.AvgDuration,
+		TotalDuration:   r.metrics.TotalDuration,
+		LastJobTime:     r.metrics.LastJobTime,
+		PanicsRecovered: r.metrics.PanicsRecovered,
 	}
 }
