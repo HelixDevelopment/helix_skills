@@ -55,22 +55,6 @@ func TestAddDependency_InvalidRelationTypeIsRejected(t *testing.T) {
 // pointer dereference. That is the real, DB-bound code path -- see
 // TestAddDependency_DuplicateAndPersistence_RequiresLiveDatabase below.
 
-// TestHasCycle_RequiresLiveDatabase documents, rather than bluffs, the
-// boundary of what this package can test without infrastructure. The actual
-// cycle-detection algorithm (hasCycle in graph.go) is implemented as a
-// PostgreSQL recursive CTE executed over a live pgx.Tx -- there is no
-// in-memory graph structure in this codebase to walk instead. Faking a
-// pgx.Tx/pgx.Rows well enough to prove real reachability semantics would
-// either (a) require a real PostgreSQL connection (integration test, out of
-// scope here) or (b) reimplement the recursive CTE's semantics in Go and
-// compare against a mock -- which would test the mock, not the production
-// SQL, and would be exactly the kind of bluff the task forbids.
-func TestHasCycle_RequiresLiveDatabase(t *testing.T) {
-	t.Skip("hasCycle() executes a recursive CTE against a live pgx.Tx (PostgreSQL); " +
-		"no in-memory graph implementation exists to unit test in its place. " +
-		"Requires an integration test against a real/containerized Postgres instance.")
-}
-
 // TestAddDependency_DuplicateAndPersistence_RequiresLiveDatabase documents
 // the same boundary for the rest of AddDependency's behavior -- all of it
 // runs inside s.pool.WithTx against live SQL.
