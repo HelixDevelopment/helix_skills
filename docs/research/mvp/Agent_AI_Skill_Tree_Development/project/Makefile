@@ -33,7 +33,12 @@ LDFLAGS     = -s -w \
               -extldflags '-static'
 
 # Container settings
-CONTAINER_RUNTIME ?= docker
+# §11.4.161: rootless Podman is the mandatory default container runtime —
+# rootful Docker / sudo is forbidden. Podman is CLI-compatible with Docker
+# for every subcommand this Makefile uses (compose, build, tag, push), so no
+# target needs a Docker-only flag. Operators MAY still override via
+# `make CONTAINER_RUNTIME=docker ...` when Docker is genuinely required.
+CONTAINER_RUNTIME ?= podman
 COMPOSE_CMD       ?= $(CONTAINER_RUNTIME) compose
 IMAGE_NAME        ?= skill-system
 IMAGE_TAG         ?= $(VERSION)
@@ -254,9 +259,9 @@ docker-build: ## Build Docker image
 .PHONY: docker-push
 docker-push: docker-build ## Push Docker image to registry
 	@echo -e "$(BLUE)Pushing image...$(NC)"
-	docker tag $(IMAGE_NAME):$(IMAGE_TAG) $(IMAGE_NAME):latest
-	docker push $(IMAGE_NAME):$(IMAGE_TAG)
-	docker push $(IMAGE_NAME):latest
+	$(CONTAINER_RUNTIME) tag $(IMAGE_NAME):$(IMAGE_TAG) $(IMAGE_NAME):latest
+	$(CONTAINER_RUNTIME) push $(IMAGE_NAME):$(IMAGE_TAG)
+	$(CONTAINER_RUNTIME) push $(IMAGE_NAME):latest
 
 .PHONY: docker-up
 docker-up: ## Start services with docker compose
