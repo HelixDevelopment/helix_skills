@@ -162,6 +162,23 @@ func RequestID() gin.HandlerFunc {
 	}
 }
 
+// requestIDFromContext returns the request ID stored under the "request_id"
+// context key as a string. RequestID() normally stores a non-empty UUID string,
+// but this accessor never assumes that: a missing key (nil interface) or a value
+// of any non-string type — a mis-set key, or a middleware-ordering mistake where
+// Logger()/Recovery() run before RequestID() — yields a freshly generated UUID
+// instead of panicking the request goroutine on an unchecked `rid.(string)` type
+// assertion (G34). The log field is therefore always a usable id and never a
+// per-request DoS foot-gun.
+func requestIDFromContext(c *gin.Context) string {
+	if v, ok := c.Get("request_id"); ok {
+		if s, ok := v.(string); ok && s != "" {
+			return s
+		}
+	}
+	return uuid.New().String()
+}
+
 // Logger returns a Gin middleware that logs all HTTP requests with structured fields.
 func Logger(logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -178,10 +195,10 @@ func Logger(logger *zap.Logger) gin.HandlerFunc {
 		status := c.Writer.Status()
 		clientIP := c.ClientIP()
 		errorMsg := c.Errors.ByType(gin.ErrorTypePrivate).String()
-		rid, _ := c.Get("request_id")
+		requestID := requestIDFromContext(c)
 
 		fields := []zap.Field{
-			zap.String("request_id", rid.(string)),
+			zap.String("request_id", requestID),
 			zap.Time("ts", start),
 			zap.Duration("latency", latency),
 			zap.String("client_ip", clientIP),
@@ -253,17 +270,17 @@ func redactQuery(raw string) string {
 // logs the stack trace, and returns a 500 Internal Server Error.
 func Recovery() gin.HandlerFunc {
 	return gin.CustomRecovery(func(c *gin.Context, recovered interface{}) {
-		rid, _ := c.Get("request_id")
+		requestID := requestIDFromContext(c)
 
 		if err, ok := recovered.(error); ok {
 			zap.L().Error("panic recovered",
-				zap.String("request_id", rid.(string)),
+				zap.String("request_id", requestID),
 				zap.Error(err),
 				zap.String("stack", string(debug.Stack())),
 			)
 		} else {
 			zap.L().Error("panic recovered",
-				zap.String("request_id", rid.(string)),
+				zap.String("request_id", requestID),
 				zap.Any("panic", recovered),
 				zap.String("stack", string(debug.Stack())),
 			)
