@@ -392,17 +392,8 @@ func (t *StdioTransport) executeToolCall(callParams CallToolParams) CallToolResu
 	// The mcp-go server handles the actual dispatch.
 	ctx := context.Background()
 
-	// Build the request for the mcp-go server
-	toolResult, err := t.server.server.CallTool(ctx, mcp_go.CallToolRequest{
-		Params: struct {
-			Name      string                 `json:"name"`
-			Arguments map[string]interface{} `json:"arguments,omitempty"`
-			Meta      *mcp_go.Meta           `json:"_meta,omitempty"`
-		}{
-			Name:      callParams.Name,
-			Arguments: callParams.Arguments,
-		},
-	})
+	// Route the call through the registered mcp-go tool handler.
+	toolResult, err := t.server.dispatchTool(ctx, callParams.Name, callParams.Arguments)
 	if err != nil {
 		return CallToolResult{
 			Content: []ToolContent{

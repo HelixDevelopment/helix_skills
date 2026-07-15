@@ -8,15 +8,17 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
 	"github.com/helixdevelopment/skill-system/internal/config"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
-	"github.com/pgvector/pgvector-go"
+	pgvec "github.com/pgvector/pgvector-go/pgx"
 	"go.uber.org/zap"
 )
 
@@ -116,9 +118,9 @@ func registerVectorTypes(ctx context.Context, pool *pgxpool.Pool) error {
 	}
 	defer conn.Release()
 
-	// Use pgvector-go's native pgx registration.
-	if err := pgvector.RegisterTypes(ctx, conn.Conn()); err != nil {
-		return fmt.Errorf("pgvector.RegisterTypes: %w", err)
+	// Use pgvector-go's native pgx registration (pgx/v5 subpackage).
+	if err := pgvec.RegisterTypes(ctx, conn.Conn()); err != nil {
+		return fmt.Errorf("pgvector RegisterTypes: %w", err)
 	}
 	return nil
 }
@@ -133,8 +135,8 @@ func registerVectorTypes(ctx context.Context, pool *pgxpool.Pool) error {
 //
 // The returned *sql.DB shares the same underlying pool. Callers should NOT
 // close it independently; Close the Pool instead.
-func (p *Pool) StdlibDB() *stdlib.ConnPool {
-	return stdlib.GetPool(p.inner)
+func (p *Pool) StdlibDB() *sql.DB {
+	return stdlib.OpenDBFromPool(p.inner)
 }
 
 // ---------------------------------------------------------------------------
@@ -185,10 +187,11 @@ func (p *Pool) Query(ctx context.Context, sql string, args ...any) (pgx.Rows, er
 	return p.inner.Query(ctx, sql, args...)
 }
 
-// Exec is a thin wrapper around pgxpool.Pool.Exec.
-func (p *Pool) Exec(ctx context.Context, sql string, args ...any) error {
-	_, err := p.inner.Exec(ctx, sql, args...)
-	return err
+// Exec is a thin wrapper around pgxpool.Pool.Exec. It returns the command
+// tag (which carries the number of rows affected) alongside any error,
+// mirroring the pgx-native signature so callers can inspect RowsAffected.
+func (p *Pool) Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error) {
+	return p.inner.Exec(ctx, sql, args...)
 }
 
 

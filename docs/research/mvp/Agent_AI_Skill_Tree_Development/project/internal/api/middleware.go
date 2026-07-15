@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -190,7 +191,7 @@ func Logger(logger *zap.Logger) gin.HandlerFunc {
 			zap.Int("body_size", c.Writer.Size()),
 		}
 		if raw != "" {
-			fields = append(fields, zap.String("query", raw))
+			fields = append(fields, zap.String("query", redactQuery(raw)))
 		}
 		if errorMsg != "" {
 			fields = append(fields, zap.String("error", errorMsg))
@@ -206,6 +207,46 @@ func Logger(logger *zap.Logger) gin.HandlerFunc {
 			logger.Info("HTTP request", fields...)
 		}
 	}
+}
+
+// sensitiveQueryParams are query-string keys whose values must never be
+// written to logs. Matching is case-insensitive.
+var sensitiveQueryParams = map[string]struct{}{
+	"api_key":       {},
+	"apikey":        {},
+	"token":         {},
+	"access_token":  {},
+	"refresh_token": {},
+	"password":      {},
+	"secret":        {},
+	"authorization": {},
+	"signature":     {},
+}
+
+// redactQuery parses a raw URL query string and replaces the values of any
+// sensitive parameters with "REDACTED" so secrets never reach the logs.
+// If the query cannot be parsed it is redacted wholesale rather than risk
+// leaking an embedded secret.
+func redactQuery(raw string) string {
+	values, err := url.ParseQuery(raw)
+	if err != nil {
+		return "REDACTED"
+	}
+	changed := false
+	for key, vals := range values {
+		if _, ok := sensitiveQueryParams[strings.ToLower(key)]; !ok {
+			continue
+		}
+		for i := range vals {
+			vals[i] = "REDACTED"
+		}
+		values[key] = vals
+		changed = true
+	}
+	if !changed {
+		return raw
+	}
+	return values.Encode()
 }
 
 // Recovery returns a Gin middleware that recovers from panics,
@@ -244,16 +285,15 @@ func APIKeyAuth(validKeys []string) gin.HandlerFunc {
 	}
 
 	return func(c *gin.Context) {
-		// Extract API key from header
+		// Extract API key from the header only. The api_key query-parameter
+		// fallback was removed: query strings are routinely captured in access
+		// logs, proxies, browser history, and Referer headers, so accepting a
+		// secret there leaks it. Credentials must travel in the X-API-Key header.
 		key := c.GetHeader("X-API-Key")
-		if key == "" {
-			// Also check query parameter for WebSocket support
-			key = c.Query("api_key")
-		}
 
 		if key == "" {
 			RespondErrorWithCode(c, http.StatusUnauthorized, "missing_api_key",
-				"API key required. Provide it via X-API-Key header or api_key query parameter.")
+				"API key required. Provide it via the X-API-Key header.")
 			c.Abort()
 			return
 		}
@@ -269,24 +309,75 @@ func APIKeyAuth(validKeys []string) gin.HandlerFunc {
 	}
 }
 
-// CORS returns a middleware that sets Cross-Origin Resource Sharing headers.
-func CORS() gin.HandlerFunc {
+// CORS returns a middleware that sets Cross-Origin Resource Sharing headers
+// driven by an explicit origin allowlist.
+//
+// Security: the CORS specification forbids combining a wildcard
+// "Access-Control-Allow-Origin: *" (or a reflected arbitrary Origin) with
+// "Access-Control-Allow-Credentials: true" — doing so would let any website
+// make credentialed cross-origin requests. This implementation therefore:
+//   - only echoes an Origin back when it appears in allowedOrigins, and only
+//     then sets Allow-Credentials: true;
+//   - supports a literal "*" entry that allows any origin WITHOUT credentials;
+//   - always emits "Vary: Origin" so shared caches never serve a response
+//     keyed for the wrong origin;
+//   - sends no Allow-Origin header at all for non-allowlisted origins, so the
+//     browser blocks the cross-origin response.
+//
+// An empty allowlist is fail-closed: no cross-origin origin is permitted.
+func CORS(allowedOrigins []string) gin.HandlerFunc {
+	allowAll := false
+	originSet := make(map[string]struct{}, len(allowedOrigins))
+	for _, o := range allowedOrigins {
+		o = strings.TrimSpace(o)
+		switch {
+		case o == "":
+			continue
+		case o == "*":
+			allowAll = true
+		default:
+			originSet[o] = struct{}{}
+		}
+	}
+
 	return func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
-		if origin == "" {
-			origin = "*"
+
+		// Cache correctness: the response depends on the request Origin.
+		c.Header("Vary", "Origin")
+
+		allowed := false
+		if origin != "" {
+			if _, ok := originSet[origin]; ok {
+				// Exact allowlist match: safe to allow credentials.
+				c.Header("Access-Control-Allow-Origin", origin)
+				c.Header("Access-Control-Allow-Credentials", "true")
+				allowed = true
+			} else if allowAll {
+				// Wildcard is only safe without credentials.
+				c.Header("Access-Control-Allow-Origin", "*")
+				allowed = true
+			}
 		}
 
-		c.Header("Access-Control-Allow-Origin", origin)
-		c.Header("Access-Control-Allow-Credentials", "true")
-		c.Header("Access-Control-Allow-Headers",
-			"Content-Type, Content-Length, Accept, Accept-Encoding, Authorization, X-API-Key, X-Request-ID")
-		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-		c.Header("Access-Control-Expose-Headers", "X-Request-ID, Content-Type")
-		c.Header("Access-Control-Max-Age", "86400")
+		// Advertise the rest of the policy only for allowed cross-origin
+		// requests (or same-origin/non-browser clients that send no Origin).
+		if allowed || origin == "" {
+			c.Header("Access-Control-Allow-Headers",
+				"Content-Type, Content-Length, Accept, Accept-Encoding, Authorization, X-API-Key, X-Request-ID")
+			c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+			c.Header("Access-Control-Expose-Headers", "X-Request-ID, Content-Type")
+			c.Header("Access-Control-Max-Age", "86400")
+		}
 
-		// Handle preflight requests
-		if c.Request.Method == "OPTIONS" {
+		// Handle preflight requests.
+		if c.Request.Method == http.MethodOptions {
+			// Disallowed cross-origin preflight: reject rather than reply with
+			// a permissive (and header-less) success.
+			if origin != "" && !allowed {
+				c.AbortWithStatus(http.StatusForbidden)
+				return
+			}
 			c.AbortWithStatus(http.StatusNoContent)
 			return
 		}

@@ -89,7 +89,7 @@ func main() {
 
 	// 5. Initialize skill store and registry
 	skillStore := skill.NewStore(pool)
-	skillRegistry := registry.New(pool)
+	skillRegistry := registry.NewRegistry(pool)
 
 	logger.Info("Skill store and registry initialized")
 
@@ -171,8 +171,7 @@ func setupAPI(cfg *config.Config, pool *db.Pool, store *skill.Store, reg *regist
 	{
 		skills.GET("", func(c *gin.Context) {
 			ctx := c.Request.Context()
-			filter := skill.DefaultListFilter()
-			skills, err := store.List(ctx, filter)
+			skills, err := store.ListSkills(ctx, "", 100, 0)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return

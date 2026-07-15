@@ -56,6 +56,11 @@ type ServerConfig struct {
 	EnableBrotli bool   `toml:"enable_brotli"`
 	TLSCert      string `toml:"tls_cert"`
 	TLSKey       string `toml:"tls_key"`
+	// AllowedOrigins is the CORS allowlist of exact origins permitted to make
+	// cross-origin requests (e.g. "https://app.example.com"). A single "*"
+	// entry allows any origin but only without credentials. Empty (the default)
+	// disallows all cross-origin access.
+	AllowedOrigins []string `toml:"allowed_origins"`
 }
 
 // DatabaseConfig controls the PostgreSQL connection pool.

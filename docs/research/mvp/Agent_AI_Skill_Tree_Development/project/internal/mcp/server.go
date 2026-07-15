@@ -71,6 +71,27 @@ func (s *MCPServer) Server() *server.MCPServer {
 	return s.server
 }
 
+// dispatchTool executes a registered tool by name through the underlying
+// mcp-go server's handler and returns the tool result. The custom transports
+// (stdio, HTTP, ACP) use this to route their JSON-RPC tool calls into the same
+// handlers registered via AddTool, keeping a single execution path.
+//
+// mcp-go v0.56 has no public CallTool on *server.MCPServer; the supported way
+// to invoke a registered tool in-process is to look it up with GetTool and
+// call its exported Handler.
+func (s *MCPServer) dispatchTool(ctx context.Context, name string, arguments any) (*mcp_go.CallToolResult, error) {
+	st := s.server.GetTool(name)
+	if st == nil {
+		return nil, fmt.Errorf("unknown tool: %s", name)
+	}
+	return st.Handler(ctx, mcp_go.CallToolRequest{
+		Params: mcp_go.CallToolParams{
+			Name:      name,
+			Arguments: arguments,
+		},
+	})
+}
+
 // RunStdio starts the stdio transport for CLI agents (blocking).
 // All logs are written to stderr only - stdout is reserved for JSON-RPC.
 func (s *MCPServer) RunStdio() error {

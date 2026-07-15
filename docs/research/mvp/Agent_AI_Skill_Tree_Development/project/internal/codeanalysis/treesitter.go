@@ -5,7 +5,6 @@ package codeanalysis
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"regexp"
 	"strings"

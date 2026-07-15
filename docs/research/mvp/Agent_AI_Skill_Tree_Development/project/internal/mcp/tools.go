@@ -33,13 +33,13 @@ func (s *MCPServer) registerSkillSearch() {
 	)
 
 	s.server.AddTool(tool, func(ctx context.Context, request mcp_go.CallToolRequest) (*mcp_go.CallToolResult, error) {
-		query, _ := request.Params.Arguments["query"].(string)
+		query, _ := request.GetArguments()["query"].(string)
 		if query == "" {
 			return s.newToolError("query parameter is required"), nil
 		}
 
 		limit := 5
-		if l, ok := request.Params.Arguments["limit"]; ok {
+		if l, ok := request.GetArguments()["limit"]; ok {
 			if lf, ok := l.(float64); ok {
 				limit = int(lf)
 				if limit < 1 {
@@ -107,7 +107,7 @@ func (s *MCPServer) registerSkillGet() {
 	)
 
 	s.server.AddTool(tool, func(ctx context.Context, request mcp_go.CallToolRequest) (*mcp_go.CallToolResult, error) {
-		name, _ := request.Params.Arguments["name"].(string)
+		name, _ := request.GetArguments()["name"].(string)
 		if name == "" {
 			return s.newToolError("name parameter is required"), nil
 		}
@@ -192,13 +192,13 @@ func (s *MCPServer) registerSkillTree() {
 	)
 
 	s.server.AddTool(tool, func(ctx context.Context, request mcp_go.CallToolRequest) (*mcp_go.CallToolResult, error) {
-		name, _ := request.Params.Arguments["name"].(string)
+		name, _ := request.GetArguments()["name"].(string)
 		if name == "" {
 			return s.newToolError("name parameter is required"), nil
 		}
 
 		depth := 5
-		if d, ok := request.Params.Arguments["depth"]; ok {
+		if d, ok := request.GetArguments()["depth"]; ok {
 			if df, ok := d.(float64); ok {
 				depth = int(df)
 				if depth < 1 {
@@ -264,7 +264,7 @@ func (s *MCPServer) registerSkillCreate() {
 	)
 
 	s.server.AddTool(tool, func(ctx context.Context, request mcp_go.CallToolRequest) (*mcp_go.CallToolResult, error) {
-		tomlStr, _ := request.Params.Arguments["toml"].(string)
+		tomlStr, _ := request.GetArguments()["toml"].(string)
 		if tomlStr == "" {
 			return s.newToolError("toml parameter is required"), nil
 		}
@@ -312,13 +312,13 @@ func (s *MCPServer) registerLearnFromProject() {
 	)
 
 	s.server.AddTool(tool, func(ctx context.Context, request mcp_go.CallToolRequest) (*mcp_go.CallToolResult, error) {
-		projectPath, _ := request.Params.Arguments["project_path"].(string)
+		projectPath, _ := request.GetArguments()["project_path"].(string)
 		if projectPath == "" {
 			return s.newToolError("project_path parameter is required"), nil
 		}
 
 		var languages []string
-		if langs, ok := request.Params.Arguments["languages"]; ok {
+		if langs, ok := request.GetArguments()["languages"]; ok {
 			if langArr, ok := langs.([]interface{}); ok {
 				for _, l := range langArr {
 					if ls, ok := l.(string); ok && ls != "" {
@@ -368,7 +368,7 @@ func (s *MCPServer) registerMissingSkills() {
 
 	s.server.AddTool(tool, func(ctx context.Context, request mcp_go.CallToolRequest) (*mcp_go.CallToolResult, error) {
 		domain := ""
-		if d, ok := request.Params.Arguments["domain"]; ok {
+		if d, ok := request.GetArguments()["domain"]; ok {
 			domain, _ = d.(string)
 		}
 
@@ -431,7 +431,7 @@ func (s *MCPServer) registerGetCoverage() {
 
 	s.server.AddTool(tool, func(ctx context.Context, request mcp_go.CallToolRequest) (*mcp_go.CallToolResult, error) {
 		domain := ""
-		if d, ok := request.Params.Arguments["domain"]; ok {
+		if d, ok := request.GetArguments()["domain"]; ok {
 			domain, _ = d.(string)
 		}
 

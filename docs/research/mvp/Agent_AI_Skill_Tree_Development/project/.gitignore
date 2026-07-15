@@ -14,7 +14,8 @@ coverage.txt
 
 # Go
 vendor/
-go.sum
+# NOTE: go.sum IS committed (supply-chain integrity + reproducible builds).
+# Do not ignore it.
 
 # Environment
 .env

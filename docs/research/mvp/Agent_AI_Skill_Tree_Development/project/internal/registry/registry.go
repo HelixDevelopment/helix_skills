@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/helixdevelopment/skill-system/internal/db"
+	"github.com/helixdevelopment/skill-system/internal/skill"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -131,6 +132,14 @@ type StaleSkillInfo struct {
 	Stale       bool      `db:"stale"`
 	LastReview  *time.Time `db:"last_review"`
 	Coverage    float64   `db:"coverage"`
+}
+
+// GetCoverageReport returns a coverage report for the given domain. An empty
+// domain reports across the entire skill graph. The computation is delegated
+// to the skill store, which shares the same connection pool, so the registry
+// and the REST/MCP layers all report identical coverage figures.
+func (r *Registry) GetCoverageReport(ctx context.Context, domain string) (map[string]interface{}, error) {
+	return skill.NewStore(r.pool).GetCoverage(ctx, domain)
 }
 
 // RefreshSkill marks a skill as reviewed (not stale) and updates its timestamp.

@@ -265,17 +265,8 @@ func (a *ACPAdapter) handleInvoke(id interface{}, params json.RawMessage) error 
 
 	ctx := context.Background()
 
-	// Execute via mcp-go server
-	toolResult, err := a.mcpServer.server.CallTool(ctx, mcp_go.CallToolRequest{
-		Params: struct {
-			Name      string                 `json:"name"`
-			Arguments map[string]interface{} `json:"arguments,omitempty"`
-			Meta      *mcp_go.Meta           `json:"_meta,omitempty"`
-		}{
-			Name:      invokeParams.Tool,
-			Arguments: invokeParams.Params,
-		},
-	})
+	// Execute via the registered mcp-go tool handler.
+	toolResult, err := a.mcpServer.dispatchTool(ctx, invokeParams.Tool, invokeParams.Params)
 	if err != nil {
 		a.writeResponse(id, ACPInvokeResult{
 			Success: false,

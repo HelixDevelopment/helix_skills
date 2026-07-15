@@ -4,14 +4,31 @@ package skill
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/helixdevelopment/skill-system/internal/db"
 	"github.com/helixdevelopment/skill-system/internal/models"
 	"github.com/jackc/pgx/v5"
 	"github.com/pgvector/pgvector-go"
+)
+
+// Sentinel errors returned by the skill store and graph operations. Callers
+// should compare against these with errors.Is rather than matching strings.
+var (
+	// ErrSkillNotFound indicates the requested skill does not exist.
+	ErrSkillNotFound = errors.New("skill not found")
+	// ErrSkillExists indicates a skill with the same unique name already exists.
+	ErrSkillExists = errors.New("skill already exists")
+	// ErrInvalidSkill indicates a skill failed structural or semantic validation.
+	ErrInvalidSkill = errors.New("invalid skill")
+	// ErrDependencyNotFound indicates a referenced dependency skill does not exist.
+	ErrDependencyNotFound = errors.New("dependency skill not found")
+	// ErrCycleDetected indicates an operation would introduce a dependency cycle.
+	ErrCycleDetected = errors.New("dependency cycle detected")
 )
 
 // Store provides data access for skills and related entities.

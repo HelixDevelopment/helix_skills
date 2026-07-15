@@ -185,7 +185,8 @@ func (s *Store) recalcCoverage(ctx context.Context, tx pgx.Tx, skillID uuid.UUID
 
 // TouchSkillUpdatedAt updates the updated_at timestamp for a skill.
 func (s *Store) TouchSkillUpdatedAt(ctx context.Context, skillID uuid.UUID) error {
-	return s.pool.Exec(ctx, `UPDATE skills SET updated_at = NOW() WHERE id = $1`, skillID)
+	_, err := s.pool.Exec(ctx, `UPDATE skills SET updated_at = NOW() WHERE id = $1`, skillID)
+	return err
 }
 
 // GetResourceByID retrieves a single resource by its ID.
@@ -210,9 +211,10 @@ func (s *Store) GetResourceByID(ctx context.Context, resourceID uuid.UUID) (*mod
 
 // InvalidateResourceCache marks a resource's cached content as stale.
 func (s *Store) InvalidateResourceCache(ctx context.Context, resourceID uuid.UUID) error {
-	return s.pool.Exec(ctx, `
+	_, err := s.pool.Exec(ctx, `
 		UPDATE resources SET content_cached = '', fetched_hash = '', last_validated = NULL WHERE id = $1
 	`, resourceID)
+	return err
 }
 
 // BulkAddResources adds multiple resources to a skill in a single transaction.

@@ -8,7 +8,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -285,7 +284,7 @@ func (p *Pipeline) verifySingleResource(ctx context.Context, res *models.Resourc
 		if err != nil {
 			return nil // best-effort
 		}
-		defer bodyResp.Close()
+		defer bodyResp.Body.Close()
 
 		content, err := io.ReadAll(io.LimitReader(bodyResp.Body, 1<<20)) // 1 MiB limit
 		if err != nil {

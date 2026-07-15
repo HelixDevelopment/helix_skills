@@ -231,7 +231,8 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 `
 
 func ensureMigrationsTable(ctx context.Context, pool *Pool) error {
-	return pool.Exec(ctx, ensureMigrationsTableSQL)
+	_, err := pool.Exec(ctx, ensureMigrationsTableSQL)
+	return err
 }
 
 // ---------------------------------------------------------------------------

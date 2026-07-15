@@ -239,12 +239,9 @@ func (s *Store) GetDependencyTree(ctx context.Context, rootName string, maxDepth
 	}
 	defer rows.Close()
 
-	// Build a flat list of all nodes with their depth and relation type
-	type flatNode struct {
-		skill        models.Skill
-		depth        int
-		relationType models.DependencyType
-	}
+	// Build a flat list of all nodes with their depth and relation type.
+	// flatNode is declared at package scope (below) so the collectIDs helper
+	// can accept a []flatNode.
 
 	// Map: skill ID -> flatNode
 	nodeMap := make(map[uuid.UUID]*flatNode)
@@ -310,6 +307,14 @@ func (s *Store) GetDependencyTree(ctx context.Context, rootName string, maxDepth
 	}
 
 	return root, nil
+}
+
+// flatNode is a flattened dependency-tree node carrying the skill, its depth
+// in the tree, and the relation type that connected it to its parent.
+type flatNode struct {
+	skill        models.Skill
+	depth        int
+	relationType models.DependencyType
 }
 
 // collectIDs extracts skill IDs from flat nodes for the parent query.

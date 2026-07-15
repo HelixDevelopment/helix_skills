@@ -222,7 +222,6 @@ func (m SearchModel) renderResult(result models.SearchResult, selected bool) str
 	nameStyle := lipgloss.NewStyle().Foreground(colorFg).Bold(true)
 	titleStyle := lipgloss.NewStyle().Foreground(colorGray)
 	scoreStyle := lipgloss.NewStyle().Foreground(colorTeal)
-	selectedStyle := lipgloss.NewStyle().Background(colorSurface)
 
 	cursor := "  "
 	name := nameStyle.Render(result.Skill.Name)

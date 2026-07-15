@@ -26,6 +26,10 @@ type ServerConfig struct {
 	TLSCert      string
 	TLSKey       string
 	APIKeys      []string
+	// AllowedOrigins is the CORS allowlist. Only these origins are echoed
+	// back in Access-Control-Allow-Origin. A single "*" entry allows any
+	// origin but only without credentials. Empty means no cross-origin access.
+	AllowedOrigins []string
 }
 
 // Config is the top-level application configuration.
@@ -133,8 +137,8 @@ func (s *Server) setupMiddleware() {
 	// Content negotiation (JSON/TOML)
 	s.router.Use(ContentNegotiation())
 
-	// CORS
-	s.router.Use(CORS())
+	// CORS (config-driven allowlist)
+	s.router.Use(CORS(s.cfg.AllowedOrigins))
 
 	// Brotli compression (if enabled)
 	if s.cfg.EnableBrotli {

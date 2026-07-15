@@ -287,7 +287,7 @@ func (r *Registry) RunReviewOnce(ctx context.Context) error {
 	}
 
 	// Mark stale skills based on age
-	if err := r.pool.Exec(ctx, `
+	if _, err := r.pool.Exec(ctx, `
 		UPDATE skill_registry sr
 		SET stale = true
 		WHERE (sr.last_review < NOW() - INTERVAL '30 days' OR sr.last_review IS NULL)
@@ -302,7 +302,7 @@ func (r *Registry) RunReviewOnce(ctx context.Context) error {
 	}
 
 	// Mark skills with missing deps as stale
-	if err := r.pool.Exec(ctx, `
+	if _, err := r.pool.Exec(ctx, `
 		UPDATE skill_registry
 		SET stale = true
 		WHERE missing_deps != '{}' AND stale = false

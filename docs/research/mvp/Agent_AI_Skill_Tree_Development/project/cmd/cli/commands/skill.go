@@ -460,15 +460,8 @@ func runSkillExport(cmd *cobra.Command, name, outputFile string) error {
 	return nil
 }
 
-// ANSI color codes for tree display
-const (
-	colorReset  = "\033[0m"
-	colorRed    = "\033[38;5;167m"
-	colorBlue   = "\033[38;5;110m"
-	colorGreen  = "\033[38;5;114m"
-	colorYellow = "\033[38;5;180m"
-	colorGray   = "\033[38;5;245m"
-)
+// Terminal color codes are defined once in common.go (colorReset, colorRed,
+// colorBlue, colorGreen, colorYellow, colorGray) and shared across this package.
 
 func runSkillTree(cmd *cobra.Command, name string, depth int) error {
 	client := getAPIClient(cmd)

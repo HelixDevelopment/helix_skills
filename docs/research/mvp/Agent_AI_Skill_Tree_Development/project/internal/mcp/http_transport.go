@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	mcp_go "github.com/mark3labs/mcp-go/mcp"
 	"go.uber.org/zap"
 )
 
@@ -274,17 +273,8 @@ func (t *HTTPTransport) handleToolsCallInternal(ctx context.Context, params json
 		}
 	}
 
-	// Execute the tool via the mcp-go server
-	toolResult, err := t.server.server.CallTool(ctx, mcp_go.CallToolRequest{
-		Params: struct {
-			Name      string                 `json:"name"`
-			Arguments map[string]interface{} `json:"arguments,omitempty"`
-			Meta      *mcp_go.Meta           `json:"_meta,omitempty"`
-		}{
-			Name:      callParams.Name,
-			Arguments: callParams.Arguments,
-		},
-	})
+	// Execute the tool via the registered mcp-go tool handler.
+	toolResult, err := t.server.dispatchTool(ctx, callParams.Name, callParams.Arguments)
 	if err != nil {
 		return nil, &JSONRPCError{
 			Code:    ErrCodeInternalError,

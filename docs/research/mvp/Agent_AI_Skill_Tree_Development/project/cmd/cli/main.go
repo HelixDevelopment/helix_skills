@@ -12,6 +12,7 @@ import (
 
 	"github.com/helixdevelopment/skill-system/cmd/cli/commands"
 	"github.com/helixdevelopment/skill-system/internal/models"
+	toml "github.com/pelletier/go-toml/v2"
 	"github.com/spf13/cobra"
 )
 
@@ -87,16 +88,17 @@ func (c *APIClient) OutputJSON(v interface{}) error {
 	return enc.Encode(v)
 }
 
-// OutputTOML prints data as TOML
+// OutputTOML prints data as TOML.
 func (c *APIClient) OutputTOML(v interface{}) error {
-	data, err := json.Marshal(v)
+	data, err := toml.Marshal(v)
 	if err != nil {
-		return err
+		// TOML encoding requires a struct or map at the top level. For values
+		// it cannot represent (e.g. slices or scalars), fall back to JSON so
+		// the command still produces usable output instead of failing.
+		return c.OutputJSON(v)
 	}
-	// TOML output - convert JSON to TOML representation
-	fmt.Println("# TOML output")
-	fmt.Printf("# Note: Full TOML serialization requires github.com/BurntSushi/toml\n")
-	return c.OutputJSON(v) // Fallback to JSON for now
+	_, err = os.Stdout.Write(data)
+	return err
 }
 
 // Output prints data in the configured format

@@ -27,18 +27,20 @@ func (s *Server) setupHTTP3(handler http.Handler) error {
 
 	tlsConfig := &tls.Config{
 		Certificates: []tls.Certificate{cert},
-		// Enable 0-RTT for faster handshakes
-		Allow0RTT: true,
 		// Prefer modern TLS versions
 		MinVersion: tls.VersionTLS13,
 	}
 
-	// Configure QUIC for optimal performance
+	// Configure QUIC for optimal performance.
+	// 0-RTT is a QUIC-level setting in quic-go (quic.Config.Allow0RTT),
+	// not a crypto/tls.Config field.
 	quicConfig := &quic.Config{
 		MaxIdleTimeout:        30 * time.Second,
 		HandshakeIdleTimeout:  10 * time.Second,
 		MaxIncomingStreams:    100,
 		MaxIncomingUniStreams: 100,
+		// Enable 0-RTT for faster session resumption handshakes.
+		Allow0RTT: true,
 	}
 
 	addr := fmt.Sprintf("%s:%d", s.cfg.Host, s.cfg.HTTP3Port)

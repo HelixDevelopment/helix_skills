@@ -181,7 +181,7 @@ func StoreSkillEmbedding(
 	embedding pgvector.Vector,
 ) error {
 	const query = `UPDATE skills SET embedding = $1 WHERE id = $2`
-	if err := pool.Exec(ctx, query, embedding, skillID); err != nil {
+	if _, err := pool.Exec(ctx, query, embedding, skillID); err != nil {
 		return fmt.Errorf("store embedding for skill %s: %w", skillID, err)
 	}
 	return nil
@@ -195,7 +195,7 @@ func StoreEvidenceEmbedding(
 	embedding pgvector.Vector,
 ) error {
 	const query = `UPDATE evidences SET embedding = $1 WHERE id = $2`
-	if err := pool.Exec(ctx, query, embedding, evidenceID); err != nil {
+	if _, err := pool.Exec(ctx, query, embedding, evidenceID); err != nil {
 		return fmt.Errorf("store embedding for evidence %s: %w", evidenceID, err)
 	}
 	return nil

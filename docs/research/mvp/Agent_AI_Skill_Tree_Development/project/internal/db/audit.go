@@ -61,7 +61,7 @@ func LogEvent(
 		INSERT INTO audit_log (event, skill_id, details)
 		VALUES ($1, $2, $3)
 	`
-	if err := pool.Exec(ctx, query, event, skillID, details); err != nil {
+	if _, err := pool.Exec(ctx, query, event, skillID, details); err != nil {
 		return fmt.Errorf("insert audit event %q: %w", event, err)
 	}
 
