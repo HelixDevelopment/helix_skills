@@ -16,26 +16,26 @@ package skill
 // others (§11.4.6/§11.4.194 -- an aggregate PASS/FAIL would not pinpoint
 // which of the five queries actually broke).
 //
-// Captured, unmasked finding (honest, out-of-scope-for-P1.T1 discovery this
-// N6 run surfaced): Search's primary query depends on the pg_trgm `%`
-// similarity operator (`s.name % $1`, `similarity(...)`), but pg_trgm is
-// NEVER `CREATE EXTENSION`'d by any migration (migrations/001_initial.up.sql
-// only creates `vector` and `uuid-ossp`; migrations/002_granularity.up.sql
-// creates none) nor by this package's own throwaway-DB test bootstrap
-// (testdb_helper_test.go / migration_granularity_test.go's
-// skillCreateThrowawayDB) -- so on ANY freshly-migrated database (this
-// throwaway DB included) Search() errors with
-// `function similarity(text, unknown) does not exist (SQLSTATE 42883)`
-// before it ever reaches the `s.kind` column in its SELECT list. This is a
-// REAL, previously-undiscovered defect (Search is unusable end-to-end on a
-// clean deployment) -- but it is NOT a kind-scanning regression from this
-// P1.T1 batch (the SQL text for `s.kind` in Search's SELECT is fine; the
-// query as a whole never executes far enough to prove or disprove that) and
-// fixing Search's missing-extension dependency is out of this remediation's
-// assigned scope (B1/W1-W4/N1-N6). The TestP1T1N6_KindAwareReadPathsWorkLive/Search
-// subtest below reports this honestly via t.Skip with the exact captured
-// error, rather than either hiding it or failing the whole suite on an
-// unrelated pre-existing gap.
+// Formerly-captured, now-fixed finding: Search's primary query depends on
+// the pg_trgm `%` similarity operator (`s.name % $1`, `similarity(...)`).
+// migrations/001_initial.up.sql only creates `vector` and `uuid-ossp`, and
+// migrations/002_granularity.up.sql creates no extension either, so on any
+// database migrated with only 001+002 Search() errored with `function
+// similarity(text, unknown) does not exist (SQLSTATE 42883)` before it ever
+// reached the `s.kind` column in its SELECT list. This is now fixed by
+// migrations/003_pg_trgm.up.sql (P1.T1 N6 remediation), which
+// `CREATE EXTENSION IF NOT EXISTS pg_trgm` (plus the two supporting GIN
+// trigram indexes idx_skills_name_trgm/idx_skills_title_trgm) on the SAME
+// real migrations directory this test applies
+// (realMigrationsDirFromSkillPkg) -- so Search's `%`/`similarity(...)`
+// dependency is satisfied on any freshly migrated database, this throwaway
+// DB included, and the TestP1T1N6_KindAwareReadPathsWorkLive/Search subtest
+// below asserts it outright via t.Fatalf rather than honestly-skipping a
+// gap that no longer exists (§11.4.6/§11.4.115/§11.4.135 -- a permanent
+// regression guard on 003's effect, not a documented-and-tolerated gap).
+// internal/db/migrations_granularity_test.go additionally asserts, at the
+// db-package/migration-shape layer, that the pg_trgm extension AND both GIN
+// trigram indexes exist after Migrate applies the real migrations dir.
 //
 // A second, distinct captured finding surfaced the same way: VectorSearch's
 // `ORDER BY embedding <=> $1` is served by the HNSW index
@@ -49,7 +49,6 @@ package skill
 // gap inline rather than silently depending on undocumented setup.
 import (
 	"context"
-	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -75,7 +74,7 @@ func TestP1T1N6_KindAwareReadPathsWorkLive(t *testing.T) {
 	defer pool.Close()
 
 	if err := db.Migrate(ctx, pool, realMigrationsDirFromSkillPkg); err != nil {
-		t.Fatalf("db.Migrate (001+002): %v", err)
+		t.Fatalf("db.Migrate (full real migrations dir): %v", err)
 	}
 
 	store := NewStore(pool)
@@ -162,17 +161,15 @@ func TestP1T1N6_KindAwareReadPathsWorkLive(t *testing.T) {
 	t.Run("Search", func(t *testing.T) {
 		results, err := store.Search(ctx, "p1t1.n6.root", 10)
 		if err != nil {
-			// Honest, unmasked capture of the pre-existing pg_trgm gap
-			// documented in the file-level comment above: SKIP (not FAIL)
-			// ONLY for that exact, identified signature, citing the real
-			// captured error -- any OTHER Search failure (e.g. an actual
-			// kind-column scan defect) still fails this subtest.
-			if strings.Contains(err.Error(), "similarity(") || strings.Contains(err.Error(), "operator does not exist") {
-				t.Skipf("Search: pre-existing gap, out of P1.T1 B1/W1-W4/N1-N6 scope -- "+
-					"pg_trgm is never CREATE EXTENSION'd by any migration nor this package's "+
-					"throwaway-DB bootstrap, so Search's primary query (s.name %% $1 / "+
-					"similarity(...)) cannot execute on a clean deployment, captured error: %v", err)
-			}
+			// migrations/003_pg_trgm.up.sql (P1.T1 N6 remediation) now
+			// CREATE EXTENSIONs pg_trgm on the real migrations dir this test
+			// runs against (realMigrationsDirFromSkillPkg), so Search's
+			// `similarity(...)` / `%` operator dependency is satisfied on
+			// any freshly migrated database -- there is no longer a
+			// pre-existing gap to honestly SKIP around (§11.4.6): any
+			// Search error, including a similarity/operator-does-not-exist
+			// regression of 003, now genuinely FAILs this subtest rather
+			// than being masked as a skip.
 			t.Fatalf("Search: %v", err)
 		}
 		found := false

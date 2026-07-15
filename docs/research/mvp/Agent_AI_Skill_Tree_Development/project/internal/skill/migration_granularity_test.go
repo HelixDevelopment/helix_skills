@@ -149,7 +149,7 @@ func TestP1T1Migration_M6_KindAndEdgeAttributesRoundTripThroughStore(t *testing.
 	defer pool.Close()
 
 	if err := db.Migrate(ctx, pool, realMigrationsDirFromSkillPkg); err != nil {
-		t.Fatalf("db.Migrate (001+002): %v", err)
+		t.Fatalf("db.Migrate (full real migrations dir): %v", err)
 	}
 
 	store := NewStore(pool)
@@ -274,7 +274,7 @@ func TestP1T1Migration_M10_SeedTOMLsStillLoadAsAtomicAndValidatorGreen(t *testin
 	defer pool.Close()
 
 	if err := db.Migrate(ctx, pool, realMigrationsDirFromSkillPkg); err != nil {
-		t.Fatalf("db.Migrate (001+002): %v", err)
+		t.Fatalf("db.Migrate (full real migrations dir): %v", err)
 	}
 
 	store := NewStore(pool)

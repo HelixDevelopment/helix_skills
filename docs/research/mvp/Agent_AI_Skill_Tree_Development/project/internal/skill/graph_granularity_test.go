@@ -54,7 +54,7 @@ func TestP1T1W2_SecondTypedEdgePerPairAccepted(t *testing.T) {
 	defer pool.Close()
 
 	if err := db.Migrate(ctx, pool, realMigrationsDirFromSkillPkg); err != nil {
-		t.Fatalf("db.Migrate (001+002): %v", err)
+		t.Fatalf("db.Migrate (full real migrations dir): %v", err)
 	}
 
 	store := NewStore(pool)
@@ -110,7 +110,7 @@ func TestP1T1W2_RelatedToBackEdgeIsNotACycle(t *testing.T) {
 	defer pool.Close()
 
 	if err := db.Migrate(ctx, pool, realMigrationsDirFromSkillPkg); err != nil {
-		t.Fatalf("db.Migrate (001+002): %v", err)
+		t.Fatalf("db.Migrate (full real migrations dir): %v", err)
 	}
 
 	store := NewStore(pool)
@@ -178,7 +178,7 @@ func TestP1T1W2_ComposesCycleIsRejected(t *testing.T) {
 	defer pool.Close()
 
 	if err := db.Migrate(ctx, pool, realMigrationsDirFromSkillPkg); err != nil {
-		t.Fatalf("db.Migrate (001+002): %v", err)
+		t.Fatalf("db.Migrate (full real migrations dir): %v", err)
 	}
 
 	store := NewStore(pool)
@@ -233,7 +233,7 @@ func TestP1T1NEW1_AdvisoryOverHardIsNotACycle(t *testing.T) {
 	defer pool.Close()
 
 	if err := db.Migrate(ctx, pool, realMigrationsDirFromSkillPkg); err != nil {
-		t.Fatalf("db.Migrate (001+002): %v", err)
+		t.Fatalf("db.Migrate (full real migrations dir): %v", err)
 	}
 
 	store := NewStore(pool)
@@ -299,7 +299,7 @@ func TestP1T1NEW1_HardOverAdvisoryAccepted(t *testing.T) {
 	defer pool.Close()
 
 	if err := db.Migrate(ctx, pool, realMigrationsDirFromSkillPkg); err != nil {
-		t.Fatalf("db.Migrate (001+002): %v", err)
+		t.Fatalf("db.Migrate (full real migrations dir): %v", err)
 	}
 
 	store := NewStore(pool)

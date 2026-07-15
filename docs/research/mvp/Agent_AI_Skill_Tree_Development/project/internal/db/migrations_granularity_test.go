@@ -42,7 +42,18 @@ func TestP1T1Migration_M1_MigrateUpAppliesCleanOnFreshDB(t *testing.T) {
 	}
 	defer pool.Close()
 
-	if err := Migrate(ctx, pool, realMigrationsDir); err != nil {
+	// Staged to exactly 001+002 (not realMigrationsDir directly): this case
+	// asserts the 001->002 upgrade contract specifically (schema_migrations
+	// records version 2). realMigrationsDir now also carries 003_pg_trgm.sql
+	// (P1.T1 N6 remediation -- migrations/003_pg_trgm.up.sql adds pg_trgm for
+	// Store.Search, see internal/skill/kind_read_paths_granularity_test.go),
+	// so asserting against the real, ever-growing directory here would make
+	// this test re-break on every future migration addition; staging keeps it
+	// scoped to the exact upgrade path M1-M9d exist to validate. The real
+	// directory's end-to-end apply is separately proven by
+	// TestP1T1N6_KindAwareReadPathsWorkLive (internal/skill package) and the
+	// manual db.Migrate call in cmd/server/main.go.
+	if err := Migrate(ctx, pool, stageMigrationsDir(t, "001", "002")); err != nil {
 		t.Fatalf("Migrate (001+002): %v", err)
 	}
 
@@ -74,7 +85,7 @@ func TestP1T1Migration_M2_SchemaShapeMatchesDesign(t *testing.T) {
 	defer pool.Close()
 
 	if err := Migrate(ctx, pool, realMigrationsDir); err != nil {
-		t.Fatalf("Migrate (001+002): %v", err)
+		t.Fatalf("Migrate (full real migrations dir): %v", err)
 	}
 
 	// skills.kind column: present, NOT NULL, default 'atomic'.
@@ -148,6 +159,61 @@ func TestP1T1Migration_M2_SchemaShapeMatchesDesign(t *testing.T) {
 	}
 	if !strings.Contains(pkDef, "skill_id") || !strings.Contains(pkDef, "depends_on") || !strings.Contains(pkDef, "relation_type") {
 		t.Errorf("skill_dependencies_pkey definition = %q, want it to reference skill_id, depends_on, AND relation_type", pkDef)
+	}
+}
+
+// N6 (Fable code-review remediation, pg_trgm fix) — db-package migration-
+// shape assertion mirroring M2's pattern above: after Migrate applies the
+// real migrations dir (which now carries migrations/003_pg_trgm.up.sql),
+// the pg_trgm extension AND both GIN trigram indexes it creates
+// (idx_skills_name_trgm, idx_skills_title_trgm) must exist. This is the
+// permanent §11.4.135 regression guard on 003's effect: internal/skill/
+// kind_read_paths_granularity_test.go's Search subtest exercises the
+// EFFECT (Store.Search's `%`/similarity(...) query succeeds) through the
+// skill.Store layer; this test asserts the CAUSE (the extension + indexes
+// genuinely exist) at the db-package/migration-shape layer, so a
+// regression that dropped 003 (or broke its DDL) fails here even before
+// any skill.Store-level symptom would be exercised.
+func TestP1T1N6_PgTrgmExtensionAndIndexesExist(t *testing.T) {
+	admin, ok := skipIfNoTestDB(t)
+	if !ok {
+		return
+	}
+	ctx := context.Background()
+
+	dbCfg, cleanup := createThrowawayDB(t, admin)
+	defer cleanup()
+
+	pool, err := New(dbCfg)
+	if err != nil {
+		t.Fatalf("New(dbCfg): %v", err)
+	}
+	defer pool.Close()
+
+	if err := Migrate(ctx, pool, realMigrationsDir); err != nil {
+		t.Fatalf("Migrate (full real migrations dir): %v", err)
+	}
+
+	// pg_trgm extension present (migrations/003_pg_trgm.up.sql: CREATE
+	// EXTENSION IF NOT EXISTS pg_trgm).
+	var extCount int
+	if err := pool.QueryRow(ctx, `SELECT COUNT(*) FROM pg_extension WHERE extname = 'pg_trgm'`).Scan(&extCount); err != nil {
+		t.Fatalf("query pg_extension for pg_trgm: %v", err)
+	}
+	if extCount != 1 {
+		t.Errorf("pg_trgm extension count = %d, want 1 (migrations/003_pg_trgm.up.sql CREATE EXTENSION)", extCount)
+	}
+
+	// Both GIN trigram indexes 003_pg_trgm.up.sql creates on skills.name /
+	// skills.title (the columns Store.Search's `%` operator queries).
+	for _, idxName := range []string{"idx_skills_name_trgm", "idx_skills_title_trgm"} {
+		var idxCount int
+		if err := pool.QueryRow(ctx, `SELECT COUNT(*) FROM pg_indexes WHERE indexname = $1`, idxName).Scan(&idxCount); err != nil {
+			t.Fatalf("query %s: %v", idxName, err)
+		}
+		if idxCount != 1 {
+			t.Errorf("%s index count = %d, want 1", idxName, idxCount)
+		}
 	}
 }
 
@@ -300,7 +366,7 @@ func TestP1T1Migration_M5_PKWideningAllowsTwoEdgesPerPair(t *testing.T) {
 	defer pool.Close()
 
 	if err := Migrate(ctx, pool, realMigrationsDir); err != nil {
-		t.Fatalf("Migrate (001+002): %v", err)
+		t.Fatalf("Migrate (full real migrations dir): %v", err)
 	}
 
 	idA, idB := uuid.New(), uuid.New()
@@ -346,7 +412,7 @@ func TestP1T1Migration_M7_CheckConstraintsRejectBogusValues(t *testing.T) {
 	defer pool.Close()
 
 	if err := Migrate(ctx, pool, realMigrationsDir); err != nil {
-		t.Fatalf("Migrate (001+002): %v", err)
+		t.Fatalf("Migrate (full real migrations dir): %v", err)
 	}
 
 	idA := uuid.New()
@@ -385,11 +451,17 @@ func TestP1T1Migration_M8_MigrateDownCleanOnUnusedFeatureDB(t *testing.T) {
 	}
 	defer pool.Close()
 
-	if err := Migrate(ctx, pool, realMigrationsDir); err != nil {
+	// Staged to exactly 001+002 (see M1's comment for why realMigrationsDir
+	// -- which now also carries 003_pg_trgm.sql -- is not used directly here):
+	// MigrateDown(1) below must roll back exactly the 002 down-migration
+	// under test, not whatever migration happens to be highest-versioned in
+	// the ever-growing real directory.
+	migDir := stageMigrationsDir(t, "001", "002")
+	if err := Migrate(ctx, pool, migDir); err != nil {
 		t.Fatalf("Migrate (001+002): %v", err)
 	}
 
-	if err := MigrateDown(ctx, pool, realMigrationsDir, 1); err != nil {
+	if err := MigrateDown(ctx, pool, migDir, 1); err != nil {
 		t.Fatalf("MigrateDown(1) on an unused-feature DB: expected clean rollback, got error: %v", err)
 	}
 
@@ -463,7 +535,10 @@ func TestP1T1Migration_M9_MigrateDownFailsClosedOnUsedFeatureDB(t *testing.T) {
 	}
 	defer pool.Close()
 
-	if err := Migrate(ctx, pool, realMigrationsDir); err != nil {
+	// Staged to exactly 001+002 -- see M1's comment for why realMigrationsDir
+	// (which now also carries 003_pg_trgm.sql) is not used directly here.
+	migDir := stageMigrationsDir(t, "001", "002")
+	if err := Migrate(ctx, pool, migDir); err != nil {
 		t.Fatalf("Migrate (001+002): %v", err)
 	}
 
@@ -478,7 +553,7 @@ func TestP1T1Migration_M9_MigrateDownFailsClosedOnUsedFeatureDB(t *testing.T) {
 		t.Fatalf("insert composes edge (marks the feature as used): %v", err)
 	}
 
-	if err := MigrateDown(ctx, pool, realMigrationsDir, 1); err == nil {
+	if err := MigrateDown(ctx, pool, migDir, 1); err == nil {
 		t.Fatal("MigrateDown(1) on a used-feature DB (composes row present): expected a fail-closed error, got nil")
 	}
 
@@ -540,7 +615,10 @@ func TestP1T1Migration_M9b_MigrateDownFailsClosedOnOptionalEdgeAttribute(t *test
 	}
 	defer pool.Close()
 
-	if err := Migrate(ctx, pool, realMigrationsDir); err != nil {
+	// Staged to exactly 001+002 -- see M1's comment for why realMigrationsDir
+	// (which now also carries 003_pg_trgm.sql) is not used directly here.
+	migDir := stageMigrationsDir(t, "001", "002")
+	if err := Migrate(ctx, pool, migDir); err != nil {
 		t.Fatalf("Migrate (001+002): %v", err)
 	}
 
@@ -557,7 +635,7 @@ func TestP1T1Migration_M9b_MigrateDownFailsClosedOnOptionalEdgeAttribute(t *test
 		t.Fatalf("insert requires edge with optional=TRUE: %v", err)
 	}
 
-	if err := MigrateDown(ctx, pool, realMigrationsDir, 1); err == nil {
+	if err := MigrateDown(ctx, pool, migDir, 1); err == nil {
 		t.Fatal("MigrateDown(1) on a DB with a legacy-type edge that has optional=TRUE: expected a fail-closed error (W1), got nil -- pre-fix this down silently dropped the optional column, losing the flag")
 	}
 
@@ -606,7 +684,10 @@ func TestP1T1Migration_M9c_MigrateDownFailsClosedOnSortOrderEdgeAttribute(t *tes
 	}
 	defer pool.Close()
 
-	if err := Migrate(ctx, pool, realMigrationsDir); err != nil {
+	// Staged to exactly 001+002 -- see M1's comment for why realMigrationsDir
+	// (which now also carries 003_pg_trgm.sql) is not used directly here.
+	migDir := stageMigrationsDir(t, "001", "002")
+	if err := Migrate(ctx, pool, migDir); err != nil {
 		t.Fatalf("Migrate (001+002): %v", err)
 	}
 
@@ -621,7 +702,7 @@ func TestP1T1Migration_M9c_MigrateDownFailsClosedOnSortOrderEdgeAttribute(t *tes
 		t.Fatalf("insert extends edge with sort_order=3: %v", err)
 	}
 
-	if err := MigrateDown(ctx, pool, realMigrationsDir, 1); err == nil {
+	if err := MigrateDown(ctx, pool, migDir, 1); err == nil {
 		t.Fatal("MigrateDown(1) on a DB with a legacy-type edge that has sort_order set: expected a fail-closed error (W1), got nil -- pre-fix this down silently dropped the sort_order column, losing the value")
 	}
 
@@ -673,7 +754,10 @@ func TestP1T1Migration_M9d_MigrateDownFailsClosedOnNonAtomicSkillKind(t *testing
 	}
 	defer pool.Close()
 
-	if err := Migrate(ctx, pool, realMigrationsDir); err != nil {
+	// Staged to exactly 001+002 -- see M1's comment for why realMigrationsDir
+	// (which now also carries 003_pg_trgm.sql) is not used directly here.
+	migDir := stageMigrationsDir(t, "001", "002")
+	if err := Migrate(ctx, pool, migDir); err != nil {
 		t.Fatalf("Migrate (001+002): %v", err)
 	}
 
@@ -682,7 +766,7 @@ func TestP1T1Migration_M9d_MigrateDownFailsClosedOnNonAtomicSkillKind(t *testing
 		t.Fatalf("insert composite skill A (zero composes edges): %v", err)
 	}
 
-	if err := MigrateDown(ctx, pool, realMigrationsDir, 1); err == nil {
+	if err := MigrateDown(ctx, pool, migDir, 1); err == nil {
 		t.Fatal("MigrateDown(1) on a DB with a kind<>'atomic' skill and zero composes edges: expected a fail-closed error (W1), got nil -- pre-fix this down silently dropped the kind column, losing the classification")
 	}
 
