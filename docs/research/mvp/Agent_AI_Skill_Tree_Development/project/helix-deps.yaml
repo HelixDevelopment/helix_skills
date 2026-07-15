@@ -1,0 +1,57 @@
+# =============================================================================
+# HelixKnowledge Skill Graph Service - Dependency Manifest
+# =============================================================================
+# Per Constitution:
+#   - §11.4.28C  Dependencies resolve to ONE canonical location:
+#                <repo_root>/<name>/ (ungrouped) or
+#                <repo_root>/submodules/<name>/ (grouped).
+#                Nested own-org submodule chains are FORBIDDEN.
+#   - §11.4.29   Dependency names are lowercase snake_case.
+#   - §11.4.31   A consuming project ships this helix-deps.yaml manifest.
+#
+# This file is consumed by scripts/sync_submodules.sh (dry-run by default).
+# It does not itself add/mutate any git submodule.
+# =============================================================================
+schema_version: 1
+deps:
+  - name: llms_verifier
+    ssh_url: git@github.com:vasic-digital/LLMsVerifier.git
+    ref: main
+    why: "Model quality verifier/router (jury) used to grade and route skill-graph LLM outputs."
+    layout: grouped
+
+  - name: helix_llm
+    ssh_url: git@github.com:HelixDevelopment/HelixLLM.git
+    ref: main
+    why: "OpenAI-compatible local model daemon providing generate/embed endpoints."
+    layout: grouped
+
+  - name: helix_agent
+    ssh_url: git@github.com:HelixDevelopment/HelixAgent.git
+    ref: main
+    why: "Multi-provider LLM + embeddings client used by the skill-graph service."
+    layout: grouped
+
+  - name: embeddings
+    ssh_url: git@github.com:vasic-digital/Embeddings.git
+    ref: main
+    why: "pgvector-backed embeddings provider for skill-graph semantic search."
+    layout: grouped
+
+  - name: helix_qa
+    ssh_url: git@github.com:HelixDevelopment/HelixQA.git
+    ref: main
+    why: "Autonomous QA orchestrator supplying test banks for skill-graph validation."
+    layout: grouped
+
+  - name: challenges
+    ssh_url: git@github.com:vasic-digital/Challenges.git
+    ref: main
+    why: "Per-feature challenge scripts exercised against the skill-graph service."
+    layout: grouped
+
+  - name: docs_chain
+    ssh_url: git@github.com:vasic-digital/docs_chain.git
+    ref: main
+    why: "Doc-sync engine that keeps skill-graph documentation chained to source."
+    layout: grouped

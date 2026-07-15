@@ -1,0 +1,1739 @@
+openapi: 3.1.0
+info:
+  title: HelixKnowledge Skill Graph API
+  version: "1.0.0"
+  summary: REST API for the self-growing Agent AI Skill Graph system.
+  description: |
+    Single source of truth for the skill-graph REST API, derived from
+    `SPEC.md` §6 (API Specification), §4 (Data Models) and §7 (MCP tool
+    parity).
+
+    The Skill Graph stores versioned units of knowledge ("Skills") for AI
+    CLI agents. Skills form a directed acyclic graph (DAG) of dependencies,
+    are searchable via hybrid vector + keyword search, are auto-expanded
+    to fill gaps, and are enriched with Evidence learned from real
+    codebases.
+
+    ## Authentication
+    Every endpoint requires the `X-API-Key` header (see the `ApiKeyAuth`
+    security scheme).
+
+    ## Content negotiation
+    - Default representation is `application/json`.
+    - Skill-oriented read endpoints (`/skills`, `/skills/{name}`,
+      `/skills/{name}/tree`, `/skills/{name}/export`) also support
+      `Accept: application/toml`, returning the TOML Skill Format
+      described in SPEC.md §4.2.
+    - `POST /skills` and `POST /skills/import` accept either
+      `application/json` or `application/toml` request bodies
+      (auto-detected via `Content-Type`).
+  contact:
+    name: HelixKnowledge Skill Graph Team
+    email: milos85vasic@gmail.com
+  license:
+    name: UNLICENSED
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development (HTTP/2, Gin default)
+  - url: https://skills.helix.internal/api/v1
+    description: Remote deployment (HTTP/3 via Caddy proxy)
+
+security:
+  - ApiKeyAuth: []
+
+tags:
+  - name: Skills
+    description: CRUD, dependency tree, import/export for Skills.
+  - name: Search
+    description: Hybrid vector + keyword search over Skills.
+  - name: Registry
+    description: Skill Registry health, coverage and review workflow.
+  - name: Auto-Expand
+    description: Auto-growth pipeline that fills gaps in the skill graph.
+  - name: Learning
+    description: Learn Evidence from real codebases.
+  - name: System
+    description: Health, metrics and version endpoints.
+
+paths:
+  /skills:
+    get:
+      operationId: listSkills
+      summary: List skills
+      description: List skills with optional filters and pagination.
+      tags: [Skills]
+      parameters:
+        - $ref: '#/components/parameters/StatusFilter'
+        - $ref: '#/components/parameters/DomainFilter'
+        - $ref: '#/components/parameters/TagFilter'
+        - $ref: '#/components/parameters/SearchFilter'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/OffsetParam'
+        - $ref: '#/components/parameters/AcceptTomlHeader'
+      responses:
+        '200':
+          description: A page of skills.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillListResponse'
+              example:
+                total: 2
+                limit: 50
+                offset: 0
+                skills:
+                  - id: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                    name: "android.aosp.build-system"
+                    version: "0.1.0"
+                    title: "AOSP Build System (Soong, Make, Bazel)"
+                    description: "Complete reference for Android build, Soong blueprints, Android.bp, etc."
+                    content: "# AOSP Build System\n\n## Overview\n..."
+                    metadata:
+                      tags: ["android", "build", "soong", "bazel"]
+                      domain: "android"
+                      complexity: "intermediate"
+                    status: "active"
+                    created_at: "2026-01-10T09:00:00Z"
+                    updated_at: "2026-06-01T14:22:31Z"
+                  - id: "9c858901-8a57-4791-81fe-4c455b099bc9"
+                    name: "python.basics"
+                    version: "0.2.1"
+                    title: "Python Fundamentals"
+                    description: "Core Python language reference."
+                    content: "# Python Fundamentals\n..."
+                    metadata:
+                      tags: ["python"]
+                      domain: "python"
+                      complexity: "beginner"
+                    status: "validated"
+                    created_at: "2026-01-05T09:00:00Z"
+                    updated_at: "2026-01-05T09:00:00Z"
+            application/toml:
+              schema:
+                $ref: '#/components/schemas/TomlDocument'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      operationId: createSkill
+      summary: Create skill
+      description: |
+        Create a new skill. Accepts either a JSON body (`application/json`)
+        or a TOML Skill Format body (`application/toml`, see SPEC.md §4.2).
+      tags: [Skills]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SkillCreateRequest'
+            example:
+              name: "android.aosp.build-system"
+              version: "0.1.0"
+              title: "AOSP Build System (Soong, Make, Bazel)"
+              description: "Complete reference for Android build, Soong blueprints, Android.bp, etc."
+              content: "# AOSP Build System\n\n## Overview\nThe Android build system uses Soong (Android.bp), Make (Android.mk), and migrating to Bazel.\n"
+              metadata:
+                tags: ["android", "build", "soong", "bazel"]
+                domain: "android"
+                complexity: "intermediate"
+              dependencies:
+                requires: ["linux.kernel-modules", "python.basics", "make.basics"]
+                extends: ["android.general"]
+                recommends: ["bazel.advanced"]
+              resources:
+                - url: "https://source.android.com/docs/setup/build/building"
+                  title: "Official Android Build Documentation"
+                  resource_type: "official-doc"
+                - url: "https://android.googlesource.com/platform/build/soong/+/refs/heads/main/README.md"
+                  title: "Soong README"
+                  resource_type: "code"
+          application/toml:
+            schema:
+              $ref: '#/components/schemas/TomlDocument'
+            example: |
+              [skill]
+              name = "android.aosp.build-system"
+              version = "0.1.0"
+              title = "AOSP Build System (Soong, Make, Bazel)"
+              description = "Complete reference for Android build, Soong blueprints, Android.bp, etc."
+              content = """
+              # AOSP Build System
+
+              ## Overview
+              The Android build system uses Soong (Android.bp), Make (Android.mk), and migrating to Bazel.
+              """
+
+              [skill.metadata]
+              tags = ["android", "build", "soong", "bazel"]
+              domain = "android"
+              complexity = "intermediate"
+
+              [skill.dependencies]
+              requires = ["linux.kernel-modules", "python.basics", "make.basics"]
+              extends = ["android.general"]
+              recommends = ["bazel.advanced"]
+
+              [[skill.resources]]
+              url = "https://source.android.com/docs/setup/build/building"
+              title = "Official Android Build Documentation"
+              resource_type = "official-doc"
+      responses:
+        '201':
+          description: Skill created.
+          headers:
+            Location:
+              description: URL of the newly created skill.
+              schema:
+                type: string
+                format: uri
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Skill'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: A skill with this name already exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "conflict"
+                message: "skill 'android.aosp.build-system' already exists"
+                code: 409
+        '422':
+          description: Body parsed but failed validation (e.g. unresolved dependency name, invalid enum value).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "unprocessable_entity"
+                message: "dependency 'make.basics' does not exist"
+                code: 422
+
+  /skills/{name}:
+    parameters:
+      - $ref: '#/components/parameters/SkillNamePath'
+    get:
+      operationId: getSkill
+      summary: Get skill by name
+      description: Retrieve a single skill. Pass `recursive=true` to embed its full dependency tree.
+      tags: [Skills]
+      parameters:
+        - name: recursive
+          in: query
+          description: When true, embed the full recursive dependency tree in the response.
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - $ref: '#/components/parameters/AcceptTomlHeader'
+      responses:
+        '200':
+          description: The requested skill.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillDetail'
+              example:
+                id: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                name: "android.aosp.build-system"
+                version: "0.1.0"
+                title: "AOSP Build System (Soong, Make, Bazel)"
+                description: "Complete reference for Android build, Soong blueprints, Android.bp, etc."
+                content: "# AOSP Build System\n..."
+                metadata:
+                  tags: ["android", "build", "soong", "bazel"]
+                  domain: "android"
+                  complexity: "intermediate"
+                status: "active"
+                created_at: "2026-01-10T09:00:00Z"
+                updated_at: "2026-06-01T14:22:31Z"
+                dependencies:
+                  - skill_id: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                    depends_on: "9c858901-8a57-4791-81fe-4c455b099bc9"
+                    relation_type: "requires"
+                resources:
+                  - id: "b6a1a55e-3e2b-4c9a-9f0a-2b6a6e2e9b31"
+                    skill_id: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                    url: "https://source.android.com/docs/setup/build/building"
+                    title: "Official Android Build Documentation"
+                    resource_type: "official-doc"
+                    fetched_hash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                    content_cached: null
+                    last_validated: "2026-06-01T14:22:31Z"
+            application/toml:
+              schema:
+                $ref: '#/components/schemas/TomlDocument'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: updateSkill
+      summary: Update skill
+      description: Full update (replace) of an existing skill's editable fields.
+      tags: [Skills]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SkillUpdateRequest'
+            example:
+              version: "0.2.0"
+              title: "AOSP Build System (Soong, Make, Bazel)"
+              description: "Updated reference including Bazel migration notes."
+              content: "# AOSP Build System\n\n## Overview\n...updated...\n"
+              status: "validated"
+              metadata:
+                tags: ["android", "build", "soong", "bazel"]
+                domain: "android"
+                complexity: "advanced"
+              dependencies:
+                requires: ["linux.kernel-modules", "python.basics", "make.basics"]
+                extends: ["android.general"]
+                recommends: ["bazel.advanced"]
+          application/toml:
+            schema:
+              $ref: '#/components/schemas/TomlDocument'
+      responses:
+        '200':
+          description: Updated skill.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Skill'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Update conflicts with current state (e.g. concurrent modification or version regression).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Body parsed but failed validation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      operationId: deleteSkill
+      summary: Delete skill
+      description: Delete a skill. Cascades to its `skill_dependencies`, `resources` and `evidences` rows.
+      tags: [Skills]
+      responses:
+        '204':
+          description: Skill deleted (and dependent rows cascaded).
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /skills/{name}/tree:
+    get:
+      operationId: getSkillTree
+      summary: Get dependency tree
+      description: Recursively resolve the dependency DAG rooted at the named skill.
+      tags: [Skills]
+      parameters:
+        - $ref: '#/components/parameters/SkillNamePath'
+        - name: depth
+          in: query
+          description: Maximum recursion depth (mirrors `autoexpand.max_depth`, default 5).
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            default: 5
+        - name: format
+          in: query
+          description: Response format. Equivalent to setting the `Accept` header.
+          required: false
+          schema:
+            type: string
+            enum: [json, toml]
+            default: json
+      responses:
+        '200':
+          description: Dependency tree.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillTreeNode'
+              example:
+                skill:
+                  id: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  name: "android.aosp.build-system"
+                  version: "0.1.0"
+                  title: "AOSP Build System (Soong, Make, Bazel)"
+                  status: "active"
+                  created_at: "2026-01-10T09:00:00Z"
+                  updated_at: "2026-06-01T14:22:31Z"
+                relation_type: null
+                depends_on:
+                  - skill:
+                      id: "9c858901-8a57-4791-81fe-4c455b099bc9"
+                      name: "python.basics"
+                      version: "0.2.1"
+                      title: "Python Fundamentals"
+                      status: "validated"
+                      created_at: "2026-01-05T09:00:00Z"
+                      updated_at: "2026-01-05T09:00:00Z"
+                    relation_type: "requires"
+                    depends_on: []
+            application/toml:
+              schema:
+                $ref: '#/components/schemas/TomlDocument'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /skills/import:
+    post:
+      operationId: importSkills
+      summary: Bulk import skills from TOML
+      description: |
+        Bulk import one or more skill definitions. Accepts a TOML document
+        (one or more `[skill]` tables) or a JSON array of `SkillCreateRequest`
+        objects.
+      tags: [Skills]
+      requestBody:
+        required: true
+        content:
+          application/toml:
+            schema:
+              $ref: '#/components/schemas/TomlDocument'
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/SkillCreateRequest'
+      responses:
+        '201':
+          description: Import completed (see body for per-item results; partial success is possible).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportResult'
+              example:
+                imported: 3
+                skipped: 1
+                failed: 0
+                results:
+                  - name: "android.aosp.build-system"
+                    status: "imported"
+                  - name: "python.basics"
+                    status: "skipped"
+                    reason: "already exists"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          description: One or more entries in the document failed validation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportResult'
+
+  /skills/{name}/export:
+    get:
+      operationId: exportSkill
+      summary: Export skill as TOML
+      description: Export a skill together with its dependencies and resources, in the TOML Skill Format (SPEC.md §4.2) by default.
+      tags: [Skills]
+      parameters:
+        - $ref: '#/components/parameters/SkillNamePath'
+        - $ref: '#/components/parameters/AcceptTomlHeader'
+      responses:
+        '200':
+          description: Exported skill document.
+          content:
+            application/toml:
+              schema:
+                $ref: '#/components/schemas/TomlDocument'
+              example: |
+                [skill]
+                name = "android.aosp.build-system"
+                version = "0.1.0"
+                title = "AOSP Build System (Soong, Make, Bazel)"
+                description = "Complete reference for Android build, Soong blueprints, Android.bp, etc."
+                content = """
+                # AOSP Build System
+                ...
+                """
+
+                [skill.metadata]
+                tags = ["android", "build", "soong", "bazel"]
+                domain = "android"
+                complexity = "intermediate"
+
+                [skill.dependencies]
+                requires = ["linux.kernel-modules", "python.basics", "make.basics"]
+                extends = ["android.general"]
+                recommends = ["bazel.advanced"]
+
+                [[skill.resources]]
+                url = "https://source.android.com/docs/setup/build/building"
+                title = "Official Android Build Documentation"
+                resource_type = "official-doc"
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillExport'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /search:
+    post:
+      operationId: searchSkills
+      summary: Hybrid vector + keyword search
+      tags: [Search]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchRequest'
+            example:
+              query: "android soong blueprint build rules"
+              limit: 5
+      responses:
+        '200':
+          description: Ranked search results.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+              example:
+                query: "android soong blueprint build rules"
+                took_ms: 42
+                results:
+                  - skill:
+                      id: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                      name: "android.aosp.build-system"
+                      version: "0.1.0"
+                      title: "AOSP Build System (Soong, Make, Bazel)"
+                      status: "active"
+                      created_at: "2026-01-10T09:00:00Z"
+                      updated_at: "2026-06-01T14:22:31Z"
+                    score: 0.9123
+                    match_type: "hybrid"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /search/similar:
+    post:
+      operationId: searchSimilarSkills
+      summary: Find skills similar to given content
+      tags: [Search]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SimilarSearchRequest'
+            example:
+              content: |
+                Soong blueprint files (Android.bp) declare cc_library and
+                java_library modules compiled through Bazel's Bp2Build.
+              limit: 5
+      responses:
+        '200':
+          description: Skills ranked by embedding similarity to the given content.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /registry:
+    get:
+      operationId: getRegistry
+      summary: Full registry with health status
+      tags: [Registry]
+      parameters:
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/OffsetParam'
+      responses:
+        '200':
+          description: Registry entries for all known skills.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistryResponse'
+              example:
+                total: 2
+                generated_at: "2026-07-15T08:00:00Z"
+                entries:
+                  - skill_id: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                    skill_name: "android.aosp.build-system"
+                    missing_deps: []
+                    stale: false
+                    last_review: "2026-07-01T00:00:00Z"
+                    auto_expand: true
+                    coverage: 0.92
+                  - skill_id: "9c858901-8a57-4791-81fe-4c455b099bc9"
+                    skill_name: "python.basics"
+                    missing_deps: ["python.packaging"]
+                    stale: true
+                    last_review: null
+                    auto_expand: true
+                    coverage: 0.55
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /registry/missing:
+    get:
+      operationId: getMissingDependencies
+      summary: List all missing dependencies
+      tags: [Registry]
+      responses:
+        '200':
+          description: Skills that reference at least one unresolved dependency.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MissingDependenciesReport'
+              example:
+                total: 1
+                entries:
+                  - skill_id: "9c858901-8a57-4791-81fe-4c455b099bc9"
+                    skill_name: "python.basics"
+                    missing_deps: ["python.packaging"]
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /registry/stale:
+    get:
+      operationId: getStaleSkills
+      summary: List stale skills
+      tags: [Registry]
+      responses:
+        '200':
+          description: Skills flagged stale (past `review_interval_hours`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistryResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /registry/review/{name}:
+    post:
+      operationId: triggerRegistryReview
+      summary: Trigger manual review of a skill
+      tags: [Registry]
+      parameters:
+        - $ref: '#/components/parameters/SkillNamePath'
+      responses:
+        '202':
+          description: Review queued.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewTriggerResponse'
+              example:
+                skill_name: "android.aosp.build-system"
+                status: "queued"
+                triggered_at: "2026-07-15T08:05:00Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: A review is already in progress for this skill.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /registry/coverage:
+    get:
+      operationId: getCoverageReport
+      summary: Coverage report
+      tags: [Registry]
+      parameters:
+        - $ref: '#/components/parameters/DomainFilter'
+      responses:
+        '200':
+          description: Coverage aggregated overall and per domain.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CoverageReport'
+              example:
+                generated_at: "2026-07-15T08:00:00Z"
+                overall_coverage: 0.81
+                coverage_threshold: 0.8
+                by_domain:
+                  - domain: "android"
+                    coverage: 0.92
+                    skill_count: 14
+                  - domain: "python"
+                    coverage: 0.55
+                    skill_count: 6
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /expand/{name}:
+    post:
+      operationId: triggerExpansion
+      summary: Trigger auto-expansion for a skill
+      description: Enqueues the auto-growth pipeline (`internal/autoexpand`) for the named skill.
+      tags: [Auto-Expand]
+      parameters:
+        - $ref: '#/components/parameters/SkillNamePath'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExpansionTriggerRequest'
+            example:
+              max_new_skills: 10
+              max_depth: 5
+      responses:
+        '202':
+          description: Expansion job accepted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobAcceptedResponse'
+              example:
+                job_id: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+                job_type: "expansion"
+                skill_name: "android.aosp.build-system"
+                status: "pending"
+                created_at: "2026-07-15T08:10:00Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: An expansion job is already running for this skill.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /expand/status/{id}:
+    get:
+      operationId: getExpansionStatus
+      summary: Check expansion job status
+      tags: [Auto-Expand]
+      parameters:
+        - $ref: '#/components/parameters/JobIdPath'
+      responses:
+        '200':
+          description: Current job status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobStatus'
+              example:
+                id: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+                job_type: "expansion"
+                skill_name: "android.aosp.build-system"
+                status: "completed"
+                created_at: "2026-07-15T08:10:00Z"
+                updated_at: "2026-07-15T08:12:45Z"
+                result:
+                  new_skills: ["android.soong.bp2build", "android.ninja-files"]
+                error: null
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /expand/gap-report:
+    post:
+      operationId: generateGapReport
+      summary: Generate gap analysis report
+      tags: [Auto-Expand]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GapReportRequest'
+            example:
+              domain: "android"
+      responses:
+        '200':
+          description: Gap analysis report.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GapReport'
+              example:
+                generated_at: "2026-07-15T08:15:00Z"
+                total_missing: 3
+                total_stale: 1
+                domains:
+                  - domain: "android"
+                    coverage: 0.92
+                    missing_skills: ["android.soong.bp2build"]
+                    stale_skills: []
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /learn:
+    post:
+      operationId: submitProjectForLearning
+      summary: Submit project path for analysis
+      description: Enqueues tree-sitter based code analysis (`internal/codeanalysis`) over the given project path.
+      tags: [Learning]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LearnRequest'
+            example:
+              project_path: "/home/dev/projects/android-app"
+              languages: ["java", "kotlin"]
+      responses:
+        '202':
+          description: Analysis job accepted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobAcceptedResponse'
+              example:
+                job_id: "1b4e28ba-2fa1-11d2-883f-0016d3cca427"
+                job_type: "analysis"
+                project_path: "/home/dev/projects/android-app"
+                status: "pending"
+                created_at: "2026-07-15T08:20:00Z"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          description: "`project_path` does not exist or is not readable, or `languages` contains an unsupported entry."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /learn/status/{id}:
+    get:
+      operationId: getLearnStatus
+      summary: Check analysis job status
+      tags: [Learning]
+      parameters:
+        - $ref: '#/components/parameters/JobIdPath'
+      responses:
+        '200':
+          description: Current job status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobStatus'
+              example:
+                id: "1b4e28ba-2fa1-11d2-883f-0016d3cca427"
+                job_type: "analysis"
+                project_path: "/home/dev/projects/android-app"
+                status: "running"
+                created_at: "2026-07-15T08:20:00Z"
+                updated_at: "2026-07-15T08:21:10Z"
+                result: null
+                error: null
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /evidences/{skill_name}:
+    get:
+      operationId: getEvidenceForSkill
+      summary: Get evidence for a skill
+      tags: [Learning]
+      parameters:
+        - name: skill_name
+          in: path
+          required: true
+          description: Skill name (e.g. `android.aosp.build-system`).
+          schema:
+            type: string
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/OffsetParam'
+      responses:
+        '200':
+          description: Evidence records learned for this skill.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidenceListResponse'
+              example:
+                skill_name: "android.aosp.build-system"
+                total: 1
+                evidences:
+                  - id: "4d1e28ba-2fa1-11d2-883f-0016d3cca428"
+                    skill_id: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                    source_project: "android-app"
+                    source_file: "modules/core/Android.bp"
+                    code_snippet: "cc_library {\n    name: \"libcore\",\n    srcs: [\"*.cpp\"],\n}\n"
+                    pattern: "soong-cc_library"
+                    language: "cpp"
+                    validated: true
+                    created_at: "2026-06-20T10:00:00Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /health:
+    get:
+      operationId: getHealth
+      summary: Health check
+      tags: [System]
+      responses:
+        '200':
+          description: Service is healthy.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: "ok"
+                version: "1.4.2"
+                uptime_seconds: 86412
+                checks:
+                  database: true
+                  embedding_provider: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /metrics:
+    get:
+      operationId: getMetrics
+      summary: Prometheus metrics
+      tags: [System]
+      responses:
+        '200':
+          description: Prometheus text exposition format.
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: |
+                # HELP skillgraph_skills_total Total number of skills.
+                # TYPE skillgraph_skills_total gauge
+                skillgraph_skills_total 128
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /version:
+    get:
+      operationId: getVersion
+      summary: Version info
+      tags: [System]
+      responses:
+        '200':
+          description: Build/version information.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VersionResponse'
+              example:
+                version: "1.4.2"
+                git_commit: "a1b2c3d4"
+                build_date: "2026-07-01T00:00:00Z"
+                go_version: "go1.22.5"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Static or rotating API key required by every `/api/v1` endpoint.
+
+  parameters:
+    SkillNamePath:
+      name: name
+      in: path
+      required: true
+      description: Dotted skill name, e.g. `android.aosp.build-system`.
+      schema:
+        type: string
+      example: "android.aosp.build-system"
+    JobIdPath:
+      name: id
+      in: path
+      required: true
+      description: Job identifier returned when the job was enqueued.
+      schema:
+        type: string
+        format: uuid
+    StatusFilter:
+      name: status
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/SkillStatus'
+    DomainFilter:
+      name: domain
+      in: query
+      required: false
+      description: Filter by `metadata.domain`.
+      schema:
+        type: string
+    TagFilter:
+      name: tag
+      in: query
+      required: false
+      description: Filter by a single tag present in `metadata.tags`.
+      schema:
+        type: string
+    SearchFilter:
+      name: search
+      in: query
+      required: false
+      description: Free-text filter over name/title/description (keyword only, not vector search).
+      schema:
+        type: string
+    LimitParam:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 500
+        default: 50
+    OffsetParam:
+      name: offset
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    AcceptTomlHeader:
+      name: Accept
+      in: header
+      required: false
+      description: Set to `application/toml` to receive the TOML Skill Format instead of JSON.
+      schema:
+        type: string
+        enum: [application/json, application/toml]
+        default: application/json
+
+  responses:
+    BadRequest:
+      description: Malformed request (invalid query parameter, unparsable body).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "bad_request"
+            message: "limit must be between 1 and 500"
+            code: 400
+    Unauthorized:
+      description: Missing or invalid `X-API-Key`.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "unauthorized"
+            message: "missing or invalid X-API-Key header"
+            code: 401
+    NotFound:
+      description: Resource does not exist.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "not_found"
+            message: "skill 'android.aosp.build-system' not found"
+            code: 404
+
+  schemas:
+    SkillStatus:
+      type: string
+      description: Lifecycle state of a Skill (SPEC.md §4.1 `SkillStatus`).
+      enum: [draft, validated, active, deprecated]
+
+    DependencyType:
+      type: string
+      description: Relation type of a `SkillDependency` edge (SPEC.md §4.1 `DependencyType`).
+      enum: [requires, extends, recommends]
+
+    ResourceType:
+      type: string
+      description: Kind of external Resource, per the `resources.resource_type` CHECK constraint (SPEC.md §5).
+      enum: [official-doc, article, code, video, tutorial]
+
+    Skill:
+      type: object
+      description: A single knowledge unit (SPEC.md §4.1 `Skill`). The `embedding` field is never serialized (`json:"-"` in Go).
+      required: [id, name, version, title, content, status, created_at, updated_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          description: Dotted, unique skill name, e.g. `android.aosp.build-system`.
+          example: "android.aosp.build-system"
+        version:
+          type: string
+          description: SemVer string.
+          example: "0.1.0"
+        title:
+          type: string
+        description:
+          type: string
+        content:
+          type: string
+          description: Full Markdown content.
+        metadata:
+          $ref: '#/components/schemas/SkillMetadata'
+        status:
+          $ref: '#/components/schemas/SkillStatus'
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+
+    SkillMetadata:
+      type: object
+      description: Free-form JSONB metadata (`metadata` column). Shape below reflects the TOML `[skill.metadata]` example in SPEC.md §4.2.
+      properties:
+        tags:
+          type: array
+          items:
+            type: string
+        domain:
+          type: string
+        complexity:
+          type: string
+          examples: ["beginner", "intermediate", "advanced"]
+      additionalProperties: true
+
+    SkillDependenciesInput:
+      type: object
+      description: Dependency edges grouped by relation type, mirroring the TOML `[skill.dependencies]` table. Values are target skill names, resolved server-side to `SkillDependency` rows.
+      properties:
+        requires:
+          type: array
+          items:
+            type: string
+        extends:
+          type: array
+          items:
+            type: string
+        recommends:
+          type: array
+          items:
+            type: string
+
+    ResourceInput:
+      type: object
+      required: [url, resource_type]
+      properties:
+        url:
+          type: string
+          format: uri
+        title:
+          type: string
+        resource_type:
+          $ref: '#/components/schemas/ResourceType'
+
+    SkillCreateRequest:
+      type: object
+      description: Body accepted by `POST /skills` and each entry of `POST /skills/import`.
+      required: [name, title, content]
+      properties:
+        name:
+          type: string
+          example: "android.aosp.build-system"
+        version:
+          type: string
+          default: "0.1.0"
+        title:
+          type: string
+        description:
+          type: string
+        content:
+          type: string
+        metadata:
+          $ref: '#/components/schemas/SkillMetadata'
+        dependencies:
+          $ref: '#/components/schemas/SkillDependenciesInput'
+        resources:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResourceInput'
+
+    SkillUpdateRequest:
+      type: object
+      description: Body accepted by `PUT /skills/{name}`. Full replacement of editable fields.
+      required: [title, content]
+      properties:
+        version:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        content:
+          type: string
+        status:
+          $ref: '#/components/schemas/SkillStatus'
+        metadata:
+          $ref: '#/components/schemas/SkillMetadata'
+        dependencies:
+          $ref: '#/components/schemas/SkillDependenciesInput'
+
+    SkillDetail:
+      description: A `Skill` optionally expanded with its resolved dependencies and resources (used when `recursive=true`).
+      allOf:
+        - $ref: '#/components/schemas/Skill'
+        - type: object
+          properties:
+            dependencies:
+              type: array
+              items:
+                $ref: '#/components/schemas/SkillDependency'
+            resources:
+              type: array
+              items:
+                $ref: '#/components/schemas/Resource'
+
+    SkillDependency:
+      type: object
+      description: Directed edge in the skill DAG (SPEC.md §4.1 `SkillDependency`).
+      required: [skill_id, depends_on, relation_type]
+      properties:
+        skill_id:
+          type: string
+          format: uuid
+        depends_on:
+          type: string
+          format: uuid
+        relation_type:
+          $ref: '#/components/schemas/DependencyType'
+
+    Resource:
+      type: object
+      description: External reference for a Skill (SPEC.md §4.1 `Resource`).
+      required: [id, skill_id, url, resource_type]
+      properties:
+        id:
+          type: string
+          format: uuid
+        skill_id:
+          type: string
+          format: uuid
+        url:
+          type: string
+          format: uri
+        title:
+          type: string
+        resource_type:
+          $ref: '#/components/schemas/ResourceType'
+        fetched_hash:
+          type: ['string', 'null']
+          description: SHA256 of the last fetched content.
+        content_cached:
+          type: ['string', 'null']
+        last_validated:
+          type: ['string', 'null']
+          format: date-time
+
+    Evidence:
+      type: object
+      description: A learned experience from a real codebase (SPEC.md §4.1 `Evidence`). The `embedding` field is never serialized.
+      required: [id, skill_id, source_project, validated, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        skill_id:
+          type: string
+          format: uuid
+        source_project:
+          type: string
+        source_file:
+          type: ['string', 'null']
+        code_snippet:
+          type: ['string', 'null']
+        pattern:
+          type: ['string', 'null']
+        language:
+          type: ['string', 'null']
+        validated:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    SkillRegistryEntry:
+      type: object
+      description: Health/completeness tracking row for a skill (SPEC.md §4.1 `SkillRegistryEntry`).
+      required: [skill_id, skill_name, stale, auto_expand, coverage]
+      properties:
+        skill_id:
+          type: string
+          format: uuid
+        skill_name:
+          type: string
+        missing_deps:
+          type: array
+          items:
+            type: string
+        stale:
+          type: boolean
+        last_review:
+          type: ['string', 'null']
+          format: date-time
+        auto_expand:
+          type: boolean
+        coverage:
+          type: number
+          format: double
+          minimum: 0.0
+          maximum: 1.0
+
+    AuditLogEntry:
+      type: object
+      description: A single system event (SPEC.md §4.1 `AuditLogEntry`).
+      required: [ts, event, details]
+      properties:
+        ts:
+          type: string
+          format: date-time
+        event:
+          type: string
+        skill_id:
+          type: ['string', 'null']
+          format: uuid
+        details:
+          type: object
+          additionalProperties: true
+
+    SkillTreeNode:
+      type: object
+      description: A node in the recursively-resolved dependency tree returned by `GET /skills/{name}/tree`.
+      required: [skill, depends_on]
+      properties:
+        skill:
+          $ref: '#/components/schemas/Skill'
+        relation_type:
+          description: How this node relates to its parent; `null` for the root node.
+          oneOf:
+            - $ref: '#/components/schemas/DependencyType'
+            - type: 'null'
+        depends_on:
+          type: array
+          items:
+            $ref: '#/components/schemas/SkillTreeNode'
+
+    SkillExport:
+      type: object
+      description: JSON representation of an exported skill (the `application/toml` variant is the canonical TOML Skill Format from SPEC.md §4.2).
+      required: [skill]
+      properties:
+        skill:
+          $ref: '#/components/schemas/Skill'
+        dependencies:
+          type: array
+          items:
+            $ref: '#/components/schemas/SkillDependency'
+        resources:
+          type: array
+          items:
+            $ref: '#/components/schemas/Resource'
+
+    SkillListResponse:
+      type: object
+      required: [total, limit, offset, skills]
+      properties:
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+        skills:
+          type: array
+          items:
+            $ref: '#/components/schemas/Skill'
+
+    TomlDocument:
+      type: string
+      description: A raw TOML document in the Skill Format defined by SPEC.md §4.2 (`[skill]`, `[skill.metadata]`, `[skill.dependencies]`, `[[skill.resources]]`).
+
+    ImportResult:
+      type: object
+      required: [imported, skipped, failed, results]
+      properties:
+        imported:
+          type: integer
+        skipped:
+          type: integer
+        failed:
+          type: integer
+        results:
+          type: array
+          items:
+            type: object
+            required: [name, status]
+            properties:
+              name:
+                type: string
+              status:
+                type: string
+                enum: [imported, skipped, failed]
+              reason:
+                type: string
+
+    SearchRequest:
+      type: object
+      required: [query]
+      properties:
+        query:
+          type: string
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 5
+
+    SimilarSearchRequest:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+          description: Free-text content to embed and compare against existing skills.
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 5
+
+    SearchResult:
+      type: object
+      required: [skill, score, match_type]
+      properties:
+        skill:
+          $ref: '#/components/schemas/Skill'
+        score:
+          type: number
+          format: double
+        match_type:
+          type: string
+          enum: [vector, keyword, hybrid]
+
+    SearchResponse:
+      type: object
+      required: [query, results]
+      properties:
+        query:
+          type: string
+        took_ms:
+          type: integer
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchResult'
+
+    RegistryResponse:
+      type: object
+      required: [total, entries]
+      properties:
+        total:
+          type: integer
+        generated_at:
+          type: string
+          format: date-time
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/SkillRegistryEntry'
+
+    MissingDependenciesReport:
+      type: object
+      required: [total, entries]
+      properties:
+        total:
+          type: integer
+        entries:
+          type: array
+          items:
+            type: object
+            required: [skill_id, skill_name, missing_deps]
+            properties:
+              skill_id:
+                type: string
+                format: uuid
+              skill_name:
+                type: string
+              missing_deps:
+                type: array
+                items:
+                  type: string
+
+    CoverageReport:
+      type: object
+      required: [generated_at, overall_coverage, by_domain]
+      properties:
+        generated_at:
+          type: string
+          format: date-time
+        overall_coverage:
+          type: number
+          format: double
+          minimum: 0.0
+          maximum: 1.0
+        coverage_threshold:
+          type: number
+          format: double
+          description: Mirrors `config.toml` `[registry].coverage_threshold`.
+        by_domain:
+          type: array
+          items:
+            type: object
+            required: [domain, coverage, skill_count]
+            properties:
+              domain:
+                type: string
+              coverage:
+                type: number
+                format: double
+              skill_count:
+                type: integer
+
+    ReviewTriggerResponse:
+      type: object
+      required: [skill_name, status, triggered_at]
+      properties:
+        skill_name:
+          type: string
+        status:
+          type: string
+          enum: [queued]
+        triggered_at:
+          type: string
+          format: date-time
+
+    ExpansionTriggerRequest:
+      type: object
+      description: Optional overrides for the `[autoexpand]` config defaults.
+      properties:
+        max_new_skills:
+          type: integer
+          minimum: 1
+        max_depth:
+          type: integer
+          minimum: 1
+
+    JobStatusEnum:
+      type: string
+      enum: [pending, running, completed, failed]
+
+    JobAcceptedResponse:
+      type: object
+      description: Returned when a background job (expansion or learning) has been enqueued.
+      required: [job_id, job_type, status, created_at]
+      properties:
+        job_id:
+          type: string
+          format: uuid
+        job_type:
+          type: string
+          enum: [expansion, analysis]
+        skill_name:
+          type: string
+          description: Present for expansion jobs.
+        project_path:
+          type: string
+          description: Present for analysis (learning) jobs.
+        status:
+          $ref: '#/components/schemas/JobStatusEnum'
+        created_at:
+          type: string
+          format: date-time
+
+    JobStatus:
+      type: object
+      description: Polled via `GET /expand/status/{id}` or `GET /learn/status/{id}`.
+      required: [id, job_type, status, created_at, updated_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        job_type:
+          type: string
+          enum: [expansion, analysis]
+        skill_name:
+          type: string
+        project_path:
+          type: string
+        status:
+          $ref: '#/components/schemas/JobStatusEnum'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        result:
+          type: ['object', 'null']
+          additionalProperties: true
+        error:
+          type: ['string', 'null']
+
+    GapReportRequest:
+      type: object
+      properties:
+        domain:
+          type: string
+        min_coverage:
+          type: number
+          format: double
+
+    GapReport:
+      type: object
+      required: [generated_at, total_missing, total_stale, domains]
+      properties:
+        generated_at:
+          type: string
+          format: date-time
+        total_missing:
+          type: integer
+        total_stale:
+          type: integer
+        domains:
+          type: array
+          items:
+            type: object
+            required: [domain, coverage, missing_skills, stale_skills]
+            properties:
+              domain:
+                type: string
+              coverage:
+                type: number
+                format: double
+              missing_skills:
+                type: array
+                items:
+                  type: string
+              stale_skills:
+                type: array
+                items:
+                  type: string
+
+    LearnRequest:
+      type: object
+      required: [project_path, languages]
+      properties:
+        project_path:
+          type: string
+          example: "/home/dev/projects/android-app"
+        languages:
+          type: array
+          items:
+            type: string
+            examples: ["java", "kotlin", "c", "cpp", "python", "go"]
+          example: ["java", "kotlin"]
+
+    EvidenceListResponse:
+      type: object
+      required: [skill_name, total, evidences]
+      properties:
+        skill_name:
+          type: string
+        total:
+          type: integer
+        evidences:
+          type: array
+          items:
+            $ref: '#/components/schemas/Evidence'
+
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded, down]
+        version:
+          type: string
+        uptime_seconds:
+          type: integer
+        checks:
+          type: object
+          additionalProperties:
+            type: boolean
+
+    VersionResponse:
+      type: object
+      required: [version]
+      properties:
+        version:
+          type: string
+        git_commit:
+          type: string
+        build_date:
+          type: string
+          format: date-time
+        go_version:
+          type: string
+
+    Error:
+      type: object
+      required: [error, message, code]
+      properties:
+        error:
+          type: string
+          description: Machine-readable error slug.
+        message:
+          type: string
+          description: Human-readable detail.
+        code:
+          type: integer
+        details:
+          type: object
+          additionalProperties: true
