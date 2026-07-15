@@ -8,28 +8,40 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/BurntSushi/toml"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/helixdevelopment/skill-system/internal/config"
 	"github.com/helixdevelopment/skill-system/internal/db"
+	"github.com/helixdevelopment/skill-system/internal/models"
 	"github.com/helixdevelopment/skill-system/internal/registry"
 	"github.com/helixdevelopment/skill-system/internal/skill"
+	"github.com/helixdevelopment/skill-system/internal/validation"
 
 	mcp_go "github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	"go.uber.org/zap"
 )
 
+// skillValidator runs the fail-closed, non-executing validation pipeline against
+// a submitted skill before it is persisted (§G03). Satisfied by *validation.Pipeline.
+type skillValidator interface {
+	Validate(ctx context.Context, s *models.Skill) (*validation.ValidationResult, error)
+}
+
 // MCPServer wraps the mcp-go server with application-specific dependencies.
 type MCPServer struct {
-	server     *server.MCPServer
-	skillStore *skill.Store
-	registry   *registry.Registry
-	pool       *db.Pool
-	cfg        *config.Config
-	logger     *zap.Logger
-	transport  string // "stdio" | "http" | "both"
-	stdio      *StdioTransport
-	http       *HTTPTransport
+	server            *server.MCPServer
+	skillStore        *skill.Store
+	registry          *registry.Registry
+	pool              *db.Pool
+	cfg               *config.Config
+	logger            *zap.Logger
+	transport         string // "stdio" | "http" | "both"
+	stdio             *StdioTransport
+	http              *HTTPTransport
+	validator         skillValidator
+	validationEnabled bool
 }
 
 // NewMCPServer creates a new MCP server with all dependencies.
@@ -42,13 +54,74 @@ func NewMCPServer(pool *db.Pool, store *skill.Store, reg *registry.Registry, cfg
 	)
 
 	return &MCPServer{
-		server:     mcpServer,
-		skillStore: store,
-		registry:   reg,
-		pool:       pool,
-		cfg:        cfg,
-		logger:     logger,
-		transport:  cfg.MCP.Transport,
+		server:            mcpServer,
+		skillStore:        store,
+		registry:          reg,
+		pool:              pool,
+		cfg:               cfg,
+		logger:            logger,
+		transport:         cfg.MCP.Transport,
+		validator:         validation.NewPipeline(store, cfg.Validation, logger),
+		validationEnabled: cfg.Validation.Enabled,
+	}
+}
+
+// buildSkillFromTOML parses a TOML skill definition into an in-memory model for
+// validation ONLY (no persistence). Persistence happens via ImportFromTOML.
+func buildSkillFromTOML(data []byte) (*models.Skill, error) {
+	var w models.TOMLSkillWrapper
+	if err := toml.Unmarshal(data, &w); err != nil {
+		return nil, err
+	}
+	metaJSON, _ := json.Marshal(w.Skill.Metadata)
+	m := &models.Skill{
+		ID:          uuid.New(),
+		Name:        w.Skill.Name,
+		Version:     w.Skill.Version,
+		Title:       w.Skill.Title,
+		Description: w.Skill.Description,
+		Content:     w.Skill.Content,
+		Metadata:    metaJSON,
+		Status:      models.SkillStatusDraft,
+	}
+	for _, r := range w.Resources {
+		m.Resources = append(m.Resources, models.Resource{
+			ID:           uuid.New(),
+			URL:          r.URL,
+			Title:        r.Title,
+			ResourceType: r.ResourceType,
+		})
+	}
+	return m, nil
+}
+
+// validateForCreate runs the fail-closed validation pipeline on a submitted TOML
+// skill BEFORE it is persisted (§G03 request-path), returning a machine-readable
+// summary for the tool response. It never executes untrusted code.
+func (s *MCPServer) validateForCreate(ctx context.Context, tomlData []byte) map[string]interface{} {
+	if !s.validationEnabled || s.validator == nil {
+		return map[string]interface{}{"ran": false, "reason": "validation disabled"}
+	}
+	model, err := buildSkillFromTOML(tomlData)
+	if err != nil {
+		return map[string]interface{}{"ran": false, "reason": "toml parse error"}
+	}
+	vr, err := s.validator.Validate(ctx, model)
+	if err != nil {
+		s.logger.Warn("skill_create validation error", zap.String("skill", model.Name), zap.Error(err))
+		return map[string]interface{}{"ran": true, "error": err.Error()}
+	}
+	s.logger.Info("skill_create validated",
+		zap.String("skill", model.Name),
+		zap.Bool("passed", vr.Passed),
+		zap.String("stage", vr.Stage),
+	)
+	return map[string]interface{}{
+		"ran":         true,
+		"passed":      vr.Passed,
+		"stage":       vr.Stage,
+		"approved_by": vr.ApprovedBy,
+		"stages":      vr.Stages,
 	}
 }
 

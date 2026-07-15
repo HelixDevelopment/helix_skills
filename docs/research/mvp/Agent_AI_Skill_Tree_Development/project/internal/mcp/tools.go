@@ -271,7 +271,14 @@ func (s *MCPServer) registerSkillCreate() {
 
 		s.logger.Debug("skill_create", zap.Int("toml_length", len(tomlStr)))
 
-		// Parse and create skill from TOML
+		// Fail-closed, NON-EXECUTING validation BEFORE persistence (§G03
+		// request-path): screens resource URLs (SSRF, §G21) and records a real
+		// verdict. The skill is persisted as `draft`; it is promoted to
+		// `validated`/`active` only through the validation lifecycle, never
+		// auto-approved on creation.
+		validationSummary := s.validateForCreate(ctx, []byte(tomlStr))
+
+		// Parse and create skill from TOML (persisted as draft).
 		skill, err := s.skillStore.ImportFromTOML(ctx, []byte(tomlStr))
 		if err != nil {
 			s.logger.Error("skill_create failed", zap.Error(err))
@@ -286,6 +293,7 @@ func (s *MCPServer) registerSkillCreate() {
 			"title":      skill.Title,
 			"version":    skill.Version,
 			"status":     string(skill.Status),
+			"validation": validationSummary,
 		}), nil
 	})
 }

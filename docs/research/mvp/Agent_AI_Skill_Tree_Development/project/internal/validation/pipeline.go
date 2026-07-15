@@ -1,7 +1,3 @@
-// Package validation implements the multi-layer skill validation pipeline
-// for the HelixKnowledge system. It provides the "zero-bluff guarantee"
-// through source verification, sandboxed code execution, multi-model LLM
-// jury validation, and cross-reference consistency checks.
 package validation
 
 import (
@@ -11,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -23,17 +20,26 @@ import (
 	"go.uber.org/zap"
 )
 
+// juryMinApprovals is the fail-closed floor on real approvals required for the
+// jury stage to reach consensus (§G05). An empty jury is a hard BLOCK; a
+// configured threshold below this floor is raised to it.
+const juryMinApprovals = 2
+
+// stageOrder is the fixed reporting order of pipeline stages.
+var stageOrder = []string{"source_verification", "static_code_check", "llm_jury", "cross_reference"}
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 // ValidationResult captures the outcome of the full validation pipeline.
 type ValidationResult struct {
-	SkillID    uuid.UUID         `json:"skill_id"`
-	Passed     bool              `json:"passed"`
-	Stage      string            `json:"stage"`       // which stage failed (if any)
-	Details    map[string]string `json:"details"`     // per-stage detail messages
-	ApprovedBy int               `json:"approved_by"` // number of jury models that approved
+	SkillID    uuid.UUID              `json:"skill_id"`
+	Passed     bool                   `json:"passed"`
+	Stage      string                 `json:"stage"`  // "all_stages" on pass, else the first non-pass stage
+	Stages     map[string]StageStatus `json:"stages"` // per-stage verdict (PASS/FAIL/SKIP/BLOCKED/N/A)
+	Details    map[string]string      `json:"details"`
+	ApprovedBy int                    `json:"approved_by"` // number of jury models that approved
 }
 
 // JuryResult captures the multi-model consensus outcome.
@@ -56,33 +62,38 @@ type LLMValidator interface {
 	ValidateSkill(ctx context.Context, skill *models.Skill) (approved bool, feedback string, err error)
 }
 
-// SandboxResult captures the outcome of sandboxed code execution.
-type SandboxResult struct {
-	ExecutionResult
-	Approved bool   `json:"approved"` // whether the code passed validation
-	Feedback string `json:"feedback"`
-}
-
-// Pipeline validates skills through multiple independent layers to ensure
-// accuracy and prevent hallucinated content from entering the knowledge graph.
+// Pipeline validates skills through multiple independent, NON-EXECUTING layers
+// to ensure accuracy and prevent hallucinated content from entering the
+// knowledge graph. It executes no untrusted code (see the package doc).
 type Pipeline struct {
-	store     *skill.Store
-	cfg       config.ValidationConfig
-	logger    *zap.Logger
-	sandbox   Sandbox
-	jury      []JuryMember
-	httpClient *http.Client
+	store      *skill.Store
+	cfg        config.ValidationConfig
+	logger     *zap.Logger
+	jury []JuryMember
+	// executor is the opt-in Tier B IsolatedExecutor (default
+	// SkipIsolatedExecutor, always SKIP — see sandbox.go). It is intentionally
+	// NOT invoked by Validate(): Validate's fail-closed 4-stage contract
+	// (source_verification / static_code_check / llm_jury / cross_reference,
+	// see the Validate doc comment below) treats any SKIP as fail-closed
+	// (computeOverallVerdict), so wiring the default SkipIsolatedExecutor in as
+	// a 5th aggregated stage would force every validation to FAIL even though
+	// Tier B is meant to be an optional, off-by-default extension. There is
+	// also no first-party "POC code + language" concept on models.Skill yet to
+	// feed IsolatedExecutor.Execute with — that product surface does not exist.
+	// This field is deliberate forward-wiring for a future concrete executor
+	// (rootless-Podman, submodule-gated) and a future Tier-B stage that is
+	// explicitly excluded from the pass/fail aggregate rather than silently
+	// dead state; WithIsolatedExecutor lets callers/tests observe it directly
+	// in the meantime.
+	executor   IsolatedExecutor
+	httpClient *http.Client // SSRF-guarded egress client
+	// hostGuard screens an egress host; nil means use the default screenHost.
+	// It is an injectable seam for hermetic tests, never a production override.
+	hostGuard func(ctx context.Context, host string) error
 }
 
 // PipelineOption allows optional configuration.
 type PipelineOption func(*Pipeline)
-
-// WithSandbox sets a custom sandbox for code execution.
-func WithSandbox(sandbox Sandbox) PipelineOption {
-	return func(p *Pipeline) {
-		p.sandbox = sandbox
-	}
-}
 
 // WithJury sets custom jury members for LLM validation.
 func WithJury(jury []JuryMember) PipelineOption {
@@ -91,286 +102,258 @@ func WithJury(jury []JuryMember) PipelineOption {
 	}
 }
 
+// WithIsolatedExecutor sets a custom opt-in isolated executor (Tier B). The
+// default is the fail-closed SkipIsolatedExecutor.
+func WithIsolatedExecutor(e IsolatedExecutor) PipelineOption {
+	return func(p *Pipeline) {
+		p.executor = e
+	}
+}
+
 // ---------------------------------------------------------------------------
 // Construction
 // ---------------------------------------------------------------------------
 
-// NewPipeline creates a new validation pipeline with the configured sandbox
-// and jury setup.
+// NewPipeline creates a new NON-EXECUTING validation pipeline. It builds no
+// host-execution sandbox: the default executor is the fail-closed
+// SkipIsolatedExecutor and the egress client is SSRF-guarded.
 func NewPipeline(store *skill.Store, cfg config.ValidationConfig, logger *zap.Logger, opts ...PipelineOption) *Pipeline {
 	p := &Pipeline{
 		store:      store,
 		cfg:        cfg,
 		logger:     logger,
-		httpClient: &http.Client{Timeout: 30 * time.Second},
+		executor:   NewSkipIsolatedExecutor(),
+		httpClient: newGuardedHTTPClient(30 * time.Second),
 	}
-
 	for _, opt := range opts {
 		opt(p)
 	}
-
-	// Initialize sandbox if not provided
-	if p.sandbox == nil {
-		p.sandbox = p.createDefaultSandbox()
+	if p.executor == nil {
+		p.executor = NewSkipIsolatedExecutor()
 	}
-
+	if p.httpClient == nil {
+		p.httpClient = newGuardedHTTPClient(30 * time.Second)
+	}
 	return p
-}
-
-// createDefaultSandbox creates the appropriate sandbox based on config.
-func (p *Pipeline) createDefaultSandbox() Sandbox {
-	switch p.cfg.SandboxType {
-	case "wasm":
-		return NewWASMSandbox(p.logger)
-	case "docker":
-		return NewDockerSandbox(p.logger)
-	case "none":
-		p.logger.Warn("sandbox disabled - code execution will be skipped")
-		return &NoOpSandbox{}
-	default:
-		// Default to WASM (lightweight)
-		p.logger.Info("using default WASM sandbox", zap.String("sandbox_type", p.cfg.SandboxType))
-		return NewWASMSandbox(p.logger)
-	}
 }
 
 // ---------------------------------------------------------------------------
 // Full validation
 // ---------------------------------------------------------------------------
 
-// Validate performs full multi-layer validation on a skill:
-//  1. Source verification (URLs are reachable, content unchanged)
-//  2. Code sandbox validation (any code snippets execute correctly)
-//  3. LLM jury validation (multi-model consensus)
+// Validate performs full multi-layer, NON-EXECUTING validation on a skill:
+//  1. Source verification (SSRF-guarded, fail-closed hashing)
+//  2. Static code check (non-executing; runs no untrusted code)
+//  3. LLM jury validation (fail-closed multi-model consensus)
 //  4. Cross-reference consistency check
-func (p *Pipeline) Validate(ctx context.Context, skill *models.Skill) (*ValidationResult, error) {
+//
+// The overall verdict is fail-closed: the skill passes only when every enabled
+// stage produced a real positive verdict; a SKIP/FAIL/BLOCKED in any stage never
+// upgrades to an overall PASS.
+//
+// The opt-in Tier B IsolatedExecutor (p.executor, see its field doc) is
+// deliberately NOT one of these 4 stages and is NOT invoked here: it is
+// forward-wiring for a not-yet-built concrete executor, and folding its
+// default SKIP into this fail-closed aggregate would force every validation
+// to FAIL. This is a documented, intentional gap, not silent dead state.
+func (p *Pipeline) Validate(ctx context.Context, s *models.Skill) (*ValidationResult, error) {
 	p.logger.Info("starting validation pipeline",
-		zap.String("skill", skill.Name),
-		zap.String("skill_id", skill.ID.String()),
+		zap.String("skill", s.Name),
+		zap.String("skill_id", s.ID.String()),
 	)
 
 	result := &ValidationResult{
-		SkillID: skill.ID,
+		SkillID: s.ID,
 		Details: make(map[string]string),
+		Stages:  make(map[string]StageStatus),
 	}
 
-	// Stage 1: Source verification
-	if err := p.SourceVerify(ctx, skill); err != nil {
-		result.Stage = "source_verification"
-		result.Details["source_verification"] = err.Error()
-		p.logValidationResult(ctx, skill, result)
-		return result, nil // return result, not error - validation failure is a valid outcome
-	}
-	result.Details["source_verification"] = "passed"
+	// Stage 1: Source verification (SSRF-guarded, fail-closed).
+	srcStatus, srcDetail := p.sourceVerifyStage(ctx, s)
+	result.Stages["source_verification"] = srcStatus
+	result.Details["source_verification"] = srcDetail
 
-	// Stage 2: Code sandbox (if skill contains code snippets)
-	codeResult, err := p.extractAndRunCode(ctx, skill)
-	if err != nil {
-		result.Stage = "code_sandbox"
-		result.Details["code_sandbox"] = err.Error()
-		p.logValidationResult(ctx, skill, result)
-		return result, nil
-	}
-	if codeResult != nil {
-		result.Details["code_sandbox"] = fmt.Sprintf("executed %d snippets", codeResult)
+	// Stage 2: Static code check (NON-EXECUTING).
+	codeStatus, codeDetail := p.staticCodeStage(s)
+	result.Stages["static_code_check"] = codeStatus
+	result.Details["static_code_check"] = codeDetail
+
+	// Stage 3: LLM jury (fail-closed on empty jury).
+	juryStatus, juryDetail, approvedBy := p.juryStage(ctx, s)
+	result.Stages["llm_jury"] = juryStatus
+	result.Details["llm_jury"] = juryDetail
+	result.ApprovedBy = approvedBy
+
+	// Stage 4: Cross-reference consistency.
+	xrefStatus, xrefDetail := p.crossReferenceStage(ctx, s)
+	result.Stages["cross_reference"] = xrefStatus
+	result.Details["cross_reference"] = xrefDetail
+
+	result.Passed = computeOverallVerdict(result.Stages)
+	if result.Passed {
+		result.Stage = "all_stages"
 	} else {
-		result.Details["code_sandbox"] = "no code to execute"
+		result.Stage = firstNonPassStage(result.Stages)
 	}
 
-	// Stage 3: LLM jury validation
-	juryResult, err := p.LLMJury(ctx, skill)
-	if err != nil {
-		result.Stage = "llm_jury"
-		result.Details["llm_jury"] = err.Error()
-		p.logValidationResult(ctx, skill, result)
-		return result, nil
-	}
-
-	result.ApprovedBy = 0
-	for _, approved := range juryResult.Votes {
-		if approved {
-			result.ApprovedBy++
-		}
-	}
-
-	if !juryResult.Consensus {
-		result.Stage = "llm_jury"
-		result.Details["llm_jury"] = fmt.Sprintf("insufficient consensus: %d/%d approved",
-			result.ApprovedBy, len(juryResult.Votes))
-		p.logValidationResult(ctx, skill, result)
-		return result, nil
-	}
-	result.Details["llm_jury"] = fmt.Sprintf("consensus reached: %d/%d approved",
-		result.ApprovedBy, len(juryResult.Votes))
-
-	// Stage 4: Cross-reference consistency
-	if err := p.CrossReference(ctx, skill); err != nil {
-		result.Stage = "cross_reference"
-		result.Details["cross_reference"] = err.Error()
-		p.logValidationResult(ctx, skill, result)
-		return result, nil
-	}
-	result.Details["cross_reference"] = "passed"
-
-	// All stages passed
-	result.Passed = true
-	result.Stage = "all_stages"
-	p.logValidationResult(ctx, skill, result)
-
-	p.logger.Info("validation passed",
-		zap.String("skill", skill.Name),
+	p.logValidationResult(ctx, s, result)
+	p.logger.Info("validation complete",
+		zap.String("skill", s.Name),
+		zap.Bool("passed", result.Passed),
+		zap.String("stage", result.Stage),
 		zap.Int("jury_approvals", result.ApprovedBy),
 	)
-
 	return result, nil
 }
 
-// ---------------------------------------------------------------------------
-// Stage 1: Source verification
-// ---------------------------------------------------------------------------
-
-// SourceVerify checks that all resources attached to a skill are reachable
-// and that cached content hashes match the current content.
-func (p *Pipeline) SourceVerify(ctx context.Context, skill *models.Skill) error {
-	if len(skill.Resources) == 0 {
-		return nil // no resources to verify
+// firstNonPassStage returns the first stage (in reporting order) whose verdict
+// is not a PASS or N/A, for surfacing the blocking reason.
+func firstNonPassStage(stages map[string]StageStatus) string {
+	for _, name := range stageOrder {
+		st, ok := stages[name]
+		if !ok {
+			continue
+		}
+		if st != StagePass && st != StageNA {
+			return name
+		}
 	}
+	return "unknown"
+}
 
+// ---------------------------------------------------------------------------
+// Stage 1: Source verification (fail-closed, SSRF-guarded)
+// ---------------------------------------------------------------------------
+
+// sourceVerifyStage verifies every attached resource, fail-closed.
+func (p *Pipeline) sourceVerifyStage(ctx context.Context, s *models.Skill) (StageStatus, string) {
+	if len(s.Resources) == 0 {
+		return StageNA, "no resources to verify"
+	}
 	var errs []string
-	for i, res := range skill.Resources {
+	verified := 0
+	for i := range s.Resources {
+		res := &s.Resources[i]
 		if res.URL == "" {
 			continue
 		}
-
-		err := p.verifySingleResource(ctx, &skill.Resources[i])
-		if err != nil {
+		if err := p.verifySingleResource(ctx, res); err != nil {
 			errs = append(errs, fmt.Sprintf("%s: %v", res.URL, err))
+			continue
+		}
+		verified++
+	}
+	if len(errs) > 0 {
+		return StageFail, "resource verification failed: " + strings.Join(errs, "; ")
+	}
+	if verified == 0 {
+		return StageNA, "no verifiable resource URLs"
+	}
+	return StagePass, fmt.Sprintf("verified %d resource(s)", verified)
+}
+
+// SourceVerify checks that all resources attached to a skill are reachable and
+// (for typed resources) that cached content hashes match. It returns a non-nil
+// error when the source-verification stage does not pass.
+func (p *Pipeline) SourceVerify(ctx context.Context, s *models.Skill) error {
+	st, detail := p.sourceVerifyStage(ctx, s)
+	if st == StagePass || st == StageNA {
+		return nil
+	}
+	return fmt.Errorf("%s", detail)
+}
+
+// verifySingleResource verifies one resource, FAIL-CLOSED at every step:
+//   - only http/https URLs are accepted;
+//   - official-doc/code resources MUST carry a stored content hash;
+//   - the egress host is SSRF-screened (and re-screened at dial time);
+//   - any fetch/read error is a verification FAILURE (never a pass);
+//   - a stored hash must match the freshly fetched content.
+func (p *Pipeline) verifySingleResource(ctx context.Context, res *models.Resource) error {
+	u, err := url.Parse(res.URL)
+	if err != nil {
+		return fmt.Errorf("parse url: %w", err)
+	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return fmt.Errorf("unsupported url scheme %q (only http/https)", u.Scheme)
+	}
+
+	// Fail-closed: official-doc/code resources MUST carry a stored content hash.
+	if hashRequiredType(res.ResourceType) && strings.TrimSpace(res.FetchedHash) == "" {
+		return fmt.Errorf("stored content hash required for %q resource but none present", res.ResourceType)
+	}
+
+	// SSRF guard (pre-flight; the guarded client re-checks at dial time).
+	guard := p.hostGuard
+	if guard == nil {
+		guard = screenHost
+	}
+	if err := guard(ctx, u.Hostname()); err != nil {
+		return err
+	}
+
+	// Fetch content; ANY fetch/read error is a verification FAILURE (fail-closed).
+	content, err := p.fetchResource(ctx, res.URL)
+	if err != nil {
+		return fmt.Errorf("fetch failed (fail-closed): %w", err)
+	}
+
+	// If a stored hash exists, the fetched content MUST match it.
+	if h := strings.TrimSpace(res.FetchedHash); h != "" {
+		got := sha256Hex(content)
+		if got != h {
+			return fmt.Errorf("content hash mismatch (content changed): got %s want %s", got, h)
 		}
 	}
-
-	if len(errs) > 0 {
-		return fmt.Errorf("resource verification failed: %s", strings.Join(errs, "; "))
-	}
-
 	return nil
 }
 
-// verifySingleResource checks if a resource URL is reachable and content unchanged.
-func (p *Pipeline) verifySingleResource(ctx context.Context, res *models.Resource) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodHead, res.URL, nil)
+// fetchResource performs a size-capped GET over the SSRF-guarded client.
+func (p *Pipeline) fetchResource(ctx context.Context, rawURL string) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
 	if err != nil {
-		return fmt.Errorf("create request: %w", err)
+		return nil, err
 	}
-
 	resp, err := p.httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("request failed: %w", err)
+		return nil, err
 	}
 	defer resp.Body.Close()
-
 	if resp.StatusCode >= 400 {
-		return fmt.Errorf("HTTP %d", resp.StatusCode)
+		return nil, fmt.Errorf("HTTP %d", resp.StatusCode)
 	}
-
-	// If we have a cached hash, verify content hasn't changed
-	if res.FetchedHash != "" {
-		// Fetch full content and check hash
-		bodyReq, err := http.NewRequestWithContext(ctx, http.MethodGet, res.URL, nil)
-		if err != nil {
-			return nil // HEAD succeeded, hash check is best-effort
-		}
-
-		bodyResp, err := p.httpClient.Do(bodyReq)
-		if err != nil {
-			return nil // best-effort
-		}
-		defer bodyResp.Body.Close()
-
-		content, err := io.ReadAll(io.LimitReader(bodyResp.Body, 1<<20)) // 1 MiB limit
-		if err != nil {
-			return nil // best-effort
-		}
-
-		hash := sha256.Sum256(content)
-		currentHash := hex.EncodeToString(hash[:])
-
-		if currentHash != res.FetchedHash {
-			return fmt.Errorf("content hash mismatch (content changed)")
-		}
-	}
-
-	return nil
-}
-
-// ---------------------------------------------------------------------------
-// Stage 2: Code sandbox
-// ---------------------------------------------------------------------------
-
-// CodeSandbox executes code in an isolated environment and returns the result.
-func (p *Pipeline) CodeSandbox(ctx context.Context, code string, language string) (*SandboxResult, error) {
-	timeout := 30 * time.Second
-
-	execResult, err := p.sandbox.Execute(ctx, code, language, timeout)
+	content, err := io.ReadAll(io.LimitReader(resp.Body, 8<<20)) // 8 MiB cap
 	if err != nil {
-		return &SandboxResult{
-			ExecutionResult: ExecutionResult{Stderr: err.Error(), ExitCode: -1},
-			Approved:        false,
-			Feedback:        fmt.Sprintf("sandbox execution error: %v", err),
-		}, nil // sandbox failure is a validation result, not an execution error
+		return nil, err
 	}
-
-	approved := execResult.ExitCode == 0
-	feedback := "code executed successfully"
-	if !approved {
-		feedback = fmt.Sprintf("exit code %d: %s", execResult.ExitCode, execResult.Stderr)
-	}
-
-	return &SandboxResult{
-		ExecutionResult: *execResult,
-		Approved:        approved,
-		Feedback:        feedback,
-	}, nil
+	return content, nil
 }
 
-// extractAndRunCode extracts code blocks from skill content and runs them.
-func (p *Pipeline) extractAndRunCode(ctx context.Context, skill *models.Skill) (interface{}, error) {
-	// Extract fenced code blocks from markdown content
-	snippets := extractCodeBlocks(skill.Content)
+// sha256Hex returns the lowercase hex SHA-256 of b.
+func sha256Hex(b []byte) string {
+	sum := sha256.Sum256(b)
+	return hex.EncodeToString(sum[:])
+}
+
+// ---------------------------------------------------------------------------
+// Stage 2: Static code check (NON-EXECUTING)
+// ---------------------------------------------------------------------------
+
+// staticCodeStage runs the non-executing static code check. It NEVER executes
+// any code; a parse note on an illustrative fragment is informational and does
+// not fail the stage. The correctness oracle is the jury + source + cross-ref.
+func (p *Pipeline) staticCodeStage(s *models.Skill) (StageStatus, string) {
+	snippets := extractCodeBlocks(s.Content)
 	if len(snippets) == 0 {
-		return nil, nil // no code to execute
+		return StageNA, "no code blocks to check"
 	}
-
-	p.logger.Info("executing code snippets",
-		zap.String("skill", skill.Name),
-		zap.Int("snippets", len(snippets)),
-	)
-
-	executed := 0
-	var failures []string
-
-	for _, snippet := range snippets {
-		select {
-		case <-ctx.Done():
-			return executed, ctx.Err()
-		default:
-		}
-
-		result, err := p.CodeSandbox(ctx, snippet.Code, snippet.Language)
-		if err != nil {
-			return executed, fmt.Errorf("sandbox error: %w", err)
-		}
-
-		if !result.Approved {
-			failures = append(failures, fmt.Sprintf("snippet %d failed: %s", executed+1, result.Feedback))
-		}
-		executed++
+	rep := staticCheckCode(snippets)
+	detail := fmt.Sprintf("non-executing static check: %d block(s), %d checked, %d unchecked (no in-process front-end)",
+		rep.Total, rep.Checked, rep.Unchecked)
+	if len(rep.Notes) > 0 {
+		detail += "; notes: " + strings.Join(rep.Notes, " | ")
 	}
-
-	if len(failures) > 0 {
-		return executed, fmt.Errorf("code validation failed: %s", strings.Join(failures, "; "))
-	}
-
-	return executed, nil
+	return StagePass, detail
 }
 
 // codeSnippet represents an extracted code block.
@@ -404,8 +387,7 @@ func extractCodeBlocks(content string) []codeSnippet {
 			} else {
 				// Start block
 				inBlock = true
-				lang := strings.TrimSpace(trimmed[3:])
-				currentLang = lang
+				currentLang = strings.TrimSpace(trimmed[3:])
 			}
 			continue
 		}
@@ -420,28 +402,63 @@ func extractCodeBlocks(content string) []codeSnippet {
 }
 
 // ---------------------------------------------------------------------------
-// Stage 3: LLM Jury
+// Stage 3: LLM Jury (fail-closed)
 // ---------------------------------------------------------------------------
 
-// LLMJury runs multi-model validation to ensure skills meet quality standards.
-// It requires consensus from at least cfg.ApprovalThreshold jurors.
-func (p *Pipeline) LLMJury(ctx context.Context, skill *models.Skill) (*JuryResult, error) {
+// juryThreshold returns the effective approval threshold, floored at
+// juryMinApprovals so consensus always requires at least two real approvals.
+func juryThreshold(cfg config.ValidationConfig) int {
+	t := cfg.ApprovalThreshold
+	if t < juryMinApprovals {
+		t = juryMinApprovals
+	}
+	return t
+}
+
+// juryStage runs the jury and maps its result onto a stage verdict. An empty
+// jury while validation is enabled is a hard BLOCK (never a pass).
+func (p *Pipeline) juryStage(ctx context.Context, s *models.Skill) (StageStatus, string, int) {
+	jr, err := p.LLMJury(ctx, s)
+	if err != nil {
+		return StageFail, "jury error: " + err.Error(), 0
+	}
+	approved := 0
+	for _, v := range jr.Votes {
+		if v {
+			approved++
+		}
+	}
 	if len(p.jury) == 0 {
-		// No jury configured - auto-pass this stage
-		p.logger.Warn("no jury members configured, auto-passing LLM validation",
-			zap.String("skill", skill.Name),
+		return StageBlocked, jr.Feedback, approved
+	}
+	if !jr.Consensus {
+		return StageFail, fmt.Sprintf("insufficient consensus: %d approved (need >= %d of %d votes)",
+			approved, juryThreshold(p.cfg), len(jr.Votes)), approved
+	}
+	return StagePass, fmt.Sprintf("consensus reached: %d approved", approved), approved
+}
+
+// LLMJury runs multi-model validation to ensure skills meet quality standards.
+// FAIL-CLOSED (§G05): an empty jury while validation is enabled is a hard BLOCK
+// (never an auto-pass), and consensus requires at least juryMinApprovals real
+// approvals.
+func (p *Pipeline) LLMJury(ctx context.Context, s *models.Skill) (*JuryResult, error) {
+	if len(p.jury) == 0 {
+		// FAIL-CLOSED: no jury configured is a hard BLOCK, never an auto-pass.
+		p.logger.Warn("no jury members configured — BLOCKING (fail-closed)",
+			zap.String("skill", s.Name),
 		)
 		return &JuryResult{
-			Votes:     map[string]bool{"default": true},
-			Consensus: true,
-			Feedback:  "no jury configured, auto-approved",
+			Votes:     map[string]bool{},
+			Consensus: false,
+			Feedback:  "no jury configured — validation BLOCKED (fail-closed); a real multi-model jury (>= 2 approvals) is required",
 		}, nil
 	}
 
 	p.logger.Info("running LLM jury",
-		zap.String("skill", skill.Name),
+		zap.String("skill", s.Name),
 		zap.Int("jury_size", len(p.jury)),
-		zap.Int("threshold", p.cfg.ApprovalThreshold),
+		zap.Int("threshold", juryThreshold(p.cfg)),
 	)
 
 	votes := make(map[string]bool, len(p.jury))
@@ -449,7 +466,6 @@ func (p *Pipeline) LLMJury(ctx context.Context, skill *models.Skill) (*JuryResul
 	var mu sync.Mutex
 	var wg sync.WaitGroup
 
-	// Run all jurors in parallel with timeout
 	juryCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 	defer cancel()
 
@@ -458,29 +474,22 @@ func (p *Pipeline) LLMJury(ctx context.Context, skill *models.Skill) (*JuryResul
 		go func(m JuryMember) {
 			defer wg.Done()
 
-			approved, feedback, err := m.LLM.ValidateSkill(juryCtx, skill)
+			approved, feedback, err := m.LLM.ValidateSkill(juryCtx, s)
+			mu.Lock()
+			defer mu.Unlock()
 			if err != nil {
-				p.logger.Warn("juror failed",
-					zap.String("juror", m.Name),
-					zap.Error(err),
-				)
-				mu.Lock()
+				p.logger.Warn("juror failed", zap.String("juror", m.Name), zap.Error(err))
 				votes[m.Name] = false
 				feedbackParts = append(feedbackParts, fmt.Sprintf("%s: error - %v", m.Name, err))
-				mu.Unlock()
 				return
 			}
-
-			mu.Lock()
 			votes[m.Name] = approved
 			feedbackParts = append(feedbackParts, fmt.Sprintf("%s: %s", m.Name, feedback))
-			mu.Unlock()
 		}(member)
 	}
 
 	wg.Wait()
 
-	// Count approvals
 	approvalCount := 0
 	for _, approved := range votes {
 		if approved {
@@ -488,71 +497,70 @@ func (p *Pipeline) LLMJury(ctx context.Context, skill *models.Skill) (*JuryResul
 		}
 	}
 
-	consensus := approvalCount >= p.cfg.ApprovalThreshold
-
-	result := &JuryResult{
-		Votes:     votes,
-		Consensus: consensus,
-		Feedback:  strings.Join(feedbackParts, "\n"),
-	}
+	// Consensus requires the (floored) threshold AND at least juryMinApprovals
+	// real votes to have been cast — never a single-juror or empty-jury pass.
+	consensus := approvalCount >= juryThreshold(p.cfg) && len(votes) >= juryMinApprovals
 
 	p.logger.Info("LLM jury complete",
-		zap.String("skill", skill.Name),
+		zap.String("skill", s.Name),
 		zap.Int("approvals", approvalCount),
-		zap.Int("required", p.cfg.ApprovalThreshold),
+		zap.Int("required", juryThreshold(p.cfg)),
 		zap.Bool("consensus", consensus),
 	)
 
-	return result, nil
+	return &JuryResult{
+		Votes:     votes,
+		Consensus: consensus,
+		Feedback:  strings.Join(feedbackParts, "\n"),
+	}, nil
 }
 
 // ---------------------------------------------------------------------------
 // Stage 4: Cross-reference
 // ---------------------------------------------------------------------------
 
-// CrossReference checks consistency of a skill against existing skills in
-// the knowledge graph. It verifies that referenced dependencies exist,
-// terminology is consistent, and there are no contradictions.
-func (p *Pipeline) CrossReference(ctx context.Context, skill *models.Skill) error {
-	// Check that all dependencies exist
-	for _, dep := range skill.Dependencies {
+// crossReferenceStage maps CrossReference onto a stage verdict.
+func (p *Pipeline) crossReferenceStage(ctx context.Context, s *models.Skill) (StageStatus, string) {
+	if err := p.CrossReference(ctx, s); err != nil {
+		return StageFail, err.Error()
+	}
+	return StagePass, "passed"
+}
+
+// CrossReference checks consistency of a skill against existing skills in the
+// knowledge graph. It verifies that referenced dependencies exist and that there
+// are no naming contradictions. It executes no untrusted code.
+func (p *Pipeline) CrossReference(ctx context.Context, s *models.Skill) error {
+	// Check that all dependencies exist.
+	for _, dep := range s.Dependencies {
 		if dep.DependsOn == uuid.Nil {
 			return fmt.Errorf("dependency has empty ID for skill %q", dep.DependsOnName)
 		}
 
-		// Verify the dependency skill exists
-		exists := false
-		var checkID uuid.UUID
-		if dep.DependsOn != uuid.Nil {
-			checkID = dep.DependsOn
-		}
-
-		// Quick existence check via search
 		results, err := p.store.Search(ctx, dep.DependsOnName, 1)
 		if err != nil {
 			return fmt.Errorf("search dependency %q: %w", dep.DependsOnName, err)
 		}
+		exists := false
 		for _, r := range results {
 			if r.Skill.Name == dep.DependsOnName {
 				exists = true
 				break
 			}
 		}
-		_ = checkID
-
 		if !exists {
 			return fmt.Errorf("dependency %q not found in knowledge graph", dep.DependsOnName)
 		}
 	}
 
-	// Check for naming conflicts
-	existing, err := p.store.Search(ctx, skill.Name, 5)
+	// Check for naming conflicts.
+	existing, err := p.store.Search(ctx, s.Name, 5)
 	if err != nil {
 		return fmt.Errorf("search for conflicts: %w", err)
 	}
 	for _, e := range existing {
-		if e.Skill.Name == skill.Name && e.Skill.ID != skill.ID {
-			return fmt.Errorf("naming conflict: skill %q already exists with different ID", skill.Name)
+		if e.Skill.Name == s.Name && e.Skill.ID != s.ID {
+			return fmt.Errorf("naming conflict: skill %q already exists with different ID", s.Name)
 		}
 	}
 
@@ -564,12 +572,13 @@ func (p *Pipeline) CrossReference(ctx context.Context, skill *models.Skill) erro
 // ---------------------------------------------------------------------------
 
 // logValidationResult records the validation outcome in the audit log.
-func (p *Pipeline) logValidationResult(ctx context.Context, skill *models.Skill, result *ValidationResult) {
+func (p *Pipeline) logValidationResult(ctx context.Context, s *models.Skill, result *ValidationResult) {
 	details := map[string]interface{}{
-		"skill_name":  skill.Name,
-		"skill_id":    skill.ID.String(),
+		"skill_name":  s.Name,
+		"skill_id":    s.ID.String(),
 		"passed":      result.Passed,
 		"stage":       result.Stage,
+		"stages":      result.Stages,
 		"details":     result.Details,
 		"approved_by": result.ApprovedBy,
 	}
@@ -579,24 +588,7 @@ func (p *Pipeline) logValidationResult(ctx context.Context, skill *models.Skill,
 		event = "skill.validation_failed"
 	}
 
-	if err := db.LogEventWithDetails(ctx, p.store.Pool(), event, &skill.ID, details); err != nil {
+	if err := db.LogEventWithDetails(ctx, p.store.Pool(), event, &s.ID, details); err != nil {
 		p.logger.Warn("failed to log validation result", zap.Error(err))
 	}
-}
-
-// ---------------------------------------------------------------------------
-// NoOpSandbox (for when sandboxing is disabled)
-// ---------------------------------------------------------------------------
-
-// NoOpSandbox is a sandbox that does nothing, used when sandbox_type is "none".
-type NoOpSandbox struct{}
-
-// Execute always returns success without running any code.
-func (s *NoOpSandbox) Execute(ctx context.Context, code string, language string, timeout time.Duration) (*ExecutionResult, error) {
-	return &ExecutionResult{
-		Stdout:   "sandbox disabled",
-		Stderr:   "",
-		ExitCode: 0,
-		Duration: 0,
-	}, nil
 }

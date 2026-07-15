@@ -1,457 +1,185 @@
-// Package validation provides sandboxed code execution environments for
-// safely running code snippets extracted from skill content. The default
-// implementation uses WebAssembly for lightweight isolation, with a
-// Docker-based fallback for full containerization.
+// Package validation implements the fail-closed, NON-EXECUTING skill validation
+// pipeline for the HelixKnowledge system (the "zero-bluff guarantee").
+//
+// The default StaticValidator (see pipeline.go) executes NOTHING untrusted. It
+// verifies resources (SSRF-guarded, fail-closed hashing), performs a
+// non-executing static code check (memory-safe standard-library front-ends
+// only — e.g. go/parser, in-process, no subprocess), cross-references the
+// dependency graph, and requires a real multi-model LLM jury verdict. Because
+// there is NO host-execution code path anywhere in this package, the class of
+// remote-code-execution defect that a "sandbox" running untrusted snippets on
+// the host (go run / python -c / bash -c) represented is closed BY CONSTRUCTION
+// (gaps G02 / G16): there is no host-exec code left to misconfigure.
+//
+// Execution of untrusted code is an OPT-IN, OFF-BY-DEFAULT capability modelled
+// by the IsolatedExecutor interface. Its only shipped implementation,
+// SkipIsolatedExecutor, ALWAYS returns a SKIP verdict with reason
+// "isolation_runtime_absent" — it never falls back to host execution and never
+// auto-passes. A concrete rootless-Podman executor is submodule-gated (the
+// containers submodule is absent) and intentionally not built here.
 package validation
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"runtime"
+	"go/parser"
+	"go/token"
+	"net"
+	"net/http"
 	"strings"
-	"sync"
+	"syscall"
 	"time"
 
-	"go.uber.org/zap"
+	"github.com/helixdevelopment/skill-system/internal/models"
 )
 
 // ---------------------------------------------------------------------------
-// Sandbox interface
+// Per-stage verdict vocabulary (fail-closed aggregation)
 // ---------------------------------------------------------------------------
 
-// Sandbox executes code in an isolated environment with resource limits
-// and timeout controls.
-type Sandbox interface {
-	// Execute runs the given code snippet in an isolated environment.
-	// Returns the execution result including stdout, stderr, exit code,
-	// and duration. The language parameter hints at the runtime to use.
-	Execute(ctx context.Context, code string, language string, timeout time.Duration) (*ExecutionResult, error)
-}
+// StageStatus is the closed set of per-stage verdicts produced by the pipeline.
+type StageStatus string
 
-// ExecutionResult captures the outcome of sandboxed code execution.
-type ExecutionResult struct {
-	Stdout   string        `json:"stdout"`
-	Stderr   string        `json:"stderr"`
-	ExitCode int           `json:"exit_code"`
-	Duration time.Duration `json:"duration"`
-}
+const (
+	// StagePass is a real positive verdict for a stage.
+	StagePass StageStatus = "PASS"
+	// StageFail is a real negative verdict for a stage.
+	StageFail StageStatus = "FAIL"
+	// StageSkip means a stage could NOT produce a verdict (missing capability).
+	// A SKIP is NEVER upgraded to an overall PASS.
+	StageSkip StageStatus = "SKIP"
+	// StageBlocked means a stage refused fail-closed (e.g. an empty jury while
+	// validation is enabled). A BLOCKED is NEVER an overall PASS.
+	StageBlocked StageStatus = "BLOCKED"
+	// StageNA means a stage is genuinely not applicable (no such content, e.g. a
+	// skill with no resources or no code). N/A neither proves nor blocks.
+	StageNA StageStatus = "N/A"
+)
 
-// ---------------------------------------------------------------------------
-// WASM Sandbox (default - lightweight)
-// ---------------------------------------------------------------------------
-
-// WASMSandbox uses WebAssembly for lightweight code execution isolation.
-// It compiles supported languages to WASM and runs them in a wasm runtime.
-// For unsupported languages, it falls back to process-based execution.
-type WASMSandbox struct {
-	logger      *zap.Logger
-	wasmRuntime string // path to wasm runtime binary (e.g., wasmtime, wasmer)
-	mu          sync.Mutex
-}
-
-// NewWASMSandbox creates a new WASM-based sandbox.
-// It auto-detects available WASM runtimes on the system.
-func NewWASMSandbox(logger *zap.Logger) *WASMSandbox {
-	runtime := detectWasmRuntime()
-	if runtime == "" {
-		logger.Warn("no WASM runtime found, will use process fallback for code execution")
-	} else {
-		logger.Info("WASM sandbox initialized", zap.String("runtime", runtime))
+// computeOverallVerdict implements the fail-closed aggregation rule (§G03/§G05):
+// a skill PASSES only when every stage produced a real positive verdict (PASS)
+// or was genuinely not applicable (N/A), AND at least one stage was a real PASS.
+// A SKIP, FAIL, or BLOCKED in ANY stage never upgrades to an overall PASS.
+func computeOverallVerdict(stages map[string]StageStatus) bool {
+	if len(stages) == 0 {
+		return false // nothing ran => nothing proven => fail-closed
 	}
-
-	return &WASMSandbox{
-		logger:      logger,
-		wasmRuntime: runtime,
-	}
-}
-
-// detectWasmRuntime finds an available WASM runtime on the system.
-func detectWasmRuntime() string {
-	runtimes := []string{"wasmtime", "wasmer", "wasmedge"}
-	for _, r := range runtimes {
-		if _, err := exec.LookPath(r); err == nil {
-			return r
+	sawPositive := false
+	for _, st := range stages {
+		switch st {
+		case StagePass:
+			sawPositive = true
+		case StageNA:
+			// not applicable — neither proves nor blocks
+		default: // SKIP / FAIL / BLOCKED / unknown => fail-closed
+			return false
 		}
 	}
-	return ""
+	return sawPositive
 }
 
-// Execute runs code in the WASM sandbox. For languages that can be compiled
-// to WASM (Rust, Go, C, AssemblyScript), it attempts WASM execution.
-// For other languages, it falls back to process-based execution.
-func (s *WASMSandbox) Execute(ctx context.Context, code string, language string, timeout time.Duration) (*ExecutionResult, error) {
-	if timeout <= 0 {
-		timeout = 30 * time.Second
+// DecideCreateStatus computes the persisted status of a newly-submitted skill
+// under the fail-closed create-path policy (§G03 request-path): a skill may be
+// promoted beyond "draft" ONLY when validation is enabled AND produced a real
+// positive verdict. A client can never self-promote to validated/active without
+// a passing verdict.
+func DecideCreateStatus(enabled bool, requested models.SkillStatus, res *ValidationResult) models.SkillStatus {
+	if !enabled || res == nil || !res.Passed {
+		return models.SkillStatusDraft
 	}
-
-	// Normalize language name
-	language = normalizeLanguage(language)
-
-	// Try WASM execution for supported languages
-	if s.wasmRuntime != "" && isWASMSupported(language) {
-		return s.executeWASM(ctx, code, language, timeout)
+	// Passed: honour an explicit request to activate; otherwise mark validated.
+	if requested == models.SkillStatusActive {
+		return models.SkillStatusActive
 	}
-
-	// Fallback to process-based execution for unsupported languages
-	s.logger.Debug("falling back to process execution",
-		zap.String("language", language),
-		zap.String("reason", "wasm_not_available"),
-	)
-	return s.executeProcess(ctx, code, language, timeout)
+	return models.SkillStatusValidated
 }
 
-// isWASMSupported checks if a language can be compiled to WASM.
-func isWASMSupported(language string) bool {
-	switch language {
-	case "go", "golang", "rust", "c", "cpp", "c++", "assemblyscript", "ts", "typescript":
+// ---------------------------------------------------------------------------
+// Tier B — IsolatedExecutor (opt-in, OFF by default, fail-closed)
+// ---------------------------------------------------------------------------
+
+// IsolatedResult captures the outcome of an opt-in isolated execution attempt.
+type IsolatedResult struct {
+	Status StageStatus `json:"status"` // PASS / FAIL / SKIP — never from host execution
+	Reason string      `json:"reason"`
+	Stdout string      `json:"stdout,omitempty"`
+	Stderr string      `json:"stderr,omitempty"`
+}
+
+// IsolatedExecutor is the OPT-IN, OFF-BY-DEFAULT tier that may observe the
+// output of a first-party POC run inside a real isolation boundary. It is NEVER
+// used to run untrusted skill snippets on the host. Implementations MUST fail
+// CLOSED: when the isolation runtime is unavailable they return StageSkip, never
+// host execution and never an auto-pass.
+type IsolatedExecutor interface {
+	Execute(ctx context.Context, code, language string, timeout time.Duration) (*IsolatedResult, error)
+}
+
+// SkipIsolatedExecutor is the ONLY shipped IsolatedExecutor. It always SKIPs
+// with reason "isolation_runtime_absent": the concrete rootless-Podman executor
+// is submodule-gated and intentionally not built. This guarantees that with no
+// isolation runtime present, the execution tier never falls back to host exec.
+type SkipIsolatedExecutor struct{}
+
+// NewSkipIsolatedExecutor returns the default fail-closed executor.
+func NewSkipIsolatedExecutor() SkipIsolatedExecutor { return SkipIsolatedExecutor{} }
+
+// Execute always returns a SKIP verdict; it executes nothing whatsoever.
+func (SkipIsolatedExecutor) Execute(_ context.Context, _ string, _ string, _ time.Duration) (*IsolatedResult, error) {
+	return &IsolatedResult{Status: StageSkip, Reason: "isolation_runtime_absent"}, nil
+}
+
+// ---------------------------------------------------------------------------
+// Non-executing static code check (default tier)
+// ---------------------------------------------------------------------------
+
+// staticCodeReport is the informational, NON-EXECUTING result of parsing the
+// fenced code blocks in a skill's content. It never runs any code: Go blocks are
+// parsed in-process via go/parser (memory-safe, no subprocess), and blocks in
+// languages without an in-process front-end are recorded as unchecked (an honest
+// coverage gap), never executed and never a hard failure for an illustrative
+// documentation fragment.
+type staticCodeReport struct {
+	Total     int
+	Checked   int // blocks run through an in-process non-executing front-end
+	Unchecked int // blocks with no in-process front-end (recorded, not executed)
+	Notes     []string
+}
+
+// staticCheckCode performs a NON-EXECUTING static check of the given code
+// blocks. It never executes untrusted code under any circumstances.
+func staticCheckCode(snippets []codeSnippet) staticCodeReport {
+	rep := staticCodeReport{Total: len(snippets)}
+	for i, sn := range snippets {
+		switch normalizeLanguage(sn.Language) {
+		case "go":
+			if !goParses(sn.Code) {
+				rep.Notes = append(rep.Notes,
+					fmt.Sprintf("block %d (go): not a parseable Go file/fragment", i+1))
+			}
+			rep.Checked++
+		default:
+			// No in-process, non-executing front-end for this language: record
+			// the coverage gap honestly. NEVER shell out to a toolchain to run it.
+			rep.Unchecked++
+		}
+	}
+	return rep
+}
+
+// goParses reports whether src parses as a Go file OR as a Go fragment wrapped in
+// a function body. It only PARSES (go/parser, in-process); it never compiles,
+// links, or executes anything.
+func goParses(src string) bool {
+	fset := token.NewFileSet()
+	if _, err := parser.ParseFile(fset, "s.go", src, parser.SkipObjectResolution); err == nil {
 		return true
-	default:
-		return false
 	}
-}
-
-// executeWASM attempts to compile and run code via a WASM runtime.
-// For this implementation, we use a simplified approach that writes code
-// to a temp file and invokes the language toolchain to produce WASM,
-// then runs it. In production, this would use a proper WASM compiler service.
-func (s *WASMSandbox) executeWASM(ctx context.Context, code string, language string, timeout time.Duration) (*ExecutionResult, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	// Create temp directory for build artifacts
-	tmpDir, err := os.MkdirTemp("", "helix-wasm-*")
-	if err != nil {
-		return nil, fmt.Errorf("create temp dir: %w", err)
-	}
-	defer os.RemoveAll(tmpDir)
-
-	// For Go code, we can use `go run` directly as a lightweight sandbox
-	// In production, this would compile to WASM and run in the runtime
-	if language == "go" || language == "golang" {
-		return s.executeGoSnippet(ctx, code, tmpDir, timeout)
-	}
-
-	// For other languages, fall back to process execution
-	return s.executeProcess(ctx, code, language, timeout)
-}
-
-// executeGoSnippet runs a Go code snippet using `go run` with module restrictions.
-func (s *WASMSandbox) executeGoSnippet(ctx context.Context, code string, tmpDir string, timeout time.Duration) (*ExecutionResult, error) {
-	srcFile := filepath.Join(tmpDir, "main.go")
-	if err := os.WriteFile(srcFile, []byte(code), 0644); err != nil {
-		return nil, fmt.Errorf("write source: %w", err)
-	}
-
-	// Create a minimal go.mod
-	goMod := `module snippet
-
-go 1.22
-`
-	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(goMod), 0644); err != nil {
-		return nil, fmt.Errorf("write go.mod: %w", err)
-	}
-
-	ctx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-
-	var stdout, stderr bytes.Buffer
-	cmd := exec.CommandContext(ctx, "go", "run", srcFile)
-	cmd.Dir = tmpDir
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
-	// Security: restrict network access and file system
-	cmd.Env = append(os.Environ(),
-		"GOPROXY=off",        // no network access for modules
-		"GONOSUMDB=*",        // no sumdb lookups
-		"GOFLAGS=-mod=vendor", // use vendor only
-	)
-
-	start := time.Now()
-	err := cmd.Run()
-	duration := time.Since(start)
-
-	exitCode := 0
-	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			exitCode = exitErr.ExitCode()
-		} else {
-			exitCode = -1
-		}
-	}
-
-	// Check for timeout
-	if ctx.Err() == context.DeadlineExceeded {
-		return &ExecutionResult{
-			Stdout:   stdout.String(),
-			Stderr:   "execution timed out",
-			ExitCode: 124,
-			Duration: timeout,
-		}, nil
-	}
-
-	return &ExecutionResult{
-		Stdout:   stdout.String(),
-		Stderr:   stderr.String(),
-		ExitCode: exitCode,
-		Duration: duration,
-	}, nil
-}
-
-// executeProcess runs code using the system interpreter with restricted permissions.
-func (s *WASMSandbox) executeProcess(ctx context.Context, code string, language string, timeout time.Duration) (*ExecutionResult, error) {
-	interpreter := getInterpreter(language)
-	if interpreter == "" {
-		return &ExecutionResult{
-			Stdout:   "",
-			Stderr:   fmt.Sprintf("unsupported language: %s", language),
-			ExitCode: -1,
-			Duration: 0,
-		}, nil
-	}
-
-	// Create temp file for the code
-	tmpDir, err := os.MkdirTemp("", "helix-sandbox-*")
-	if err != nil {
-		return nil, fmt.Errorf("create temp dir: %w", err)
-	}
-	defer os.RemoveAll(tmpDir)
-
-	// Determine file extension
-	ext := getFileExtension(language)
-	srcFile := filepath.Join(tmpDir, fmt.Sprintf("main.%s", ext))
-	if err := os.WriteFile(srcFile, []byte(code), 0644); err != nil {
-		return nil, fmt.Errorf("write source: %w", err)
-	}
-
-	ctx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-
-	var stdout, stderr bytes.Buffer
-
-	var cmd *exec.Cmd
-	if language == "python" || language == "py" {
-		cmd = exec.CommandContext(ctx, interpreter, "-c", code)
-	} else if language == "sh" || language == "bash" || language == "shell" {
-		cmd = exec.CommandContext(ctx, interpreter, "-c", code)
-	} else if language == "js" || language == "javascript" || language == "node" {
-		cmd = exec.CommandContext(ctx, interpreter, "-e", code)
-	} else {
-		cmd = exec.CommandContext(ctx, interpreter, srcFile)
-	}
-
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
-	// Security: minimal environment
-	cmd.Env = []string{
-		"PATH=" + os.Getenv("PATH"),
-		"HOME=" + tmpDir,
-		"TMPDIR=" + tmpDir,
-	}
-
-	// Restrict network (Linux/Mac)
-	if runtime.GOOS == "linux" {
-		cmd.Env = append(cmd.Env, "LD_PRELOAD=") // disable LD_PRELOAD
-	}
-
-	start := time.Now()
-	err = cmd.Run()
-	duration := time.Since(start)
-
-	exitCode := 0
-	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			exitCode = exitErr.ExitCode()
-		} else {
-			exitCode = -1
-		}
-	}
-
-	if ctx.Err() == context.DeadlineExceeded {
-		return &ExecutionResult{
-			Stdout:   stdout.String(),
-			Stderr:   "execution timed out",
-			ExitCode: 124,
-			Duration: timeout,
-		}, nil
-	}
-
-	return &ExecutionResult{
-		Stdout:   stdout.String(),
-		Stderr:   stderr.String(),
-		ExitCode: exitCode,
-		Duration: duration,
-	}, nil
-}
-
-// ---------------------------------------------------------------------------
-// Docker Sandbox (full isolation)
-// ---------------------------------------------------------------------------
-
-// DockerSandbox uses containers for full code execution isolation.
-// Each code snippet runs in a fresh, disposable container with strict
-// resource limits.
-type DockerSandbox struct {
-	logger    *zap.Logger
-	mu        sync.Mutex
-	available bool // whether docker is available on this system
-}
-
-// NewDockerSandbox creates a new Docker-based sandbox.
-// It checks if Docker is available and falls back to WASMSandbox if not.
-func NewDockerSandbox(logger *zap.Logger) *DockerSandbox {
-	available := isDockerAvailable()
-	if !available {
-		logger.Warn("Docker not available, sandbox will fall back to process execution")
-	} else {
-		logger.Info("Docker sandbox initialized")
-	}
-
-	return &DockerSandbox{
-		logger:    logger,
-		available: available,
-	}
-}
-
-// isDockerAvailable checks if Docker CLI is installed and the daemon is running.
-func isDockerAvailable() bool {
-	cmd := exec.Command("docker", "version")
-	err := cmd.Run()
+	wrapped := "package p\nfunc _() {\n" + src + "\n}\n"
+	fset = token.NewFileSet()
+	_, err := parser.ParseFile(fset, "s.go", wrapped, parser.SkipObjectResolution)
 	return err == nil
 }
-
-// Execute runs code in a Docker container for full isolation.
-// It creates a temporary container, copies the code, executes it,
-// and removes the container.
-func (s *DockerSandbox) Execute(ctx context.Context, code string, language string, timeout time.Duration) (*ExecutionResult, error) {
-	if timeout <= 0 {
-		timeout = 30 * time.Second
-	}
-
-	language = normalizeLanguage(language)
-
-	if !s.available {
-		// Fall back to WASM sandbox
-		fallback := NewWASMSandbox(s.logger)
-		return fallback.Execute(ctx, code, language, timeout)
-	}
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	// Create temp directory
-	tmpDir, err := os.MkdirTemp("", "helix-docker-*")
-	if err != nil {
-		return nil, fmt.Errorf("create temp dir: %w", err)
-	}
-	defer os.RemoveAll(tmpDir)
-
-	// Get Docker image for language
-	image := getDockerImage(language)
-	if image == "" {
-		return &ExecutionResult{
-			Stdout:   "",
-			Stderr:   fmt.Sprintf("no Docker image for language: %s", language),
-			ExitCode: -1,
-			Duration: 0,
-		}, nil
-	}
-
-	// Write code to temp file
-	ext := getFileExtension(language)
-	srcFile := filepath.Join(tmpDir, fmt.Sprintf("main.%s", ext))
-	if err := os.WriteFile(srcFile, []byte(code), 0644); err != nil {
-		return nil, fmt.Errorf("write source: %w", err)
-	}
-
-	ctx, cancel := context.WithTimeout(ctx, timeout+10*time.Second) // extra time for container setup
-	defer cancel()
-
-	containerName := fmt.Sprintf("helix-sandbox-%d", time.Now().UnixNano())
-
-	// Build the run command based on language
-	var runArgs []string
-	switch language {
-	case "python", "py":
-		runArgs = []string{"python", "-c", code}
-	case "go", "golang":
-		// For Go, write file and run
-		if err := os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte(code), 0644); err != nil {
-			return nil, fmt.Errorf("write go source: %w", err)
-		}
-		runArgs = []string{"go", "run", "/tmp/main.go"}
-	case "js", "javascript", "node":
-		runArgs = []string{"node", "-e", code}
-	case "sh", "bash", "shell":
-		runArgs = []string{"bash", "-c", code}
-	case "ruby":
-		runArgs = []string{"ruby", "-e", code}
-	default:
-		runArgs = []string{"cat", "/tmp/main." + ext}
-	}
-
-	// Build docker run command with security flags
-	args := []string{
-		"run",
-		"--rm",                           // auto-remove container after run
-		"--name", containerName,
-		"--network", "none",              // no network access
-		"--memory", "128m",               // memory limit
-		"--cpus", "0.5",                  // CPU limit
-		"--read-only",                    // read-only root filesystem
-		"--tmpfs", "/tmp:noexec,nosuid,size=50m",
-		"-v", fmt.Sprintf("%s:/tmp:ro", tmpDir), // mount code as read-only
-		"--stop-timeout", fmt.Sprintf("%d", int(timeout.Seconds())+5),
-		image,
-	}
-	args = append(args, runArgs...)
-
-	var stdout, stderr bytes.Buffer
-	cmd := exec.CommandContext(ctx, "docker", args...)
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
-	start := time.Now()
-	err = cmd.Run()
-	duration := time.Since(start)
-
-	exitCode := 0
-	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			exitCode = exitErr.ExitCode()
-		} else {
-			exitCode = -1
-		}
-	}
-
-	// Clean up container if still running
-	_ = exec.Command("docker", "rm", "-f", containerName).Run()
-
-	if ctx.Err() == context.DeadlineExceeded {
-		return &ExecutionResult{
-			Stdout:   stdout.String(),
-			Stderr:   "execution timed out (container killed)",
-			ExitCode: 124,
-			Duration: timeout,
-		}, nil
-	}
-
-	return &ExecutionResult{
-		Stdout:   stdout.String(),
-		Stderr:   stderr.String(),
-		ExitCode: exitCode,
-		Duration: duration,
-	}, nil
-}
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 // normalizeLanguage converts various language name formats to canonical forms.
 func normalizeLanguage(lang string) string {
@@ -476,94 +204,146 @@ func normalizeLanguage(lang string) string {
 	}
 }
 
-// getInterpreter returns the system interpreter command for a language.
-func getInterpreter(language string) string {
-	switch normalizeLanguage(language) {
-	case "python":
-		return findExecutable("python3", "python")
-	case "bash", "shell":
-		return findExecutable("bash", "sh")
-	case "javascript", "node":
-		return findExecutable("node")
-	case "ruby":
-		return findExecutable("ruby")
-	case "perl":
-		return findExecutable("perl")
-	case "php":
-		return findExecutable("php")
-	case "r":
-		return findExecutable("R")
-	default:
-		return ""
-	}
+// ---------------------------------------------------------------------------
+// SSRF egress guard (fail-closed) — used by resource verification (§G21)
+// ---------------------------------------------------------------------------
+
+// additionalBlockedRanges lists CIDR ranges that are NOT covered by the
+// net.IP helper methods used above (loopback/link-local/private/multicast/
+// unspecified) but MUST still be refused as SSRF egress targets:
+//
+//   - 100.64.0.0/10    carrier-grade NAT (RFC 6598) — CONTAINS the Alibaba
+//     Cloud metadata endpoint 100.100.100.200.
+//   - 240.0.0.0/4      reserved / Class E.
+//   - 192.0.0.0/24     IETF protocol assignments (RFC 6890).
+//   - 198.18.0.0/15    benchmarking (RFC 2544).
+//   - 255.255.255.255/32 limited broadcast.
+//   - 64:ff9b::/96     NAT64 well-known prefix (RFC 6052).
+//
+// Each CIDR is parsed exactly once, at package initialization, using the same
+// net.ParseCIDR + Contains pattern as the rest of this guard; the literals are
+// constants so mustParseCIDR can only ever panic on a programmer typo, never
+// at request time.
+var additionalBlockedRanges = []struct {
+	net    *net.IPNet
+	reason string
+}{
+	{mustParseCIDR("100.64.0.0/10"), "carrier-grade NAT (RFC 6598, incl. Alibaba Cloud metadata 100.100.100.200)"},
+	{mustParseCIDR("240.0.0.0/4"), "reserved (Class E)"},
+	{mustParseCIDR("192.0.0.0/24"), "IETF protocol assignments"},
+	{mustParseCIDR("198.18.0.0/15"), "benchmarking (RFC 2544)"},
+	{mustParseCIDR("255.255.255.255/32"), "limited broadcast"},
+	{mustParseCIDR("64:ff9b::/96"), "NAT64 well-known prefix"},
 }
 
-// getDockerImage returns the appropriate Docker image for a language.
-func getDockerImage(language string) string {
-	switch normalizeLanguage(language) {
-	case "python":
-		return "python:3.11-slim"
-	case "go":
-		return "golang:1.22-alpine"
-	case "javascript", "node":
-		return "node:20-alpine"
-	case "bash", "shell":
-		return "bash:5"
-	case "ruby":
-		return "ruby:3.2-slim"
-	case "rust":
-		return "rust:1.75-slim"
-	case "c", "cpp":
-		return "gcc:13"
-	case "java":
-		return "openjdk:21-slim"
-	default:
-		return "alpine:latest"
+// mustParseCIDR parses a constant CIDR literal, once, at package init. It
+// panics only on a programmer typo in one of the literals above — never on
+// any request-time input.
+func mustParseCIDR(s string) *net.IPNet {
+	_, n, err := net.ParseCIDR(s)
+	if err != nil {
+		panic(fmt.Sprintf("isBlockedIP: invalid constant CIDR %q: %v", s, err))
 	}
+	return n
 }
 
-// getFileExtension returns the source file extension for a language.
-func getFileExtension(language string) string {
-	switch normalizeLanguage(language) {
-	case "go":
-		return "go"
-	case "python":
-		return "py"
-	case "javascript":
-		return "js"
-	case "typescript":
-		return "ts"
-	case "bash", "shell":
-		return "sh"
-	case "ruby":
-		return "rb"
-	case "rust":
-		return "rs"
-	case "c":
-		return "c"
-	case "cpp":
-		return "cpp"
-	case "java":
-		return "java"
-	case "kotlin":
-		return "kt"
-	case "php":
-		return "php"
-	case "perl":
-		return "pl"
-	case "r":
-		return "r"
-	default:
-		return "txt"
+// isBlockedIP reports whether an IP must be refused as an egress target:
+// loopback, link-local (which includes the 169.254.169.254 cloud-metadata
+// endpoint), unique-local / private (RFC1918 / ULA), the unspecified address,
+// multicast, or one of the additionalBlockedRanges above (CGNAT/metadata,
+// reserved, IETF protocol assignments, benchmarking, limited broadcast,
+// NAT64). This closes the SSRF vector where a skill-supplied URL points the
+// server at internal or metadata services.
+func isBlockedIP(ip net.IP) (bool, string) {
+	switch {
+	case ip == nil:
+		return true, "unparseable ip"
+	case ip.IsLoopback():
+		return true, "loopback"
+	case ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast():
+		return true, "link-local (incl. cloud metadata 169.254.169.254)"
+	case ip.IsUnspecified():
+		return true, "unspecified"
+	case ip.IsMulticast():
+		return true, "multicast"
+	case ip.IsPrivate():
+		return true, "private (RFC1918/ULA)"
 	}
-}
-
-// findExecutable searches for the first available executable from candidates.
-func findExecutable(candidates ...string) string {
-	for _, c := range candidates {
-		if path, err := exec.LookPath(c); err == nil {
-			return path
+	for _, r := range additionalBlockedRanges {
+		if r.net.Contains(ip) {
+			return true, r.reason
 		}
 	}
-	return ""
+	return false, ""
+}
+
+// screenHost refuses any host that resolves to a blocked egress target. A host
+// literal is checked directly; a name is resolved and EVERY resolved address
+// must be allowed. A resolution error is fail-closed (returns an error): an
+// unresolvable host cannot be proven safe.
+func screenHost(ctx context.Context, host string) error {
+	if host == "" {
+		return fmt.Errorf("empty host")
+	}
+	if ip := net.ParseIP(host); ip != nil {
+		if blocked, reason := isBlockedIP(ip); blocked {
+			return fmt.Errorf("egress to %s blocked: %s", host, reason)
+		}
+		return nil
+	}
+	ips, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+	if err != nil {
+		return fmt.Errorf("resolve host %q (fail-closed): %w", host, err)
+	}
+	if len(ips) == 0 {
+		return fmt.Errorf("host %q resolved to no addresses (fail-closed)", host)
+	}
+	for _, ipa := range ips {
+		if blocked, reason := isBlockedIP(ipa.IP); blocked {
+			return fmt.Errorf("egress to %s (%s) blocked: %s", host, ipa.IP, reason)
+		}
+	}
+	return nil
+}
+
+// newGuardedHTTPClient builds an http.Client whose dialer refuses, AT CONNECT
+// TIME, any address that isBlockedIP flags — closing DNS-rebinding where a name
+// passes the pre-flight screen but resolves to an internal address at dial time.
+func newGuardedHTTPClient(timeout time.Duration) *http.Client {
+	dialer := &net.Dialer{
+		Timeout: 10 * time.Second,
+		Control: func(_, address string, _ syscall.RawConn) error {
+			host, _, err := net.SplitHostPort(address)
+			if err != nil {
+				return fmt.Errorf("parse dial address %q: %w", address, err)
+			}
+			ip := net.ParseIP(host)
+			if ip == nil {
+				return fmt.Errorf("non-ip dial address %q", host)
+			}
+			if blocked, reason := isBlockedIP(ip); blocked {
+				return fmt.Errorf("egress to %s blocked: %s", host, reason)
+			}
+			return nil
+		},
+	}
+	return &http.Client{
+		Timeout: timeout,
+		Transport: &http.Transport{
+			DialContext:           dialer.DialContext,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ResponseHeaderTimeout: 15 * time.Second,
+			DisableKeepAlives:     true,
+		},
+	}
+}
+
+// hashRequiredType reports whether a resource type MUST carry a stored content
+// hash to be verifiable (§G21): official documentation and code references.
+func hashRequiredType(t string) bool {
+	switch strings.ToLower(strings.TrimSpace(t)) {
+	case "official-doc", "official_doc", "code":
+		return true
+	}
+	return false
 }

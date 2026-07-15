@@ -14,7 +14,15 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/helixdevelopment/skill-system/internal/models"
+	"github.com/helixdevelopment/skill-system/internal/validation"
 )
+
+// SkillValidator runs the fail-closed, non-executing validation pipeline against
+// a submitted skill before it is persisted (§G03 request-path). It is satisfied
+// by *validation.Pipeline.
+type SkillValidator interface {
+	Validate(ctx context.Context, s *models.Skill) (*validation.ValidationResult, error)
+}
 
 // ServerConfig holds the server-specific configuration.
 type ServerConfig struct {
@@ -91,10 +99,29 @@ type Server struct {
 	logger      *zap.Logger
 	httpServer  *http.Server
 	http3Server *http3.Server
+
+	// validator runs the fail-closed create-path validation. When nil (or
+	// validationEnabled is false) newly-created skills are forced to draft — a
+	// client can never self-promote to validated/active without a passing verdict.
+	validator         SkillValidator
+	validationEnabled bool
+}
+
+// Option customizes a Server at construction.
+type Option func(*Server)
+
+// WithValidator wires the create-path validation pipeline (§G03). enabled mirrors
+// config.Validation.Enabled; validation runs only when both a validator is
+// present and enabled is true.
+func WithValidator(v SkillValidator, enabled bool) Option {
+	return func(s *Server) {
+		s.validator = v
+		s.validationEnabled = enabled
+	}
 }
 
 // New creates a new API server with the given database pool and configuration.
-func New(pool Pool, cfg Config, logger *zap.Logger) *Server {
+func New(pool Pool, cfg Config, logger *zap.Logger, opts ...Option) *Server {
 	if logger == nil {
 		logger = zap.L()
 	}
@@ -113,6 +140,10 @@ func New(pool Pool, cfg Config, logger *zap.Logger) *Server {
 		pool:   pool,
 		cfg:    cfg.Server,
 		logger: logger,
+	}
+
+	for _, opt := range opts {
+		opt(s)
 	}
 
 	// Register middleware

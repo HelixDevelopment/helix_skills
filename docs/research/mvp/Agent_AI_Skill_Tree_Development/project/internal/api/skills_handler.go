@@ -15,6 +15,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/helixdevelopment/skill-system/internal/models"
+	"github.com/helixdevelopment/skill-system/internal/validation"
 )
 
 // CreateSkillRequest is the request body for creating a new skill.
@@ -161,7 +162,8 @@ func (s *Server) handleCreateSkill(c *gin.Context) {
 		return
 	}
 
-	// Build skill model
+	// Build skill model. The status is decided by validation below — a client
+	// can never self-promote to validated/active without a passing verdict.
 	skill := &models.Skill{
 		ID:          uuid.New(),
 		Name:        req.Name,
@@ -170,10 +172,46 @@ func (s *Server) handleCreateSkill(c *gin.Context) {
 		Description: req.Description,
 		Content:     req.Content,
 		Metadata:    req.Metadata,
-		Status:      defaultStatus(req.Status, models.SkillStatusDraft),
+		Status:      models.SkillStatusDraft,
 		CreatedAt:   time.Now().UTC(),
 		UpdatedAt:   time.Now().UTC(),
 	}
+
+	// Carry submitted resources into the in-memory model so validation screens
+	// their URLs (SSRF guard, §G21). Persisting resource/dependency edges is a
+	// separate work-item; pool.CreateSkill does not persist them.
+	for _, r := range req.Resources {
+		if strings.TrimSpace(r.URL) == "" {
+			continue
+		}
+		skill.Resources = append(skill.Resources, models.Resource{
+			ID:           uuid.New(),
+			URL:          r.URL,
+			Title:        r.Title,
+			ResourceType: r.ResourceType,
+		})
+	}
+
+	// Fail-closed create-path validation (§G03 request-path): run the
+	// StaticValidator + jury BEFORE persisting; a skill reaches validated/active
+	// ONLY on a real positive verdict, otherwise it stays draft.
+	requested := defaultStatus(req.Status, models.SkillStatusDraft)
+	validationOn := s.validationEnabled && s.validator != nil
+	var valResult *validation.ValidationResult
+	if validationOn {
+		vr, err := s.validator.Validate(c.Request.Context(), skill)
+		if err != nil {
+			zap.L().Error("skill validation error", zap.String("skill", req.Name), zap.Error(err))
+			RespondError(c, http.StatusInternalServerError, "Validation failed")
+			return
+		}
+		valResult = vr
+	}
+	skill.Status = validation.DecideCreateStatus(validationOn, requested, valResult)
+
+	// Resource/dependency persistence is a separate work-item; do not imply it
+	// here (pool.CreateSkill persists scalar fields only).
+	skill.Resources = nil
 
 	// Create in database
 	if err := s.pool.CreateSkill(c.Request.Context(), skill); err != nil {

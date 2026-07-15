@@ -113,12 +113,11 @@ type EmbeddingConfig struct {
 
 // ValidationConfig controls the skill validation pipeline.
 type ValidationConfig struct {
-	Enabled             bool   `toml:"enabled"`
-	SandboxType         string `toml:"sandbox_type"`       // "wasm" | "docker" | "none"
-	JurySize            int    `toml:"jury_size"`          // number of validators
-	ApprovalThreshold   int    `toml:"approval_threshold"` // votes required
-	AutoApproveEvidence bool   `toml:"auto_approve_evidence"`
-	RequireHumanReview  bool   `toml:"require_human_review"`
+	Enabled             bool `toml:"enabled"`
+	JurySize            int  `toml:"jury_size"`          // number of validators
+	ApprovalThreshold   int  `toml:"approval_threshold"` // votes required
+	AutoApproveEvidence bool `toml:"auto_approve_evidence"`
+	RequireHumanReview  bool `toml:"require_human_review"`
 }
 
 // AutoExpandConfig controls the automatic skill-tree expansion.
@@ -186,7 +185,6 @@ func defaultConfig() Config {
 		},
 		Validation: ValidationConfig{
 			Enabled:             true,
-			SandboxType:         "wasm",
 			JurySize:            3,
 			ApprovalThreshold:   2,
 			AutoApproveEvidence: false,
@@ -322,9 +320,6 @@ func substituteEnv(cfg *Config) error {
 	cfg.Embedding.Model = sub(cfg.Embedding.Model)
 	cfg.Embedding.APIKey = sub(cfg.Embedding.APIKey)
 	cfg.Embedding.LocalEndpoint = sub(cfg.Embedding.LocalEndpoint)
-
-	// Validation
-	cfg.Validation.SandboxType = sub(cfg.Validation.SandboxType)
 
 	// AutoExpand
 	cfg.AutoExpand.LLMProvider = sub(cfg.AutoExpand.LLMProvider)

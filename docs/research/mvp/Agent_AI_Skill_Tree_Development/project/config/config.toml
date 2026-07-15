@@ -45,7 +45,6 @@ local_endpoint = ""
 
 [validation]
 enabled = true
-sandbox_type = "wasm"
 jury_size = 3
 approval_threshold = 2
 auto_approve_evidence = false
