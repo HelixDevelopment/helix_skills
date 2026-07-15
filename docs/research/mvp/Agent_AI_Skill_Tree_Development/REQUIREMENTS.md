@@ -238,6 +238,20 @@ Each stage lands only with captured build/test evidence; SDD dispatches per task
   surface for R4 Claude-Code/agent interop — surface any genuine sub-decision per §11.4.66.
   Credentials via the §11.4.10 single-source (field names only, never values). Design
   **stream dispatched** (research/r19_anthropic_api_support_design.md).
+- **R20 — Containers submodule for ALL containerization (operator mandate 2026-07-15):**
+  every containerized workload (dev/test infra, build sandboxes, deploy, HelixQA infra boot)
+  MUST go through the vasic-digital Containers submodule
+  (`git@github.com:vasic-digital/containers.git`, existence verified via gh) — NO ad-hoc
+  docker/podman outside its `pkg/boot`/`pkg/compose`/`pkg/health` layer (inherits §11.4.76 +
+  rootless §11.4.161). The ops-hardening design (G13 compose profiles) MUST route through it;
+  vendoring is gated on the G14/X1 submodule-policy decision. Folded into the G14/X1 decision
+  package (research/g14_x1_submodule_policy_decision.md).
+- **R21 — adopt reusable Helix-family practices (operator mandate 2026-07-15):** survey the
+  sibling `helix_*` projects under the shared parent projects dir for reusable universal
+  architecture / submodules / practices this project MUST follow — especially Containers (R20),
+  HelixQA integration (R8/§11.4.27), Docs Chain (R10/§11.4.106), and other major sub-systems /
+  sub-modules (§11.4.74 catalogue-first extend-don't-reimplement, §11.4.28 equal-codebase).
+  Survey **stream dispatched** (research/helix_family_reusable_practices.md).
 - **Security:** sync_submodules.sh hardened (fail-closed validation; paired attack
   proof) — committed c473d01.
 - **Seed corpus:** R13 validation corpus + 8 real seed skills committed 0e0bc3b
