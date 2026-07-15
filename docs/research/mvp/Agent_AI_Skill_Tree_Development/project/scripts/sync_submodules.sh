@@ -52,6 +52,55 @@ log_warn()  { printf '%b[WARN]%b %s\n' "$YELLOW" "$NC" "$1"; }
 log_error() { printf '%b[ERROR]%b %s\n' "$RED" "$NC" "$1" >&2; }
 log_plan()  { printf '%b[PLAN]%b %s\n' "$BOLD" "$NC" "$1"; }
 
+# ------------------------------------------------------------------------
+# Strict allow-list validation at the trust boundary (defense-in-depth).
+# The manifest is semi-trusted, but validating here makes two classes of
+# defect structurally impossible regardless of manifest contents:
+#   * path traversal — 'name'/'layout' build local_path and the ecosystem
+#     search paths; a '../' or '/' in 'name' would escape the repo tree.
+#   * git argument injection — 'ref'/'ssh_url' are passed as positional
+#     arguments to git; a value beginning with '-' would be parsed as an
+#     option (e.g. an --upload-pack/--output style flag), not data.
+# On any violation we fail closed (exit 1) rather than proceed.
+# ------------------------------------------------------------------------
+validate_dep_fields() {
+  local name="$1" ssh_url="$2" ref="$3" layout="$4"
+
+  # Constitution §11.4.29: dependency names are lowercase snake_case. This
+  # regex also forbids '/', '.', '..', and a leading '-', closing the path
+  # traversal vector.
+  if [[ ! "$name" =~ ^[a-z0-9]+(_[a-z0-9]+)*$ ]]; then
+    log_error "Invalid dependency name '${name}': must be lowercase snake_case [a-z0-9_] (Constitution §11.4.29)."
+    exit 1
+  fi
+
+  # Git ref: must start alphanumeric (no leading '-' => no option injection),
+  # contain only [A-Za-z0-9._/-], and never contain '..' (ref-escape / RCE via
+  # crafted refspec). Rejects whitespace implicitly.
+  if [[ ! "$ref" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]*$ ]] || [[ "$ref" == *".."* ]]; then
+    log_error "Invalid ref '${ref}' for '${name}': must start alphanumeric, only [A-Za-z0-9._/-], no '..'."
+    exit 1
+  fi
+
+  # Layout is a closed enum.
+  case "$layout" in
+    grouped|ungrouped) ;;
+    *) log_error "Invalid layout '${layout}' for '${name}': must be 'grouped' or 'ungrouped'."; exit 1 ;;
+  esac
+
+  # URL: never begins with '-' (git option injection) or contains whitespace,
+  # and must match a recognized git transport (scp-like host:path, ssh://,
+  # git://, https://, http://, file://).
+  if [[ "$ssh_url" == -* ]] || [[ "$ssh_url" =~ [[:space:]] ]]; then
+    log_error "Invalid url '${ssh_url}' for '${name}': must not start with '-' or contain whitespace."
+    exit 1
+  fi
+  if [[ ! "$ssh_url" =~ ^(ssh://|git://|https://|http://|file://|[A-Za-z0-9._-]+@[A-Za-z0-9._-]+:) ]]; then
+    log_error "Invalid url '${ssh_url}' for '${name}': not a recognized git URL form."
+    exit 1
+  fi
+}
+
 usage() {
   cat <<'EOF'
 Usage: sync_submodules.sh [--apply] [--manifest PATH] [--ecosystem-root DIR]...
@@ -173,8 +222,8 @@ sync_existing_checkout() {
   local path="$1" ref="$2"
   if [[ ${APPLY} -eq 1 ]]; then
     log_plan "Fetching '${ref}' and fast-forwarding at ${path}..."
-    git -C "${path}" fetch origin "${ref}"
-    git -C "${path}" checkout "${ref}"
+    git -C "${path}" fetch origin -- "${ref}"
+    git -C "${path}" checkout "${ref}" --
     git -C "${path}" merge --ff-only "origin/${ref}"
     log_ok "Synced to origin/${ref} at ${path}"
   else
@@ -256,6 +305,7 @@ echo
 
 for line in "${dep_lines[@]}"; do
   IFS=$'\t' read -r dep_name dep_url dep_ref dep_layout <<<"${line}"
+  validate_dep_fields "${dep_name}" "${dep_url}" "${dep_ref}" "${dep_layout}"
   process_dep "${dep_name}" "${dep_url}" "${dep_ref}" "${dep_layout}"
 done
 
