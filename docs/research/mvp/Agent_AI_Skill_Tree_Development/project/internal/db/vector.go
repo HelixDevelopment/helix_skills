@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -39,9 +40,9 @@ func VectorSearch(
 	}
 
 	// Validate table name to prevent injection.
-	sanitized := sanitizeTableName(table)
-	if sanitized == "" {
-		return nil, fmt.Errorf("invalid table name: %q", table)
+	sanitized, err := validateTableName(table)
+	if err != nil {
+		return nil, err
 	}
 
 	query := fmt.Sprintf(
@@ -97,9 +98,9 @@ func HybridSearch(
 		limit = 10
 	}
 
-	sanitized := sanitizeTableName(table)
-	if sanitized == "" {
-		return nil, fmt.Errorf("invalid table name: %q", table)
+	sanitized, err := validateTableName(table)
+	if err != nil {
+		return nil, err
 	}
 
 	// Build tsquery from keywords.
@@ -243,9 +244,9 @@ func VectorSearchFiltered(
 		limit = 10
 	}
 
-	sanitized := sanitizeTableName(table)
-	if sanitized == "" {
-		return nil, fmt.Errorf("invalid table name: %q", table)
+	sanitized, err := validateTableName(table)
+	if err != nil {
+		return nil, err
 	}
 
 	query := fmt.Sprintf(
@@ -283,16 +284,34 @@ func VectorSearchFiltered(
 // Utilities
 // ---------------------------------------------------------------------------
 
-// sanitizeTableName ensures the table name contains only alphanumeric
-// characters and underscores to prevent SQL injection.
-func sanitizeTableName(name string) string {
-	var b strings.Builder
-	for _, r := range name {
-		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_' {
-			b.WriteRune(r)
-		}
+// tableNamePattern is the strict allowlist for a SQL table identifier that may
+// be interpolated into a query string. A valid name starts with a letter or
+// underscore and thereafter contains only letters, digits, and underscores.
+// Leading digits, whitespace, punctuation, and any SQL metacharacter are all
+// rejected.
+var tableNamePattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
+
+// maxTableNameLen bounds identifier length. PostgreSQL truncates identifiers at
+// 63 bytes (NAMEDATALEN-1); anything longer is a programmer error, not a table.
+const maxTableNameLen = 63
+
+// validateTableName rejects any table name that is not a strict SQL identifier,
+// returning an error instead of a mutated name. Unlike the previous strip-based
+// sanitiser (which turned e.g. "skills; DROP" into the wrong-but-valid
+// "skillsDROP" and let it through), this NEVER alters the input: a
+// non-conforming name — empty, over-length, leading-digit, or containing any
+// character outside [A-Za-z0-9_] — yields a non-nil error. Callers MUST
+// propagate the error and never proceed on a rejected name (§11.4.201: the
+// guard asserts the real condition and refuses on violation rather than
+// transforming bad input into passable input).
+func validateTableName(name string) (string, error) {
+	if len(name) > maxTableNameLen {
+		return "", fmt.Errorf("invalid table name %q: exceeds %d bytes", name, maxTableNameLen)
 	}
-	return b.String()
+	if !tableNamePattern.MatchString(name) {
+		return "", fmt.Errorf("invalid table name: %q", name)
+	}
+	return name, nil
 }
 
 // buildTsQuery converts a space-separated keyword string into a PostgreSQL
@@ -347,9 +366,9 @@ func VectorIndexStats(
 	pool *Pool,
 	table string,
 ) (indexedCount int64, indexSizeBytes int64, err error) {
-	sanitized := sanitizeTableName(table)
-	if sanitized == "" {
-		return 0, 0, fmt.Errorf("invalid table name: %q", table)
+	sanitized, err := validateTableName(table)
+	if err != nil {
+		return 0, 0, err
 	}
 
 	// Count non-null embeddings.
@@ -383,9 +402,9 @@ func WaitForVectorIndexReady(
 	table string,
 	timeout time.Duration,
 ) error {
-	sanitized := sanitizeTableName(table)
-	if sanitized == "" {
-		return fmt.Errorf("invalid table name: %q", table)
+	sanitized, err := validateTableName(table)
+	if err != nil {
+		return err
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, timeout)
