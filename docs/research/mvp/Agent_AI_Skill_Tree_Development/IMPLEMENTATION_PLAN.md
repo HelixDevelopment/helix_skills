@@ -121,6 +121,48 @@
 
 ---
 
+## P0.5 — CRITICAL remediation from the gaps register (R17)  ·  *new, top priority*
+
+**Goal:** close the confirmed CRITICAL/HIGH findings in `GAPS_AND_RISKS_REGISTER.md`
+before building further — the green build proved SOURCE compiles, NOT that the
+runtime uses the hardened code (§11.4.108). These are Go-source changes with
+cross-package coupling, so they run **serialized** (one Go-mutator at a time),
+each proven by build+vet+test + the relevant D-tests + a runtime-wiring assertion.
+
+- **P0.5.G01 — Wire `internal/api` as the single HTTP surface.** `cmd/server/main.go`
+  runs an ad-hoc router (wildcard CORS `main.go:364`, no auth) and never imports
+  `internal/api` (0 non-test importers). Fix: construct+run `internal/api.Server`;
+  delete the ad-hoc router + wildcard CORS; auth fail-closed (`server.go:163`).
+  Preserve every real endpoint (port it or report the delta — never silent-drop
+  §11.4.122). **Evidence gate:** build/vet/test green; D's CORS tests are the live
+  server's; `grep 'Allow-Origin", "*"' cmd/server` = 0; server constructs `api.Server`.
+- **P0.5.G02 — Sandbox RCE default.** the "WASM sandbox" process-fallback executes
+  arbitrary skill code on the host with a false-isolation claim (`sandbox.go:206-290`).
+  Fix: real isolation (rootless Podman/gVisor/true WASM) or **fail-closed SKIP**.
+  **Evidence gate:** no host-exec path reachable by default; a hostile snippet is
+  contained or SKIP-with-reason, proven by test.
+- **P0.5.G03 — Wire the jury + auto-growth pipelines.** `internal/validation` +
+  `internal/autoexpand` are dead code; worker handlers are stubs. Fix: wire
+  `validation.Validate`/`autoexpand.Run` into the worker + create path. **Evidence
+  gate:** no skill reaches `validated` without a jury verdict (gated test).
+- **P0.5.G05 — Jury fail-closed on empty config.** empty jury auto-approves
+  (`pipeline.go:428-439`). Fix: empty jury = hard error / forces human review; ≥2 real
+  votes. **Evidence gate:** empty-jury test proves rejection, not silent pass.
+- **P0.5.G06/G07 — Skill correctness.** `GetDependencyTree` truncates to depth-1
+  (`graph.go:306`); TOML/JSON dep+resource round-trip drops edges. Fix + prove
+  export→import identity + full-depth tree tests.
+- **P0.5.G11 — Panic-safe worker.** unchecked type assertions can crash the process;
+  add comma-ok + per-goroutine recover.
+- **P0.5.G13 — One canonical compose.** make `deploy/` canonical, delete/merge the
+  root `docker-compose.yml`; point scripts + systemd unit at the single file.
+- **P0.5.G14 — Submodule policy escalation.** §11.4.28C single-canonical vs operator
+  parent-priority+both-synced: decision recorded (parent = canonical, `submodules/<name>`
+  = read-only mirror); **surface to operator before any `--apply`**.
+- **P0.5.G10 — Embedding dim.** pin 768 default, template `vector(N)` from config,
+  startup dim-match assertion, OpenAI length check. (feeds P2.T1.)
+
+---
+
 ## P1 — Core domain model, granularity & serialization (R16 + founding)
 
 **Goal:** the Skill data model supports atomic ↔ composite/umbrella granularity with typed relationship edges, serialized as TOON/JSON on the wire and TOML/Markdown on disk.
