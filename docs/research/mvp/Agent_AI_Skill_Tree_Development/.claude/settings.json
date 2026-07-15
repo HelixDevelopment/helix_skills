@@ -1,0 +1,25 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$(git -C \"$CLAUDE_PROJECT_DIR\" rev-parse --show-toplevel)/constitution/scripts/hooks/guard-forbidden-commands.sh\""
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$(git -C \"$CLAUDE_PROJECT_DIR\" rev-parse --show-toplevel)/docs/research/mvp/Agent_AI_Skill_Tree_Development/project/scripts/append_request_history.sh\""
+          }
+        ]
+      }
+    ]
+  }
+}
