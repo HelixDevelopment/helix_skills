@@ -1,7 +1,7 @@
 # CONTINUATION — HelixKnowledge Skill Graph System (MVP)
 
-**Revision:** 5
-**Last modified:** 2026-07-15T17:10:00Z
+**Revision:** 6
+**Last modified:** 2026-07-15T17:40:21Z
 **Purpose:** §12.10 / §11.4.131 standing session-resumption file. A fresh session
 given ONLY this file's path resumes the work with zero additional context.
 Keep in sync on every material state change.
@@ -19,6 +19,52 @@ Read this file + `REQUIREMENTS.md` + `IMPLEMENTATION_PLAN.md` + `GAPS_AND_RISKS_
 correctness gaps from the R17 register) as a single serialized Go-mutator lane with a
 mandatory **§11.4.209 Fable-xhigh review before every commit**, keeping 2–3
 design-research streams one step ahead in parallel (3–4 total per operator mandate).
+
+## LATE-SESSION DELTA — Rev 6 (2026-07-15T17:40Z) — supersedes stale lines below
+
+- **G02-family COMMITTED (`2befa77`):** G02/G03/G05/G16/G21 Go impl — Fable-xhigh
+  RE-review returned **GO** (5 security invariants PROVEN on the live surface,
+  `-race` clean, paired mutations RED-verified). SSRF `additionalBlockedRanges`,
+  fail-closed StaticValidator, empty-jury BLOCKS, MCP `skill_create` persists-as-draft.
+  Two LOW residuals tracked (**G36** SSRF `0.0.0.0/8` completeness — dangerous
+  `0.0.0.0` already caught; **G37** import-status on the dead `api.Server` router → O3).
+- **Discovery-audit (§11.4.118) filed G29–G35** (real defects): **G29** HIGH —
+  `Store.Search` doc-bluff (claims hybrid vector, is ILIKE-only; `VectorSearch`
+  zero callers); **G31** HIGH-latent LFI (`learn_from_project` path unvalidated →
+  land WITH/BEFORE G03); **G32** HIGH dead-flagship `ReviewScheduler` (wire, don't
+  remove); **G35** HIGH live client-auth break (CLI/TUI send `Bearer`, server reads
+  `X-API-Key` → 401 when G01 auth enforces; fix before any client-vs-auth live test);
+  G30/G33/G34 med/low. Plus **G38** — §11.4.208 auto-capture hook not yet wired.
+- **Design lane LANDED (incorporate-vs-hand-roll verdicts resolved):** survey
+  `research/helix_family_reusable_practices.md` (R21/R22) + `research/g05_g11_reuse_debate_dag_design.md`.
+  **LLMProvider = ADOPT-as-submodule** (production Anthropic Messages adapter →
+  supersedes hand-rolled R19 `AnthropicLLM`; reshapes R7/R19). **dag_orchestrator =
+  INCORPORATE-scoped** (G11 worker scheduler, leaf submodule). **debate_orchestrator
+  = STUDY-only** (G05 jury already correct in `pipeline.go@2befa77`; real gap =
+  `WithJury` defined but NEVER called in `cmd/worker`/`cmd/server` → a §11.4.108
+  layer-2/3 WIRING task, fold into G05 impl). **Containers = root path `containers/`**
+  (proven by `helix_ota`'s working `replace` directive), NOT `submodules/containers/`.
+- **R19–R24 recorded in REQUIREMENTS.md** (SoT). NEW: **R23** full constitutional
+  compliance (audit stream running → `research/constitution_compliance_audit.md`;
+  full re-run + CM-gate + §11.4.32 sweep at completion); **R24** every-request-respected
+  + zero request-loss.
+- **§11.4.208 operator-request ledger CREATED** (`requests/history.md`) — intake
+  audit performed: R1–R22 were SoT-tracked; **R23+R24 were acted-on-but-not-recorded**
+  → recorded this turn (the exact request-loss the R24 mandate targets, closed).
+  Auto-capture hook = G38 (honestly not-yet-wired).
+- **Live fleet (Rev 6):** (1) P1.T1 granularity-schema-migration Go mutator (a6f8b52,
+  running — the §11.4.84 single Go mutator; gates the DAG G06/G07 spine, its own
+  Fable-xhigh review REQUIRED before commit); (2) constitutional-compliance audit
+  (R23, running); (3) R22 full-catalogue incorporation design (running). Design
+  research lane otherwise EXHAUSTED.
+- **NEXT after P1.T1 commit:** Go spine — P1.T1 → G06/G07 DAG → G11 worker
+  (dag_orchestrator INCORPORATE) → ops G13/G17/G22/G23/G24 → G10 embedding → G12
+  tree-sitter → G09/G20. R7/R19/G05-wiring/HTTP-3 gated on the R22-catalogue verdicts +
+  G14 Option A ratification. HIGH-risk fixes to prioritise (§11.4.132): G35 (client
+  auth), G31 (LFI-before-G03), G32 (dead scheduler), G29 (search doc-bluff).
+- **Commit discipline unchanged:** doc batch narrow-stages doc-only paths (P1.T1 Go
+  mutator live on `project/`), residue-scan, assert zero `project/` staged; detached
+  push to 4 upstreams, ff-only (§11.4.113).
 
 ## Where this work lives
 

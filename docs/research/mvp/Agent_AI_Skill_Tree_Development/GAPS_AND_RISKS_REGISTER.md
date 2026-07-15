@@ -311,6 +311,96 @@ flow from this.
 - **Test coverage:** 13 — 9 unit (factory dispatch ×4, header/request mapping incl. no-sampling-params, response parse, non-2xx error map, refusal handling), 2 integration (live `Generate` behind `integration` tag + SKIP-without-`ANTHROPIC_API_KEY`; `Pipeline.Run` via Anthropic asserts no placeholder), 2 paired §1.1 mutations. **Challenges:** yes.
 - **STATUS (2026-07-15):** DESIGN DONE + all file:line claims verified vs `255061b` → `research/r19_anthropic_api_support_design.md`. Depends on G20's `DraftSkill` fix landing first (removes the concrete assertion). Go impl PENDING. **OPEN operator sub-decision (§11.4.66, non-blocking):** whether to ALSO expose an Anthropic-Messages-*shaped* server surface for R4 interop — R19's recommendation is NO (R4 already solved via MCP for every named CLI agent); recorded, deferred-safe default = do not build the redundant surface now (§11.4.101).
 
+### G29 — `Store.Search` advertises "hybrid vector search" but is trigram/ILIKE-only; `Store.VectorSearch` has zero callers
+- **Category:** bug / doc-bluff (§11.4 / §11.4.6)
+- **Severity:** high
+- **Evidence:** `internal/skill/store.go:50-118` `Store.Search` — doc-comment claims hybrid vector search; body is ILIKE/trigram only, no query embedding used. `Store.VectorSearch` (`store.go:574-609`), the real pgvector KNN path, has **zero callers** (grep=0) across MCP `skill_search` + REST + pipeline dedup.
+- **Impact:** the advertised semantic search is not delivered (keyword-only); a doc-comment claims a capability the code does not deliver (§11.4 code-layer bluff); the flagship pgvector search is dead (§11.4.124). R2/R13 make semantic retrieval core.
+- **DECISION:** wire `VectorSearch` into `Search` (embed query → vector KNN + trigram, weighted/RRF merge) rather than correct-the-doc-to-keyword-only. **Alternatives rejected:** downgrading the doc-comment (abandons a core R2/R13 capability).
+- **Test coverage:** unit (a semantically-near non-substring match ranks above a trigram-only match; `VectorSearch` reached), integration (live pgvector KNN), paired mutation (revert to ILIKE-only → hybrid test FAILs), regression. **Challenges:** yes.
+- **STATUS (2026-07-15):** DISCOVERED (discovery-audit §11.4.118) → `research/p05_completion_audit_and_discovery.md`. Design + impl PENDING. HIGH — anti-bluff (doc claims a capability the code lacks).
+
+### G30 — `learn_from_project` returns a job ID that can never be status-checked
+- **Category:** bug / gap
+- **Severity:** medium
+- **Evidence:** `internal/skill/store.go:546-568` + `internal/mcp/tools.go:336` — the tool enqueues a job + returns a job ID, but no status-query path (no `GetJobStatus`-by-ID) exists; the caller cannot poll completion.
+- **Impact:** R6 wizard + R14 real-time growth report a job ID the client cannot resolve → the progress-reporting contract is broken (§11.4.116-class).
+- **DECISION:** add a job-status store (status by job ID: queued/running/done/failed + progress) + an MCP/REST status tool; the async pipeline writes status transitions.
+- **Test coverage:** unit (status transitions), integration (enqueue→poll→done), paired mutation, regression.
+- **STATUS (2026-07-15):** DISCOVERED → p05 doc. Design + impl PENDING.
+
+### G31 — `learn_from_project` `project_path` has zero validation → path-traversal / LFI primitive when G03 wiring lands
+- **Category:** security (latent)
+- **Severity:** high (latent)
+- **Evidence:** `internal/mcp/tools.go:314-350` passes `project_path` unvalidated to `internal/codeanalysis/analyzer.go:196-240`, which walks the filesystem from it. Today the analyzer is not fully wired (G03) → latent; when G03 lands, an attacker-supplied `project_path` (`/etc`, `../../`, absolute host paths) becomes a local-file-inclusion / traversal read primitive on the (currently unauthenticated) MCP surface.
+- **Impact:** arbitrary-directory read once G03 wires the analyzer → high.
+- **DECISION:** validate `project_path` BEFORE the walk — canonicalize (`filepath.Abs`+`Clean`, resolve symlinks), enforce a config-driven allowlisted root prefix, reject traversal/absolute-escape, fail-closed. MUST land WITH or BEFORE G03.
+- **Test coverage:** security (traversal `../`, symlink-escape, absolute-outside-root all rejected), unit (in-root accepted), paired mutation (drop validation → traversal test FAILs), regression.
+- **STATUS (2026-07-15):** DISCOVERED → p05 doc. Design + impl PENDING; sequencing dependency on G03.
+
+### G32 — `registry.ReviewScheduler` fully built but has zero callers (dead flagship pipeline)
+- **Category:** bug / dead-flagship (§11.4.108 layer-2/3, §11.4.124)
+- **Severity:** high
+- **Evidence:** `internal/registry` `ReviewScheduler` is complete but grep=0 callers — never instantiated/started by `cmd/server` or `cmd/worker`.
+- **Impact:** the periodic skill-review / re-validation pipeline (a flagship maintenance mechanism) never runs in production → skills are never re-reviewed; SOURCE-green-but-RUNTIME-dead (§11.4.108).
+- **DECISION (§11.4.124 investigate-before-remove):** git-history investigate whether it was wired-then-regressed vs never-completed; then WIRE it (start from `cmd/worker` under the single-owner advisory lock) + add the missing wiring tests — NOT remove (required functionality, not obsolescence).
+- **Test coverage:** integration (scheduler runs a review cycle on a real DB), unit (cadence), paired mutation, regression + a §11.4.108 runtime-signature (scheduler tick observable on a clean deploy).
+- **STATUS (2026-07-15):** DISCOVERED → p05 doc. Investigate + wire PENDING.
+
+### G33 — `Store.ExportToTOML` swallows a DB error → empty dependency name in exported skill file
+- **Category:** bug
+- **Severity:** low
+- **Evidence:** `internal/skill/store.go` `ExportToTOML` discards a row-scan error path → a dependency name can serialize empty.
+- **Impact:** a git-versioned TOML skill file (R14 source of truth) can be silently written with a blank dep name → corrupt round-trip.
+- **DECISION:** propagate the scan error (fail the export) rather than emit a partial file. **Alternatives rejected:** best-effort partial export (corrupts the R14 SoT silently).
+- **Test coverage:** unit (scan error → export errors, no partial file), regression, paired mutation.
+- **STATUS (2026-07-15):** DISCOVERED → p05 doc. Impl PENDING.
+
+### G34 — unchecked `rid.(string)` type assertion in request-id middleware
+- **Category:** weakness
+- **Severity:** low-medium
+- **Evidence:** `internal/api/middleware.go:184, 258-268` — `rid.(string)` without the comma-ok form; a non-string context value panics the request goroutine.
+- **Impact:** a mis-set request-id context value → per-request panic (DoS-ish); today the setter is internal so unreachable, but a latent foot-gun.
+- **DECISION:** comma-ok assertion with a safe fallback (empty/regenerated id); never panic on a context-value shape.
+- **Test coverage:** unit (non-string context value → no panic, fallback id), regression, paired mutation.
+- **STATUS (2026-07-15):** DISCOVERED → p05 doc. Impl PENDING.
+
+### G35 — CLI + TUI send `Authorization: Bearer` but the server reads `X-API-Key` → both first-party clients 401 the moment G01 auth enforces
+- **Category:** bug / integration regression (latent, §11.4.108)
+- **Severity:** high
+- **Evidence:** CLI `cmd/cli/commands/common.go:55` + TUI `.../api_client.go:76` set `Authorization: Bearer <key>`; the server auth middleware `internal/api/middleware.go:292` reads `X-API-Key`. Header mismatch → 401 for both clients once the G01 hardened auth is actually enforced on the live listener.
+- **Impact:** the two shipped first-party clients cannot authenticate against their own backend the moment auth is enforced (the fix breaks the clients) — a real user-visible break.
+- **DECISION:** unify the auth-header contract — fix both clients to send `X-API-Key` (server-canonical) OR make the server accept both (documented); add a contract test asserting client-sent header == server-read header (§11.4.135 recurrence guard).
+- **Test coverage:** contract (client header == server header), integration (CLI/TUI authenticate against an auth-enforced server), paired mutation (revert a client to Bearer → contract test FAILs), regression.
+- **STATUS (2026-07-15):** DISCOVERED → p05 doc. Fix PENDING; MUST land before any client-vs-auth-server live test (§11.4.130).
+
+### G36 — SSRF blocklist: non-zero `0.0.0.0/8` hosts not explicitly blocked (residual; the dangerous `0.0.0.0` IS caught)
+- **Category:** security (residual)
+- **Severity:** low
+- **Evidence:** G01/G02 Fable-xhigh review residual — `internal/validation/sandbox.go` blocks `0.0.0.0` itself (the localhost-mapping danger) + `additionalBlockedRanges`; other `0.0.0.0/8` addresses (RFC 1122 "this network") are not explicitly listed. Proven NOT live-reachable as a localhost bypass (only `0.0.0.0` maps to localhost on Linux).
+- **Impact:** minimal — the exploitable case (`0.0.0.0`→localhost) is blocked; residual is defense-in-depth completeness.
+- **DECISION:** add `0.0.0.0/8` to `additionalBlockedRanges` for completeness (never a legitimate egress target); low priority.
+- **Test coverage:** unit (`0.0.0.x` rejected), paired mutation, regression.
+- **STATUS (2026-07-15):** TRACKED (G02 Fable review residual, proven non-live-reachable). Impl PENDING (low).
+
+### G37 — Import-skills path honors client status on the proven-DEAD `api.Server` router (O3 consolidation)
+- **Category:** weakness (latent / dead-path, §11.4.108)
+- **Severity:** low
+- **Evidence:** G02 Fable review residual — `internal/api/skills_handler.go:546-559` `handleImportSkills`/`createReqToModel` correctly honors client status, but on the `internal/api.Server` router that is proven DEAD (the live server is the consolidated hardened listener; O3 tracks consolidating/removing the dead `api.Server`).
+- **Impact:** none live today (dead router); relevant only if `api.Server` is re-activated. Tracked to avoid a §11.4.108 SOURCE-green-RUNTIME-dead confusion.
+- **DECISION:** fold into the O3 dead-`api.Server` consolidation (§11.4.124 investigate-before-remove) — carry the correct status-handling into the live path or remove with the router.
+- **Test coverage:** covered by the O3 consolidation tests; regression.
+- **STATUS (2026-07-15):** TRACKED (G02 Fable review residual). Deferred to O3 (§11.4.101).
+
+### G38 — §11.4.208 request-history auto-capture hook not yet wired (ledger is reconstruction-only)
+- **Category:** task / infra (§11.4.208(D); R24)
+- **Severity:** low
+- **Evidence:** `requests/history.md` (§11.4.208 operator-request ledger) created this session but populated by RECONSTRUCTION (§11.4.208(B)); no `UserPromptSubmit`-class hook appends a row at accept-time.
+- **Impact:** future operator prompts are not auto-captured → relies on manual/reconstruction append (the exact loss risk R24 targets).
+- **DECISION:** wire a `UserPromptSubmit`-class hook (or equivalent) that appends a newest-first row per new prompt with deterministic Track/alias derivation (§11.4.182) + honest `?`/UNKNOWN; project-local, decoupled (§11.4.28/§11.4.177).
+- **Test coverage:** hook test (a simulated prompt appends exactly one correctly-shaped row), paired mutation (hook stripped → gate FAILs), regression.
+- **STATUS (2026-07-15):** FILED (R24 / §11.4.208(D)). Wiring PENDING — honestly recorded in the ledger's boundary note, never claimed as automatic.
+
 ---
 
 ## Adjudication of the 8 mandated open items

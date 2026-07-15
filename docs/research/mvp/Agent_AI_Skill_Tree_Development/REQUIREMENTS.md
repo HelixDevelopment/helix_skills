@@ -252,6 +252,48 @@ Each stage lands only with captured build/test evidence; SDD dispatches per task
   HelixQA integration (R8/§11.4.27), Docs Chain (R10/§11.4.106), and other major sub-systems /
   sub-modules (§11.4.74 catalogue-first extend-don't-reimplement, §11.4.28 equal-codebase).
   Survey **stream dispatched** (research/helix_family_reusable_practices.md).
+- **R22 — catalogue-first incorporation from vasic-digital + HelixDevelopment orgs (operator mandate
+  2026-07-15):** INCORPORATE the universal reusable submodules these two orgs already provide rather than
+  re-implement (§11.4.74 extend-don't-reimplement; §11.4.28 equal-codebase; §11.4.31 recursive helix-deps).
+  gh-enumerated high-value matches: **LLMProvider** (`vasic-digital/LLMProvider` — shared LLM provider
+  interface, 40+ adapters incl. Anthropic, retry/circuit-breaker/health → supersedes the hand-rolled
+  `OpenAILLM` + planned R19 `AnthropicLLM`; reshapes R7/R19), **MCP_Module** (`vasic-digital/MCP_Module` →
+  internal/mcp, R14), **http3** (`vasic-digital/http3` drop-in HTTP/3 → replaces direct quic-go), **docs_chain**
+  (R10/R18), **HelixQA** (`HelixDevelopment/helixqa`, R8), **containers** (R20), **design_system** +
+  **open-design** (R12), **DebateOrchestrator** (`HelixDevelopment/DebateOrchestrator` multi-agent debate →
+  the G05 jury), **DagOrchestrator** (G11 worker scheduling), **PipelineRuntime** (validation pipeline),
+  **token_optimizer** (§11.4.141), **VisionEngine**/**Panoptic** (client UI visual proof §11.4.170), the
+  **KMP** component suite (R3 clients). When a needed capability is missing, EXTEND/IMPROVE the upstream
+  submodule (never fork-and-diverge); include ALL transitive dependency submodules each brings (§11.4.31
+  recursive). Incorporation plan folded into the Helix-family survey + a follow-on full-catalogue pass; all
+  incorporation gated on the G14/X1 submodule-policy decision.
+- **R23 — full constitutional compliance, no violations, no bluff (operator mandate
+  2026-07-15):** every rule / mandatory constraint / guideline / technology / system
+  derived from the constitution submodule MUST be fully followed, respected, and
+  applied with NO violation, ignorance, or skipping; ALL of it MUST be processed once
+  the project is fully implemented, with no violation of any kind confirmed to exist,
+  and no bluff of any form anywhere. Operationalised as a standing
+  constitutional-compliance gate: (a) a compliance-ledger audit enumerating every
+  BINDING anchor (§11.4.x/§12.x/§1–§10) vs current project state → evidence-backed
+  COMPLIANT / VIOLATION / PENDING-AT-COMPLETION / N-A
+  (`research/constitution_compliance_audit.md`, **stream dispatched**); (b) wire the
+  `constitution/scripts/gates/` CM-gates + a §11.4.32 project sweep; (c) a full re-run
+  at project completion so zero violations is PROVEN, never assumed (§11.4.6). Composes
+  §11.4.17 / §11.4.32 / §11.4.75 / §11.4.201 / §11.4.209 + the whole §11.4 anti-bluff
+  covenant.
+- **R24 — every operator request always respected + recorded, zero request-loss
+  (operator mandate 2026-07-15):** every request/prompt the operator issues MUST ALWAYS
+  be respected, taken into account, executed, and processed — NO avoiding, ignoring,
+  skipping, or any form of loss. Operationalised via the §11.4.208 project-local
+  operator-request ledger (`requests/history.md`, **created**): every request recorded
+  newest-first with content + accepted-timestamp(TZ) + Track + alias + model+effort +
+  processing Disposition, reconciled against this REQUIREMENTS.md SoT so an
+  acted-on-but-unrecorded request is caught. **Intake audit performed:** R1–R22 were
+  already SoT-tracked; R23 + R24 were acted-on-but-not-recorded → recorded this turn.
+  Follow-up **G38** tracks wiring the §11.4.208(D) auto-capture hook (a
+  `UserPromptSubmit`-class hook appending a row per new prompt) so future intake is
+  captured at accept-time, not reconstructed. Composes §11.4.197 (loss-of-requirements
+  FORBIDDEN) + §11.4.208 + §11.4.202 + §11.4.6.
 - **Security:** sync_submodules.sh hardened (fail-closed validation; paired attack
   proof) — committed c473d01.
 - **Seed corpus:** R13 validation corpus + 8 real seed skills committed 0e0bc3b
