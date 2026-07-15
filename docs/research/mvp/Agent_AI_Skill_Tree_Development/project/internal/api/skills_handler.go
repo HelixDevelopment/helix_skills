@@ -571,9 +571,16 @@ func convertTOMLWrapper(w models.TOMLSkillWrapper) models.Skill {
 		Title:       w.Skill.Title,
 		Description: w.Skill.Description,
 		Content:     w.Skill.Content,
-		Status:      models.SkillStatusDraft,
-		CreatedAt:   time.Now().UTC(),
-		UpdatedAt:   time.Now().UTC(),
+		// NEW-3 fix (Fable code-review round-2): Kind was never set here, so
+		// every skill imported through this (currently-unwired, see the
+		// package-level note below) path silently downgraded to the
+		// 'atomic' column DEFAULT regardless of what the TOML declared --
+		// mirrors how internal/skill/import_export.go's ImportFromTOML maps
+		// Kind via models.SkillKind(...).NormalizeOrAtomic().
+		Kind:      models.SkillKind(w.Skill.Kind).NormalizeOrAtomic(),
+		Status:    models.SkillStatusDraft,
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
 	}
 
 	// Convert metadata
@@ -583,19 +590,22 @@ func convertTOMLWrapper(w models.TOMLSkillWrapper) models.Skill {
 	}
 
 	// Convert dependencies
-	for _, depName := range w.Dependencies.Requires {
+	// G07-wiring scope: dependency edges are resolved by name at wire time;
+	// emitting a nil-UUID edge here would FK-violate, so edges are
+	// intentionally deferred (§11.4.197).
+	for _, depName := range w.Skill.Dependencies.Requires {
 		skill.Dependencies = append(skill.Dependencies, models.SkillDependency{
 			RelationType: models.DepTypeRequires,
 		})
 		_ = depName // placeholder for resolution
 	}
-	for _, depName := range w.Dependencies.Extends {
+	for _, depName := range w.Skill.Dependencies.Extends {
 		skill.Dependencies = append(skill.Dependencies, models.SkillDependency{
 			RelationType: models.DepTypeExtends,
 		})
 		_ = depName
 	}
-	for _, depName := range w.Dependencies.Recommends {
+	for _, depName := range w.Skill.Dependencies.Recommends {
 		skill.Dependencies = append(skill.Dependencies, models.SkillDependency{
 			RelationType: models.DepTypeRecommends,
 		})
@@ -603,7 +613,7 @@ func convertTOMLWrapper(w models.TOMLSkillWrapper) models.Skill {
 	}
 
 	// Convert resources
-	for _, r := range w.Resources {
+	for _, r := range w.Skill.Resources {
 		skill.Resources = append(skill.Resources, models.Resource{
 			ID:           uuid.New(),
 			URL:          r.URL,
@@ -638,7 +648,14 @@ func exportToTOMLWrapper(skill *models.Skill) models.TOMLSkillWrapper {
 			Title:       skill.Title,
 			Description: skill.Description,
 			Content:     skill.Content,
-			Metadata:    meta,
+			// NEW-3 fix (Fable code-review round-2): Kind was never set
+			// here either, so exporting a composite/umbrella skill through
+			// this (currently-unwired) path and re-importing it would
+			// silently downgrade it to 'atomic' -- same defect class as
+			// convertTOMLWrapper above, mirrors the W3 fix already applied
+			// to internal/skill/import_export.go's ExportToTOML.
+			Kind:     string(skill.Kind),
+			Metadata: meta,
 		},
 	}
 
@@ -646,17 +663,17 @@ func exportToTOMLWrapper(skill *models.Skill) models.TOMLSkillWrapper {
 	for _, dep := range skill.Dependencies {
 		switch dep.RelationType {
 		case models.DepTypeRequires:
-			wrapper.Dependencies.Requires = append(wrapper.Dependencies.Requires, dep.DependsOnName)
+			wrapper.Skill.Dependencies.Requires = append(wrapper.Skill.Dependencies.Requires, dep.DependsOnName)
 		case models.DepTypeExtends:
-			wrapper.Dependencies.Extends = append(wrapper.Dependencies.Extends, dep.DependsOnName)
+			wrapper.Skill.Dependencies.Extends = append(wrapper.Skill.Dependencies.Extends, dep.DependsOnName)
 		case models.DepTypeRecommends:
-			wrapper.Dependencies.Recommends = append(wrapper.Dependencies.Recommends, dep.DependsOnName)
+			wrapper.Skill.Dependencies.Recommends = append(wrapper.Skill.Dependencies.Recommends, dep.DependsOnName)
 		}
 	}
 
 	// Convert resources
 	for _, r := range skill.Resources {
-		wrapper.Resources = append(wrapper.Resources, models.TOMLResource{
+		wrapper.Skill.Resources = append(wrapper.Skill.Resources, models.TOMLResource{
 			URL:          r.URL,
 			Title:        r.Title,
 			ResourceType: r.ResourceType,

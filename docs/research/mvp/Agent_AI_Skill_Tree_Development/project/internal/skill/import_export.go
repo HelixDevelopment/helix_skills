@@ -65,10 +65,11 @@ func (s *Store) ImportFromTOML(ctx context.Context, tomlData []byte) (*models.Sk
 		Content:     wrapper.Skill.Content,
 		Metadata:    metadataJSON,
 		Status:      models.SkillStatusDraft,
+		Kind:        models.SkillKind(wrapper.Skill.Kind).NormalizeOrAtomic(),
 	}
 
 	// Resolve dependency names to IDs
-	depNames := collectDepNames(wrapper.Dependencies)
+	depNames := collectDepNames(wrapper.Skill.Dependencies)
 	depNameToID := make(map[string]uuid.UUID)
 
 	if len(depNames) > 0 {
@@ -98,7 +99,7 @@ func (s *Store) ImportFromTOML(ctx context.Context, tomlData []byte) (*models.Sk
 		name         string // for error reporting
 	}
 
-	for _, depName := range wrapper.Dependencies.Requires {
+	for _, depName := range wrapper.Skill.Dependencies.Requires {
 		id, ok := depNameToID[depName]
 		if !ok {
 			return nil, fmt.Errorf("%w: required dependency %q not found", ErrDependencyNotFound, depName)
@@ -109,7 +110,7 @@ func (s *Store) ImportFromTOML(ctx context.Context, tomlData []byte) (*models.Sk
 			name         string
 		}{id, models.DepTypeRequires, depName})
 	}
-	for _, depName := range wrapper.Dependencies.Extends {
+	for _, depName := range wrapper.Skill.Dependencies.Extends {
 		id, ok := depNameToID[depName]
 		if !ok {
 			return nil, fmt.Errorf("%w: extends dependency %q not found", ErrDependencyNotFound, depName)
@@ -120,7 +121,7 @@ func (s *Store) ImportFromTOML(ctx context.Context, tomlData []byte) (*models.Sk
 			name         string
 		}{id, models.DepTypeExtends, depName})
 	}
-	for _, depName := range wrapper.Dependencies.Recommends {
+	for _, depName := range wrapper.Skill.Dependencies.Recommends {
 		id, ok := depNameToID[depName]
 		if !ok {
 			// For recommends, we allow missing deps (soft dependency)
@@ -134,8 +135,8 @@ func (s *Store) ImportFromTOML(ctx context.Context, tomlData []byte) (*models.Sk
 	}
 
 	// Build resource records
-	resources := make([]models.Resource, len(wrapper.Resources))
-	for i, r := range wrapper.Resources {
+	resources := make([]models.Resource, len(wrapper.Skill.Resources))
+	for i, r := range wrapper.Skill.Resources {
 		resources[i] = models.Resource{
 			ID:           uuid.New(),
 			URL:          r.URL,
@@ -148,9 +149,9 @@ func (s *Store) ImportFromTOML(ctx context.Context, tomlData []byte) (*models.Sk
 	return skill, s.pool.WithTx(ctx, func(tx pgx.Tx) error {
 		// Insert skill
 		_, err := tx.Exec(ctx, `
-			INSERT INTO skills (id, name, version, title, description, content, metadata, status, created_at, updated_at)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
-		`, skill.ID, skill.Name, skill.Version, skill.Title, skill.Description, skill.Content, skill.Metadata, skill.Status)
+			INSERT INTO skills (id, name, version, title, description, content, metadata, status, kind, created_at, updated_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
+		`, skill.ID, skill.Name, skill.Version, skill.Title, skill.Description, skill.Content, skill.Metadata, skill.Status, skill.Kind)
 		if err != nil {
 			return fmt.Errorf("insert skill: %w", err)
 		}
@@ -176,9 +177,9 @@ func (s *Store) ImportFromTOML(ctx context.Context, tomlData []byte) (*models.Sk
 			}
 
 			_, err = tx.Exec(ctx, `
-				INSERT INTO skill_dependencies (skill_id, depends_on, relation_type)
-				VALUES ($1, $2, $3)
-			`, skill.ID, dep.targetID, dep.relationType)
+				INSERT INTO skill_dependencies (skill_id, depends_on, relation_type, optional, sort_order)
+				VALUES ($1, $2, $3, $4, $5)
+			`, skill.ID, dep.targetID, dep.relationType, false, nil)
 			if err != nil {
 				return fmt.Errorf("insert dependency %s: %w", dep.name, err)
 			}
@@ -252,9 +253,16 @@ func (s *Store) ExportToTOML(ctx context.Context, skillName string) ([]byte, err
 			Title:       skill.Title,
 			Description: skill.Description,
 			Content:     skill.Content,
-			Metadata:    meta,
+			// W3 fix (Fable code-review remediation, P1.T1): Kind was never
+			// set here, so exporting an umbrella/composite skill and
+			// re-importing it silently downgraded it to 'atomic' (the
+			// column DEFAULT ImportFromTOML/CreateFromTOML fall back to via
+			// SkillKind.NormalizeOrAtomic() when Kind is empty) — Kind never
+			// survived an export->import round-trip.
+			Kind:      string(skill.Kind),
+			Metadata:  meta,
+			Resources: make([]models.TOMLResource, len(skill.Resources)),
 		},
-		Resources: make([]models.TOMLResource, len(skill.Resources)),
 	}
 
 	// Categorize dependencies by relation type
@@ -267,19 +275,23 @@ func (s *Store) ExportToTOML(ctx context.Context, skillName string) ([]byte, err
 			depName = name
 		}
 
+		// NEW-2 (§11.4.6): composes/related_to/alternative_to are not yet
+		// emitted on the export side; import-side handling of these is G07
+		// scope -- the export direction is tracked for G07 too. Do not
+		// silently claim full round-trip until then.
 		switch dep.RelationType {
 		case models.DepTypeRequires:
-			wrapper.Dependencies.Requires = append(wrapper.Dependencies.Requires, depName)
+			wrapper.Skill.Dependencies.Requires = append(wrapper.Skill.Dependencies.Requires, depName)
 		case models.DepTypeExtends:
-			wrapper.Dependencies.Extends = append(wrapper.Dependencies.Extends, depName)
+			wrapper.Skill.Dependencies.Extends = append(wrapper.Skill.Dependencies.Extends, depName)
 		case models.DepTypeRecommends:
-			wrapper.Dependencies.Recommends = append(wrapper.Dependencies.Recommends, depName)
+			wrapper.Skill.Dependencies.Recommends = append(wrapper.Skill.Dependencies.Recommends, depName)
 		}
 	}
 
 	// Map resources
 	for i, r := range skill.Resources {
-		wrapper.Resources[i] = models.TOMLResource{
+		wrapper.Skill.Resources[i] = models.TOMLResource{
 			URL:          r.URL,
 			Title:        r.Title,
 			ResourceType: r.ResourceType,

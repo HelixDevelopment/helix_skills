@@ -3,17 +3,36 @@
 # Purpose: enumerate the full skill set that REQUIREMENTS.md §R13 says the
 # system must be able to create + validate end-to-end. Each entry is a future
 # (or already-authored, see `seed`) skill node in the DAG defined by
-# SPEC.md §4.2 ([skill.dependencies] requires/extends/recommends).
+# SPEC.md §4.2 ([skill.dependencies]) as extended by the R16 granularity /
+# composition model (research/skill_granularity_and_composition.md §4).
 #
-# Edge semantics (must match internal/models: DependencyType requires|extends|recommends):
-#   requires   — hard prerequisite; the skill assumes this knowledge.
-#   extends    — this skill is a specialization of a more general skill.
-#   recommends — complementary/optional skill, no hard prerequisite.
+# Edge semantics — SIX relation types (must match internal/models:
+# DependencyType requires|extends|recommends|composes|related_to|alternative_to):
+#   requires      — hard prerequisite; the skill assumes this knowledge.
+#   extends       — this skill is a specialization of a more general skill.
+#   recommends    — complementary/optional skill, no hard prerequisite.
+#   composes      — structural parent→child part-of edge (umbrella/composite
+#                   skill is COMPOSED OF the target). `part_of: [P]` on a child
+#                   node is the child-authored alias, normalized to
+#                   P --composes--> N (see seed/validate_dag.py).
+#   related_to    — non-structural lateral association, no prerequisite.
+#   alternative_to — mutually-substitutable-choice association, no prerequisite.
+#
+# `kind` — each node is atomic | composite | umbrella (DB CHECK constraint,
+# migrations/002_granularity.up.sql; column DEFAULT 'atomic' when omitted).
+# Granularity invariant (§5.4): atomic <=> ZERO outgoing composes edges;
+# umbrella/composite <=> AT LEAST ONE outgoing composes edge. The 8 seed nodes
+# declare neither `kind` nor `composes`, so they default to 'atomic' and pass
+# vacuously.
 #
 # Every edge target MUST be a `name` present in this file (closed-world corpus)
 # unless explicitly flagged `external: true` on the edge (none currently — the
-# corpus is self-contained). The combined requires+extends+recommends graph
-# MUST be acyclic (see seed/validate_dag.py).
+# corpus is self-contained). Acyclicity is scoped to the HARD CLOSURE set
+# {requires, composes, extends} only — the structural prerequisite closure that
+# drives dependency resolution (models.HardClosureTypes; graph.hasCycle). The
+# soft relations recommends/related_to/alternative_to are NOT part of the cycle
+# check and may form lateral loops. All six relations are still checked for
+# unresolved targets (see seed/validate_dag.py).
 #
 # `seed: true` marks the 8 nodes with a fully-authored TOML file under
 # seed/skills/*.toml (R6 wizard example: android, android-aosp, java, kotlin,

@@ -3,6 +3,13 @@ package skill
 
 import (
 	"context"
+	// dbsql aliased (not "sql"): nearly every function in this file
+	// declares a LOCAL variable literally named `sql` for its query string
+	// (e.g. GetByName's `sql := \`SELECT ...\``), which would shadow an
+	// unaliased `database/sql` package import within that exact scope --
+	// silently making the import unusable (and unused) anywhere it is
+	// actually needed.
+	dbsql "database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -53,7 +60,7 @@ func (s *Store) Search(ctx context.Context, query string, limit int) ([]models.S
 	// embeddings and use vector similarity + full-text search.
 	sql := `
 		SELECT s.id, s.name, s.version, s.title, s.description, s.content,
-		       s.metadata, s.status, s.created_at, s.updated_at,
+		       s.metadata, s.status, s.kind, s.created_at, s.updated_at,
 		       similarity(s.name || ' ' || s.title || ' ' || s.description, $1) as score
 		FROM skills s
 		WHERE s.name % $1 OR s.title % $1 OR s.description ILIKE '%' || $1 || '%'
@@ -73,7 +80,7 @@ func (s *Store) Search(ctx context.Context, query string, limit int) ([]models.S
 		err := rows.Scan(
 			&r.Skill.ID, &r.Skill.Name, &r.Skill.Version, &r.Skill.Title,
 			&r.Skill.Description, &r.Skill.Content, &metadata,
-			&r.Skill.Status, &r.Skill.CreatedAt, &r.Skill.UpdatedAt,
+			&r.Skill.Status, &r.Skill.Kind, &r.Skill.CreatedAt, &r.Skill.UpdatedAt,
 			&r.Score,
 		)
 		if err != nil {
@@ -87,7 +94,7 @@ func (s *Store) Search(ctx context.Context, query string, limit int) ([]models.S
 		// Fallback: return all skills if no similarity match
 		sql = `
 			SELECT s.id, s.name, s.version, s.title, s.description, s.content,
-			       s.metadata, s.status, s.created_at, s.updated_at, 0.0 as score
+			       s.metadata, s.status, s.kind, s.created_at, s.updated_at, 0.0 as score
 			FROM skills s
 			WHERE s.name ILIKE '%' || $1 || '%' OR s.title ILIKE '%' || $1 || '%'
 			ORDER BY s.name
@@ -104,7 +111,7 @@ func (s *Store) Search(ctx context.Context, query string, limit int) ([]models.S
 			if err := rows.Scan(
 				&r.Skill.ID, &r.Skill.Name, &r.Skill.Version, &r.Skill.Title,
 				&r.Skill.Description, &r.Skill.Content, &metadata,
-				&r.Skill.Status, &r.Skill.CreatedAt, &r.Skill.UpdatedAt,
+				&r.Skill.Status, &r.Skill.Kind, &r.Skill.CreatedAt, &r.Skill.UpdatedAt,
 				&r.Score,
 			); err != nil {
 				return nil, fmt.Errorf("scan fallback result: %w", err)
@@ -121,7 +128,7 @@ func (s *Store) Search(ctx context.Context, query string, limit int) ([]models.S
 func (s *Store) GetByName(ctx context.Context, name string) (*models.Skill, error) {
 	sql := `
 		SELECT s.id, s.name, s.version, s.title, s.description, s.content,
-		       s.metadata, s.status, s.created_at, s.updated_at
+		       s.metadata, s.status, s.kind, s.created_at, s.updated_at
 		FROM skills s
 		WHERE s.name = $1
 	`
@@ -130,11 +137,32 @@ func (s *Store) GetByName(ctx context.Context, name string) (*models.Skill, erro
 	err := s.pool.QueryRow(ctx, sql, name).Scan(
 		&skill.ID, &skill.Name, &skill.Version, &skill.Title,
 		&skill.Description, &skill.Content, &metadata,
-		&skill.Status, &skill.CreatedAt, &skill.UpdatedAt,
+		&skill.Status, &skill.Kind, &skill.CreatedAt, &skill.UpdatedAt,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return nil, fmt.Errorf("skill not found: %s", name)
+			// Wrap the ErrSkillNotFound sentinel (§11.4.6/§11.4.102 forensic
+			// finding, pre-existing defect discovered while implementing the
+			// P1.T1 M10 seed-import test): ImportFromTOML's existing-skill
+			// guard (import_export.go) checks errors.Is(err, ErrSkillNotFound)
+			// to distinguish "not found, OK to create" from a real DB error.
+			// The previous plain fmt.Errorf (no %w) never satisfied that
+			// check, so EVERY ImportFromTOML call for a brand-new skill name
+			// took the "real error" branch and aborted before the INSERT ever
+			// ran -- the message text is unchanged, only the wrapping is
+			// fixed. Blast-radius audited (N3 correction, Fable code-review
+			// remediation): every non-test GetByName call site in the repo,
+			// 9 in total across 6 files --
+			// import_export.go:40 (ImportFromTOML existing-skill guard,
+			// the one that actually needs errors.Is), import_export.go:235
+			// (ExportToTOML), graph.go:192 (GetDependencyTree),
+			// store.go:201 (GetTree, this same package), pipeline.go:174,246,424
+			// (internal/autoexpand, 3 call sites), mcp/tools.go:117
+			// (skill_get tool), and main.go:218 (REST skill-by-name route) --
+			// all treat a GetByName error either generically (fmt.Errorf-wrap,
+			// HTTP 404/500, or a boolean "not found") or via errors.Is on this
+			// exact sentinel; none depended on the old unwrapped string form.
+			return nil, fmt.Errorf("%w: %s", ErrSkillNotFound, name)
 		}
 		return nil, fmt.Errorf("get skill: %w", err)
 	}
@@ -142,7 +170,7 @@ func (s *Store) GetByName(ctx context.Context, name string) (*models.Skill, erro
 
 	// Load dependencies
 	depsSQL := `
-		SELECT sd.skill_id, sd.depends_on, sd.relation_type,
+		SELECT sd.skill_id, sd.depends_on, sd.relation_type, sd.optional, sd.sort_order,
 		       ds.name as depends_on_name, ds.title as depends_on_title
 		FROM skill_dependencies sd
 		JOIN skills ds ON sd.depends_on = ds.id
@@ -155,7 +183,7 @@ func (s *Store) GetByName(ctx context.Context, name string) (*models.Skill, erro
 	defer depRows.Close()
 	for depRows.Next() {
 		var d models.SkillDependency
-		if err := depRows.Scan(&d.SkillID, &d.DependsOn, &d.RelationType, &d.DependsOnName, &d.DependsOnTitle); err != nil {
+		if err := depRows.Scan(&d.SkillID, &d.DependsOn, &d.RelationType, &d.Optional, &d.SortOrder, &d.DependsOnName, &d.DependsOnTitle); err != nil {
 			return nil, fmt.Errorf("scan dependency: %w", err)
 		}
 		skill.Dependencies = append(skill.Dependencies, d)
@@ -173,9 +201,27 @@ func (s *Store) GetByName(ctx context.Context, name string) (*models.Skill, erro
 	defer resRows.Close()
 	for resRows.Next() {
 		var r models.Resource
-		if err := resRows.Scan(&r.ID, &r.SkillID, &r.URL, &r.Title, &r.ResourceType, &r.FetchedHash, &r.ContentCached, &r.LastValidated, &r.CreatedAt); err != nil {
+		// B1 fix (Fable code-review remediation): fetched_hash/content_cached
+		// are nullable TEXT columns (migrations/001_initial.up.sql) that
+		// store.go never sets on INSERT until validation/caching runs
+		// (internal/skill/resources.go), so a freshly-imported resource --
+		// including every one imported via ImportFromTOML, which the B1 fix
+		// makes non-empty for the first time -- has them NULL. Scanning a SQL
+		// NULL directly into models.Resource's plain (non-nullable) string
+		// fields panics/errors ("cannot scan NULL into *string"); this was
+		// never exercised before because ImportFromTOML's resources always
+		// decoded empty pre-fix, so GetByName never had a real resource row
+		// to load. Scan through sql.NullString and default to "" (the same
+		// value NewResource-class helpers already use for an unset hash, see
+		// resources.go's own `SET content_cached = '', fetched_hash = ''`
+		// reset), so this genuinely resolves the resource-import deadness end
+		// to end rather than trading one silent gap for a crash.
+		var fetchedHash, contentCached dbsql.NullString
+		if err := resRows.Scan(&r.ID, &r.SkillID, &r.URL, &r.Title, &r.ResourceType, &fetchedHash, &contentCached, &r.LastValidated, &r.CreatedAt); err != nil {
 			return nil, fmt.Errorf("scan resource: %w", err)
 		}
+		r.FetchedHash = fetchedHash.String
+		r.ContentCached = contentCached.String
 		skill.Resources = append(skill.Resources, r)
 	}
 
@@ -217,7 +263,7 @@ func (s *Store) buildTree(ctx context.Context, node *models.SkillTreeNode, depth
 
 		childSQL := `
 			SELECT s.id, s.name, s.version, s.title, s.description, s.content,
-			       s.metadata, s.status, s.created_at, s.updated_at
+			       s.metadata, s.status, s.kind, s.created_at, s.updated_at
 			FROM skills s WHERE s.id = $1
 		`
 		var child models.Skill
@@ -225,7 +271,7 @@ func (s *Store) buildTree(ctx context.Context, node *models.SkillTreeNode, depth
 		err := s.pool.QueryRow(ctx, childSQL, dep.DependsOn).Scan(
 			&child.ID, &child.Name, &child.Version, &child.Title,
 			&child.Description, &child.Content, &metadata,
-			&child.Status, &child.CreatedAt, &child.UpdatedAt,
+			&child.Status, &child.Kind, &child.CreatedAt, &child.UpdatedAt,
 		)
 		if err != nil {
 			if err == pgx.ErrNoRows {
@@ -237,7 +283,7 @@ func (s *Store) buildTree(ctx context.Context, node *models.SkillTreeNode, depth
 
 		// Load child's dependencies
 		depsSQL := `
-			SELECT sd.skill_id, sd.depends_on, sd.relation_type,
+			SELECT sd.skill_id, sd.depends_on, sd.relation_type, sd.optional, sd.sort_order,
 			       ds.name, ds.title
 			FROM skill_dependencies sd
 			JOIN skills ds ON sd.depends_on = ds.id
@@ -249,7 +295,7 @@ func (s *Store) buildTree(ctx context.Context, node *models.SkillTreeNode, depth
 		}
 		for depRows.Next() {
 			var d models.SkillDependency
-			if err := depRows.Scan(&d.SkillID, &d.DependsOn, &d.RelationType, &d.DependsOnName, &d.DependsOnTitle); err != nil {
+			if err := depRows.Scan(&d.SkillID, &d.DependsOn, &d.RelationType, &d.Optional, &d.SortOrder, &d.DependsOnName, &d.DependsOnTitle); err != nil {
 				depRows.Close()
 				return err
 			}
@@ -283,8 +329,8 @@ func (s *Store) Create(ctx context.Context, skill *models.Skill) error {
 	}
 
 	sql := `
-		INSERT INTO skills (id, name, version, title, description, content, metadata, status, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+		INSERT INTO skills (id, name, version, title, description, content, metadata, status, kind, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
 		ON CONFLICT (name) DO UPDATE SET
 			version = EXCLUDED.version,
 			title = EXCLUDED.title,
@@ -292,6 +338,7 @@ func (s *Store) Create(ctx context.Context, skill *models.Skill) error {
 			content = EXCLUDED.content,
 			metadata = EXCLUDED.metadata,
 			status = EXCLUDED.status,
+			kind = EXCLUDED.kind,
 			updated_at = NOW()
 		RETURNING id
 	`
@@ -299,20 +346,27 @@ func (s *Store) Create(ctx context.Context, skill *models.Skill) error {
 	err = s.pool.QueryRow(ctx, sql,
 		skill.ID, skill.Name, skill.Version, skill.Title,
 		skill.Description, skill.Content, metadataJSON,
-		skill.Status,
+		skill.Status, skill.Kind.NormalizeOrAtomic(),
 	).Scan(&returnedID)
 	if err != nil {
 		return fmt.Errorf("create skill: %w", err)
 	}
 
-	// Insert dependencies
+	// Insert dependencies. ON CONFLICT targets the widened
+	// (skill_id, depends_on, relation_type) primary key introduced by
+	// migrations/002_granularity.up.sql — a pair may now carry more than one
+	// typed edge (e.g. both `requires` and `recommends`), so the old
+	// (skill_id, depends_on) conflict target no longer matches any unique
+	// index (research/p1t1_granularity_schema_migration.md §2 L3).
 	for _, dep := range skill.Dependencies {
 		depSQL := `
-			INSERT INTO skill_dependencies (skill_id, depends_on, relation_type)
-			VALUES ($1, $2, $3)
-			ON CONFLICT (skill_id, depends_on) DO UPDATE SET relation_type = EXCLUDED.relation_type
+			INSERT INTO skill_dependencies (skill_id, depends_on, relation_type, optional, sort_order)
+			VALUES ($1, $2, $3, $4, $5)
+			ON CONFLICT (skill_id, depends_on, relation_type) DO UPDATE SET
+				optional = EXCLUDED.optional,
+				sort_order = EXCLUDED.sort_order
 		`
-		_, err := s.pool.Exec(ctx, depSQL, returnedID, dep.DependsOn, dep.RelationType)
+		_, err := s.pool.Exec(ctx, depSQL, returnedID, dep.DependsOn, dep.RelationType, dep.Optional, dep.SortOrder)
 		if err != nil {
 			return fmt.Errorf("create dependency: %w", err)
 		}
@@ -346,10 +400,11 @@ func (s *Store) CreateFromTOML(ctx context.Context, wrapper *models.TOMLSkillWra
 		Content:     wrapper.Skill.Content,
 		Metadata:    metadataJSON,
 		Status:      models.SkillStatusDraft,
+		Kind:        models.SkillKind(wrapper.Skill.Kind).NormalizeOrAtomic(),
 	}
 
 	// Resolve dependencies
-	for _, depName := range wrapper.Dependencies.Requires {
+	for _, depName := range wrapper.Skill.Dependencies.Requires {
 		depID, err := s.resolveSkillID(ctx, depName)
 		if err != nil {
 			return nil, fmt.Errorf("resolve dependency %q: %w", depName, err)
@@ -360,7 +415,7 @@ func (s *Store) CreateFromTOML(ctx context.Context, wrapper *models.TOMLSkillWra
 			RelationType: models.DepTypeRequires,
 		})
 	}
-	for _, depName := range wrapper.Dependencies.Extends {
+	for _, depName := range wrapper.Skill.Dependencies.Extends {
 		depID, err := s.resolveSkillID(ctx, depName)
 		if err != nil {
 			return nil, fmt.Errorf("resolve dependency %q: %w", depName, err)
@@ -371,7 +426,7 @@ func (s *Store) CreateFromTOML(ctx context.Context, wrapper *models.TOMLSkillWra
 			RelationType: models.DepTypeExtends,
 		})
 	}
-	for _, depName := range wrapper.Dependencies.Recommends {
+	for _, depName := range wrapper.Skill.Dependencies.Recommends {
 		depID, err := s.resolveSkillID(ctx, depName)
 		if err != nil {
 			return nil, fmt.Errorf("resolve dependency %q: %w", depName, err)
@@ -384,7 +439,7 @@ func (s *Store) CreateFromTOML(ctx context.Context, wrapper *models.TOMLSkillWra
 	}
 
 	// Add resources
-	for _, r := range wrapper.Resources {
+	for _, r := range wrapper.Skill.Resources {
 		skill.Resources = append(skill.Resources, models.Resource{
 			ID:           uuid.New(),
 			SkillID:      skill.ID,
@@ -575,7 +630,7 @@ func (s *Store) VectorSearch(ctx context.Context, embedding []float32, limit int
 	vec := pgvector.NewVector(embedding)
 	sql := `
 		SELECT s.id, s.name, s.version, s.title, s.description, s.content,
-		       s.metadata, s.status, s.created_at, s.updated_at,
+		       s.metadata, s.status, s.kind, s.created_at, s.updated_at,
 		       1 - (s.embedding <=> $1) as score
 		FROM skills s
 		ORDER BY s.embedding <=> $1
@@ -594,7 +649,7 @@ func (s *Store) VectorSearch(ctx context.Context, embedding []float32, limit int
 		if err := rows.Scan(
 			&r.Skill.ID, &r.Skill.Name, &r.Skill.Version, &r.Skill.Title,
 			&r.Skill.Description, &r.Skill.Content, &metadata,
-			&r.Skill.Status, &r.Skill.CreatedAt, &r.Skill.UpdatedAt,
+			&r.Skill.Status, &r.Skill.Kind, &r.Skill.CreatedAt, &r.Skill.UpdatedAt,
 			&r.Score,
 		); err != nil {
 			return nil, fmt.Errorf("scan vector result: %w", err)
@@ -610,7 +665,7 @@ func (s *Store) VectorSearch(ctx context.Context, embedding []float32, limit int
 func (s *Store) ListSkills(ctx context.Context, status models.SkillStatus, limit, offset int) ([]models.Skill, error) {
 	sql := `
 		SELECT id, name, version, title, description, content,
-		       metadata, status, created_at, updated_at
+		       metadata, status, kind, created_at, updated_at
 		FROM skills
 	`
 	args := []interface{}{}
@@ -638,7 +693,7 @@ func (s *Store) ListSkills(ctx context.Context, status models.SkillStatus, limit
 	for rows.Next() {
 		var sk models.Skill
 		var metadata []byte
-		if err := rows.Scan(&sk.ID, &sk.Name, &sk.Version, &sk.Title, &sk.Description, &sk.Content, &metadata, &sk.Status, &sk.CreatedAt, &sk.UpdatedAt); err != nil {
+		if err := rows.Scan(&sk.ID, &sk.Name, &sk.Version, &sk.Title, &sk.Description, &sk.Content, &metadata, &sk.Status, &sk.Kind, &sk.CreatedAt, &sk.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("scan skill: %w", err)
 		}
 		sk.Metadata = metadata

@@ -72,13 +72,26 @@ func TestHasCycle_RequiresLiveDatabase(t *testing.T) {
 }
 
 // TestAddDependency_DuplicateAndPersistence_RequiresLiveDatabase documents
-// the same boundary for the rest of AddDependency's behavior (existence
-// checks, duplicate-edge detection, the actual INSERT, and the registry
-// recalculation) -- all of it runs inside s.pool.WithTx against live SQL.
+// the same boundary for the rest of AddDependency's behavior -- all of it
+// runs inside s.pool.WithTx against live SQL.
+//
+// PARTIALLY SUPERSEDED (Fable code-review round-2, NEW-1/W2 remediation):
+// dup-edge detection (the (skill_id, depends_on, relation_type)-scoped
+// exists-check) and the successful-edge INSERT are now live-covered by
+// TestP1T1W2_SecondTypedEdgePerPairAccepted and the TestP1T1W2_*/
+// TestP1T1NEW1_* suite in graph_granularity_test.go (this package), all
+// gated on the same SKILL_SYSTEM_TEST_DB_* live-database contract. What
+// remains UNCOVERED by any live test: the existence-check error branches
+// (ErrDependencyNotFound for a missing source or target skill ID) and
+// recalcMissingDeps's registry recalculation after a successful insert --
+// neither is exercised end-to-end anywhere in this package yet.
 func TestAddDependency_DuplicateAndPersistence_RequiresLiveDatabase(t *testing.T) {
-	t.Skip("AddDependency's existence/duplicate checks and the edge INSERT run inside " +
-		"s.pool.WithTx against live PostgreSQL (skills, skill_dependencies, skill_registry " +
-		"tables). Requires an integration test against a real/containerized Postgres instance.")
+	t.Skip("AddDependency's existence-check ERROR branches (ErrDependencyNotFound for a " +
+		"missing source/target skill) and recalcMissingDeps's registry recalculation remain " +
+		"uncovered by a live test; dup-edge detection and the successful INSERT are now " +
+		"covered by TestP1T1W2_SecondTypedEdgePerPairAccepted et al. in " +
+		"graph_granularity_test.go. Requires an integration test against a real/containerized " +
+		"Postgres instance.")
 }
 
 // ---------------------------------------------------------------------------

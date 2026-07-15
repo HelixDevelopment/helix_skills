@@ -68,6 +68,10 @@ func NewMCPServer(pool *db.Pool, store *skill.Store, reg *registry.Registry, cfg
 
 // buildSkillFromTOML parses a TOML skill definition into an in-memory model for
 // validation ONLY (no persistence). Persistence happens via ImportFromTOML.
+//
+// buildSkillFromTOML is validation-only (kind is not consumed downstream
+// here); a future kind-aware validator rule would need Kind set -- tracked
+// for that rule's landing (§11.4.6).
 func buildSkillFromTOML(data []byte) (*models.Skill, error) {
 	var w models.TOMLSkillWrapper
 	if err := toml.Unmarshal(data, &w); err != nil {
@@ -84,7 +88,7 @@ func buildSkillFromTOML(data []byte) (*models.Skill, error) {
 		Metadata:    metaJSON,
 		Status:      models.SkillStatusDraft,
 	}
-	for _, r := range w.Resources {
+	for _, r := range w.Skill.Resources {
 		m.Resources = append(m.Resources, models.Resource{
 			ID:           uuid.New(),
 			URL:          r.URL,

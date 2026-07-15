@@ -22,9 +22,44 @@ const (
 type DependencyType string
 
 const (
-	DepTypeRequires   DependencyType = "requires"
-	DepTypeExtends    DependencyType = "extends"
-	DepTypeRecommends DependencyType = "recommends"
+	DepTypeRequires   DependencyType = "requires"   // existing — hard closure
+	DepTypeExtends    DependencyType = "extends"    // existing — hard closure
+	DepTypeRecommends DependencyType = "recommends" // existing — advisory
+
+	// R16 granularity/composition additions (research/skill_granularity_and_composition.md §4.1).
+	DepTypeComposes    DependencyType = "composes"       // NEW — hard closure, whole→part aggregation
+	DepTypeRelatedTo   DependencyType = "related_to"     // NEW — advisory, symmetric "see also"
+	DepTypeAlternative DependencyType = "alternative_to" // NEW — advisory, symmetric substitute
+)
+
+// HardClosureTypes is the set of relation types the "everything needed for X"
+// resolver transitively walks (research/skill_granularity_and_composition.md
+// §4.2). recommends/related_to/alternative_to are advisory and are never
+// auto-pulled into the required closure.
+var HardClosureTypes = []DependencyType{DepTypeRequires, DepTypeComposes, DepTypeExtends}
+
+// IsHardClosure reports whether t participates in the acyclicity-enforced
+// hard-closure set (requires/composes/extends). Advisory relations
+// (recommends/related_to/alternative_to) are exempt and may cycle by nature
+// (research/skill_granularity_and_composition.md §4.1).
+func IsHardClosure(t DependencyType) bool {
+	for _, h := range HardClosureTypes {
+		if h == t {
+			return true
+		}
+	}
+	return false
+}
+
+// SkillKind classifies a skill on the aggregation axis (orthogonal to
+// Metadata.Complexity, which is a difficulty axis). See
+// research/skill_granularity_and_composition.md §3.1.
+type SkillKind string
+
+const (
+	SkillKindAtomic    SkillKind = "atomic"    // indivisible building block (default)
+	SkillKindComposite SkillKind = "composite" // mid-level aggregator
+	SkillKindUmbrella  SkillKind = "umbrella"  // technology/stack root; wizard entry point
 )
 
 // Skill represents a single knowledge unit in the skill graph
@@ -37,6 +72,7 @@ type Skill struct {
 	Content     string          `json:"content" db:"content" toml:"content"`
 	Metadata    json.RawMessage `json:"metadata" db:"metadata" toml:"-"`
 	Status      SkillStatus     `json:"status" db:"status" toml:"-"`
+	Kind        SkillKind       `json:"kind" db:"kind" toml:"kind"` // NEW (R16) — default "atomic"
 	CreatedAt   time.Time       `json:"created_at" db:"created_at" toml:"-"`
 	UpdatedAt   time.Time       `json:"updated_at" db:"updated_at" toml:"-"`
 
@@ -47,11 +83,25 @@ type Skill struct {
 	TreeDepth     int               `json:"tree_depth,omitempty" db:"-" toml:"-"`
 }
 
+// NormalizeOrAtomic returns k, or SkillKindAtomic if k is empty. Use this
+// before persisting a Skill whose Kind was never set (e.g. parsed from a
+// TOML file that omits the optional `kind` key) so the value written
+// matches the column DEFAULT rather than an empty string that would
+// violate the 002_granularity CHECK constraint.
+func (k SkillKind) NormalizeOrAtomic() SkillKind {
+	if k == "" {
+		return SkillKindAtomic
+	}
+	return k
+}
+
 // SkillDependency represents a directed edge in the skill DAG
 type SkillDependency struct {
 	SkillID      uuid.UUID      `json:"skill_id" db:"skill_id"`
 	DependsOn    uuid.UUID      `json:"depends_on" db:"depends_on"`
 	RelationType DependencyType `json:"relation_type" db:"relation_type"`
+	Optional     bool           `json:"optional" db:"optional"`               // NEW (R16) — default false
+	SortOrder    *int           `json:"sort_order,omitempty" db:"sort_order"` // NEW (R16) — component ordering; nil = unordered
 
 	// Join fields
 	DependsOnName  string `json:"depends_on_name,omitempty" db:"depends_on_name"`
@@ -118,26 +168,103 @@ type SkillMetadata struct {
 	Complexity string   `json:"complexity" toml:"complexity"`
 }
 
-// TOMLSkillWrapper is used for TOML import/export
+// TOMLSkillWrapper is used for TOML import/export. It wraps a single
+// TOMLSkillDef under the `[skill]` table.
+//
+// B1 fix (Fable code-review remediation, P1.T1): Dependencies/Resources/
+// Components used to live here as WRAPPER-level fields tagged
+// `toml:"skill.dependencies"` / `toml:"skill.resources"` /
+// `toml:"skill.components"`, on the theory that a dotted struct tag would
+// match the nested `[skill.dependencies]` / `[[skill.resources]]` /
+// `[[skill.components]]` TOML tables the seed corpus actually authors (see
+// any seed/skills/*.toml). It does NOT: BurntSushi/toml (the decoder
+// ImportFromTOML/CreateFromTOML/skill_create actually use) only matches a
+// dotted tag against a literal quoted key of that exact name — it never
+// walks into a nested table for it. Decoding any real seed TOML into the
+// old wrapper shape left Dependencies/Resources permanently zero-valued
+// (proof: `toml.Decode` against seed/skills/android.toml, which declares
+// `requires = ["java.language", "kotlin.language"]` under
+// `[skill.dependencies]`, decoded Dependencies.Requires as an EMPTY slice
+// and reported `skill.dependencies`/`skill.dependencies.requires`/etc. as
+// Undecoded keys) — silently starving every imported skill of its
+// requires/extends/recommends/composes/related_to/alternative_to edges and
+// resources, with ImportFromTOML never erroring (an empty dependency list
+// just resolves to zero edges). This is ALSO why the pre-existing seed
+// TOML import path never actually wired any dependency/resource data
+// end-to-end despite appearing to succeed — that dead-import defect is
+// RESOLVED by this restructure (proven by
+// TestP1T1Migration_M10_SeedTOMLsStillLoadAsAtomicAndValidatorGreen's
+// extended edge-count assertion in internal/skill/migration_granularity_test.go).
+//
+// The fix: Dependencies/Resources/Components now live INSIDE TOMLSkillDef
+// with plain (undotted) tags, so they decode/encode as genuinely nested
+// TOML tables under `[skill]` — exactly matching both the seed authoring
+// form and BurntSushi's actual (undotted, structural) nesting semantics.
 type TOMLSkillWrapper struct {
-	Skill        TOMLSkillDef       `toml:"skill"`
-	Dependencies TOMLDependencies   `toml:"skill.dependencies"`
-	Resources    []TOMLResource     `toml:"skill.resources"`
+	Skill TOMLSkillDef `toml:"skill"`
 }
 
 type TOMLSkillDef struct {
-	Name        string          `toml:"name"`
-	Version     string          `toml:"version"`
-	Title       string          `toml:"title"`
-	Description string          `toml:"description"`
-	Content     string          `toml:"content"`
-	Metadata    SkillMetadata   `toml:"metadata"`
+	Name        string        `toml:"name"`
+	Version     string        `toml:"version"`
+	Title       string        `toml:"title"`
+	Description string        `toml:"description"`
+	Content     string        `toml:"content"`
+	Kind        string        `toml:"kind"` // NEW (R16) — atomic (default, may be omitted) | composite | umbrella
+	Metadata    SkillMetadata `toml:"metadata"`
+
+	// Dependencies/Resources/Components decode from the nested
+	// `[skill.dependencies]` / `[[skill.resources]]` / `[[skill.components]]`
+	// TOML tables (see B1 fix note on TOMLSkillWrapper above) because they
+	// are plain-tagged fields of THIS struct, which is itself embedded under
+	// the wrapper's `toml:"skill"` tag — BurntSushi resolves the nesting
+	// structurally (Go struct nesting), not from any dotted tag string.
+	Dependencies TOMLDependencies `toml:"dependencies"`
+	Resources    []TOMLResource   `toml:"resources"`
+	// Components is the OPTIONAL ergonomic array-of-tables authoring form for
+	// umbrella/composite skills that need per-component ordering/optionality
+	// (research/skill_granularity_and_composition.md §5.1). Each entry
+	// materializes as one `composes` edge. Resolving Components into
+	// composes edges is G07 scope (p1t1_granularity_schema_migration.md §2
+	// L5/L11) — P1.T1 only needs the field to exist and decode correctly
+	// (proven directly against BurntSushi/toml post-B1-fix; see the note
+	// above for what "correctly" excludes pre-fix).
+	Components []TOMLComponent `toml:"components"`
 }
 
 type TOMLDependencies struct {
 	Requires   []string `toml:"requires"`
 	Extends    []string `toml:"extends"`
 	Recommends []string `toml:"recommends"`
+
+	// NEW (R16 §4.1) — hard-closure "whole aggregates part" edges + advisory
+	// symmetric edges. Resolving these into stored skill_dependencies rows is
+	// G07 scope (p1t1_granularity_schema_migration.md §2 L5/L11); P1.T1 only
+	// needs the fields to exist and decode correctly from TOML (proven
+	// directly against BurntSushi/toml post-B1-fix, independent of the
+	// not-yet-wired DB-persistence path — see
+	// TestP1T1Migration_M10_SeedTOMLsStillLoadAsAtomicAndValidatorGreen's
+	// composes/related_to decode fixture).
+	Composes    []string `toml:"composes"`
+	RelatedTo   []string `toml:"related_to"`
+	Alternative []string `toml:"alternative_to"`
+
+	// Alias forms normalized at import time (§4.1 alias table):
+	// depends_on/prerequisite -> requires; part_of (authored on the child,
+	// pointing at the parent) -> composes (inverted, parent->child). Alias
+	// resolution is G07 scope; P1.T1 only needs the fields to exist.
+	DependsOn    []string `toml:"depends_on"`
+	Prerequisite []string `toml:"prerequisite"`
+	PartOf       []string `toml:"part_of"`
+}
+
+// TOMLComponent is one entry of the `[[skill.components]]` array-of-tables —
+// see TOMLSkillDef.Components.
+type TOMLComponent struct {
+	Name     string `toml:"name"`
+	Order    int    `toml:"order"`
+	Optional bool   `toml:"optional"`
+	Note     string `toml:"note"`
 }
 
 type TOMLResource struct {

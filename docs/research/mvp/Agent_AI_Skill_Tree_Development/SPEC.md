@@ -84,6 +84,7 @@ type Skill struct {
     Metadata    json.RawMessage `json:"metadata" db:"metadata"`   // tags, domain, complexity
     Embedding   pgvector.Vector `json:"-" db:"embedding"`         // 768d or 1536d
     Status      SkillStatus     `json:"status" db:"status"`       // draft | validated | active | deprecated
+    Kind        SkillKind       `json:"kind" db:"kind"`           // NEW (R16) — atomic (default) | composite | umbrella
     CreatedAt   time.Time       `json:"created_at" db:"created_at"`
     UpdatedAt   time.Time       `json:"updated_at" db:"updated_at"`
 }
@@ -99,9 +100,26 @@ const (
 // DependencyType defines how skills relate
 type DependencyType string
 const (
-    DepTypeRequires   DependencyType = "requires"
-    DepTypeExtends    DependencyType = "extends"
-    DepTypeRecommends DependencyType = "recommends"
+    DepTypeRequires   DependencyType = "requires"   // existing — hard closure
+    DepTypeExtends    DependencyType = "extends"    // existing — hard closure
+    DepTypeRecommends DependencyType = "recommends" // existing — advisory
+
+    // R16 granularity/composition additions (research/skill_granularity_and_composition.md §4.1).
+    DepTypeComposes    DependencyType = "composes"       // NEW — hard closure, whole->part aggregation
+    DepTypeRelatedTo   DependencyType = "related_to"     // NEW — advisory, symmetric "see also"
+    DepTypeAlternative DependencyType = "alternative_to" // NEW — advisory, symmetric substitute
+)
+
+// HardClosureTypes is the set the "everything needed for X" resolver walks.
+var HardClosureTypes = []DependencyType{DepTypeRequires, DepTypeComposes, DepTypeExtends}
+
+// SkillKind classifies a skill on the aggregation axis (orthogonal to
+// Metadata.Complexity). See research/skill_granularity_and_composition.md §3.1.
+type SkillKind string
+const (
+    SkillKindAtomic    SkillKind = "atomic"    // indivisible building block (default)
+    SkillKindComposite SkillKind = "composite" // mid-level aggregator
+    SkillKindUmbrella  SkillKind = "umbrella"  // technology/stack root; wizard entry point
 )
 
 // SkillDependency represents a directed edge in the skill DAG
@@ -109,6 +127,8 @@ type SkillDependency struct {
     SkillID      uuid.UUID      `json:"skill_id" db:"skill_id"`
     DependsOn    uuid.UUID      `json:"depends_on" db:"depends_on"`
     RelationType DependencyType `json:"relation_type" db:"relation_type"`
+    Optional     bool           `json:"optional" db:"optional"`               // NEW (R16) — default false
+    SortOrder    *int           `json:"sort_order,omitempty" db:"sort_order"` // NEW (R16) — component ordering; nil = unordered
 }
 
 // Resource is an external reference (URL to docs, articles, code)
@@ -165,6 +185,7 @@ name = "android.aosp.build-system"
 version = "0.1.0"
 title = "AOSP Build System (Soong, Make, Bazel)"
 description = "Complete reference for Android build, Soong blueprints, Android.bp, etc."
+kind = "composite"  # NEW (R16) — atomic (default, may be omitted) | composite | umbrella
 content = """
 # AOSP Build System
 
@@ -181,9 +202,22 @@ domain = "android"
 complexity = "intermediate"
 
 [skill.dependencies]
-requires = ["linux.kernel-modules", "python.basics", "make.basics"]
-extends = ["android.general"]
-recommends = ["bazel.advanced"]
+requires       = ["linux.kernel-modules", "python.basics", "make.basics"]
+extends        = ["android.general"]
+recommends     = ["bazel.advanced"]
+composes       = ["android.build.soong", "android.build.kati"]  # NEW (R16) — component leaves this node aggregates
+related_to     = []                                             # NEW (R16) — symmetric "see also"
+alternative_to = []                                             # NEW (R16) — symmetric substitute
+# depends_on / prerequisite / part_of are also ACCEPTED here and normalized
+# per §4.1 of research/skill_granularity_and_composition.md
+
+# OPTIONAL ergonomic authoring form for composite/umbrella skills that need
+# per-component ordering/optionality. Each entry materializes as one
+# `composes` edge.
+[[skill.components]]
+name  = "android.build.soong"
+order = 1
+optional = false
 
 [[skill.resources]]
 url = "https://source.android.com/docs/setup/build/building"
@@ -198,7 +232,11 @@ resource_type = "code"
 
 ---
 
-## 5. Database Schema (migrations/001_initial.up.sql)
+## 5. Database Schema (migrations/001_initial.up.sql + migrations/002_granularity.up.sql)
+
+Current (post-002_granularity) cumulative shape — see `research/p1t1_granularity_schema_migration.md`
+§1 for the additive `ALTER` migration that took 001's schema to this shape, and
+`research/skill_granularity_and_composition.md` §5.3 for the model it implements.
 
 ```sql
 -- Enable required extensions
@@ -217,18 +255,25 @@ CREATE TABLE skills (
     embedding     vector(768),  -- 768d default (sweet spot per research)
     created_at    TIMESTAMPTZ DEFAULT NOW(),
     updated_at    TIMESTAMPTZ DEFAULT NOW(),
-    status        TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'validated', 'active', 'deprecated'))
+    status        TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'validated', 'active', 'deprecated')),
+    kind          TEXT NOT NULL DEFAULT 'atomic' CHECK (kind IN ('atomic', 'composite', 'umbrella'))  -- NEW (R16, 002_granularity)
 );
 CREATE INDEX idx_skills_name ON skills(name);
 CREATE INDEX idx_skills_status ON skills(status);
 CREATE INDEX idx_skills_metadata ON skills USING GIN(metadata);
+CREATE INDEX idx_skills_kind ON skills(kind);  -- NEW (R16, 002_granularity)
 
 -- Skill dependencies (DAG edges)
 CREATE TABLE skill_dependencies (
     skill_id      UUID REFERENCES skills(id) ON DELETE CASCADE,
     depends_on    UUID REFERENCES skills(id) ON DELETE CASCADE,
-    relation_type TEXT DEFAULT 'requires' CHECK (relation_type IN ('requires', 'extends', 'recommends')),
-    PRIMARY KEY (skill_id, depends_on)
+    relation_type TEXT NOT NULL DEFAULT 'requires' CHECK (relation_type IN (
+        'requires', 'extends', 'recommends',        -- existing (001)
+        'composes', 'related_to', 'alternative_to'  -- NEW (R16, 002_granularity)
+    )),
+    optional      BOOLEAN NOT NULL DEFAULT FALSE,    -- NEW (R16, 002_granularity)
+    sort_order    INT,                                -- NEW (R16, 002_granularity) — nullable; NULL = unordered
+    PRIMARY KEY (skill_id, depends_on, relation_type)  -- widened (R16, 002_granularity) from (skill_id, depends_on)
 );
 CREATE INDEX idx_deps_skill ON skill_dependencies(skill_id);
 CREATE INDEX idx_deps_depends_on ON skill_dependencies(depends_on);

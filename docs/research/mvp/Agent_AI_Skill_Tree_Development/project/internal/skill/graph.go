@@ -17,16 +17,20 @@ import (
 // ---------------------------------------------------------------------------
 
 // AddDependency adds a directed edge from skillID to dependsOn with cycle detection.
-// The relation type must be one of: requires, extends, recommends.
+// The relation type must be one of: requires, extends, recommends, composes,
+// related_to, alternative_to (research/skill_granularity_and_composition.md §4.1).
 func (s *Store) AddDependency(ctx context.Context, skillID, dependsOn uuid.UUID, relType models.DependencyType) error {
 	if skillID == dependsOn {
 		return fmt.Errorf("%w: self-referencing dependency", ErrCycleDetected)
 	}
 
 	validTypes := map[models.DependencyType]bool{
-		models.DepTypeRequires:   true,
-		models.DepTypeExtends:    true,
-		models.DepTypeRecommends: true,
+		models.DepTypeRequires:    true,
+		models.DepTypeExtends:     true,
+		models.DepTypeRecommends:  true,
+		models.DepTypeComposes:    true, // NEW (R16) — hard closure, whole->part
+		models.DepTypeRelatedTo:   true, // NEW (R16) — advisory, symmetric
+		models.DepTypeAlternative: true, // NEW (R16) — advisory, symmetric
 	}
 	if !validTypes[relType] {
 		return fmt.Errorf("%w: invalid relation type %q", ErrInvalidSkill, relType)
@@ -48,28 +52,50 @@ func (s *Store) AddDependency(ctx context.Context, skillID, dependsOn uuid.UUID,
 			return fmt.Errorf("check target skill: %w", err)
 		}
 
-		// Check for existing edge
+		// Check for existing edge. W2(a) fix (Fable code-review remediation,
+		// P1.T1): scoped to the (skill_id, depends_on, relation_type)
+		// TRIPLE, matching the widened 002_granularity PK
+		// (skill_dependencies_pkey now (skill_id, depends_on, relation_type)
+		// -- see migrations/002_granularity.up.sql step (4) and
+		// store.Create's own ON CONFLICT (skill_id, depends_on,
+		// relation_type) target). The previous (skill_id, depends_on)-only
+		// check wrongly rejected a SECOND typed edge on an
+		// already-related pair (e.g. adding a `recommends` edge once a
+		// `requires` edge already exists for the same pair) as a duplicate,
+		// even though the widened PK explicitly allows a pair to carry more
+		// than one typed edge.
 		var exists bool
 		if err := tx.QueryRow(ctx, `
-			SELECT EXISTS(SELECT 1 FROM skill_dependencies WHERE skill_id = $1 AND depends_on = $2)
-		`, skillID, dependsOn).Scan(&exists); err != nil {
+			SELECT EXISTS(SELECT 1 FROM skill_dependencies WHERE skill_id = $1 AND depends_on = $2 AND relation_type = $3)
+		`, skillID, dependsOn, relType).Scan(&exists); err != nil {
 			return fmt.Errorf("check existing dependency: %w", err)
 		}
 		if exists {
-			return fmt.Errorf("dependency already exists: %s -> %s", fromName, toName)
+			return fmt.Errorf("dependency already exists: %s -> %s (%s)", fromName, toName, relType)
 		}
 
-		// Cycle detection: check if dependsOn can already reach skillID (adding edge would create cycle)
-		cycle, err := hasCycle(ctx, tx, skillID, dependsOn)
-		if err != nil {
-			return fmt.Errorf("cycle detection check: %w", err)
-		}
-		if cycle {
-			return fmt.Errorf("%w: adding %s -> %s would create a cycle", ErrCycleDetected, fromName, toName)
+		// Cycle detection applies ONLY to hard-closure relations
+		// (requires/composes/extends). Advisory relations
+		// (recommends/related_to/alternative_to) are exempt -- they MAY cycle
+		// by nature (research/skill_granularity_and_composition.md §4.1
+		// "exempt (may cycle by nature)", §4.3, §5.4(5)). NEW-1 fix (Fable
+		// code-review round-2): the hasCycle WALK was scoped to
+		// HardClosureTypes (W2(b)), but the CALL was unconditional, so an
+		// ADVISORY candidate edge whose REVERSE path is a hard edge (e.g.
+		// parent--composes-->child then child--related_to-->parent) was
+		// falsely rejected as a cycle -- the advisory/hard cell of the 2x2.
+		if models.IsHardClosure(relType) {
+			cycle, err := hasCycle(ctx, tx, skillID, dependsOn)
+			if err != nil {
+				return fmt.Errorf("cycle detection check: %w", err)
+			}
+			if cycle {
+				return fmt.Errorf("%w: adding %s -> %s would create a cycle", ErrCycleDetected, fromName, toName)
+			}
 		}
 
 		// Insert the edge
-		_, err = tx.Exec(ctx, `
+		_, err := tx.Exec(ctx, `
 			INSERT INTO skill_dependencies (skill_id, depends_on, relation_type)
 			VALUES ($1, $2, $3)
 		`, skillID, dependsOn, relType)
@@ -153,25 +179,60 @@ func (s *Store) recalcMissingDeps(ctx context.Context, tx pgx.Tx, skillID uuid.U
 
 // hasCycle performs a DFS from toID to see if it can reach fromID.
 // If so, adding an edge fromID -> toID would create a cycle.
+//
+// W2(b) fix (Fable code-review remediation, P1.T1): the reachability walk
+// is scoped to models.HardClosureTypes (requires/composes/extends) --
+// research/skill_granularity_and_composition.md §4.2 defines these as the
+// ONLY relation types the "everything needed for X" transitive resolver
+// walks, and correspondingly the only types the structural-acyclicity
+// invariant applies to (mirrored by seed/validate_dag.py's
+// HARD_CLOSURE_RELATIONS). recommends/related_to/alternative_to are
+// advisory and, per that same doc, related_to/alternative_to are
+// explicitly SYMMETRIC "see also"/"substitute" relations -- a forward edge
+// A->B and its reciprocal back-edge B->A are the SAME relationship
+// recorded from both sides, never a structural cycle. Before this fix the
+// walk was relation-type-agnostic (it followed every skill_dependencies
+// row regardless of type), so adding the forward related_to/alternative_to
+// edge A->B made B falsely "reach" A for the purposes of THIS check,
+// causing the reciprocal B->A edge to be wrongly rejected with
+// ErrCycleDetected. Scoping the walk to the hard-closure set fixes the
+// false positive for advisory back-edges while still rejecting a genuine
+// hard-closure cycle (e.g. two composes edges forming a loop), because
+// composes/requires/extends edges remain fully part of the walk.
 func hasCycle(ctx context.Context, tx pgx.Tx, fromID, toID uuid.UUID) (bool, error) {
-	// Use a PostgreSQL recursive CTE to check reachability from toID to fromID
+	// Use a PostgreSQL recursive CTE to check reachability from toID to
+	// fromID, following ONLY hard-closure-typed edges.
 	var reachable bool
 	err := tx.QueryRow(ctx, `
 		WITH RECURSIVE reach AS (
 			SELECT depends_on AS id
 			FROM skill_dependencies
 			WHERE skill_id = $1
+			  AND relation_type = ANY($3)
 
 			UNION
 
 			SELECT sd.depends_on
 			FROM skill_dependencies sd
 			INNER JOIN reach r ON r.id = sd.skill_id
+			WHERE sd.relation_type = ANY($3)
 		)
 		SELECT EXISTS(SELECT 1 FROM reach WHERE id = $2)
-	`, toID, fromID).Scan(&reachable)
+	`, toID, fromID, hardClosureRelationTypeStrings()).Scan(&reachable)
 
 	return reachable, err
+}
+
+// hardClosureRelationTypeStrings converts models.HardClosureTypes to a
+// plain []string for pgx `= ANY($n)` array binding -- pgx v5's default type
+// map does not automatically encode a []models.DependencyType (a slice of a
+// named string type) as a TEXT[] array parameter.
+func hardClosureRelationTypeStrings() []string {
+	out := make([]string, len(models.HardClosureTypes))
+	for i, t := range models.HardClosureTypes {
+		out[i] = string(t)
+	}
+	return out
 }
 
 // GetDependencyTree returns the full dependency tree starting from a root skill name,
@@ -202,6 +263,7 @@ func (s *Store) GetDependencyTree(ctx context.Context, rootName string, maxDepth
 				s.content,
 				s.metadata,
 				s.status,
+				s.kind,
 				s.created_at,
 				s.updated_at,
 				sd.relation_type,
@@ -221,6 +283,7 @@ func (s *Store) GetDependencyTree(ctx context.Context, rootName string, maxDepth
 				s.content,
 				s.metadata,
 				s.status,
+				s.kind,
 				s.created_at,
 				s.updated_at,
 				sd.relation_type,
@@ -230,7 +293,7 @@ func (s *Store) GetDependencyTree(ctx context.Context, rootName string, maxDepth
 			JOIN dep_tree dt ON dt.id = sd.skill_id
 			WHERE dt.depth + 1 < $2
 		)
-		SELECT id, name, version, title, description, content, metadata, status, created_at, updated_at, relation_type, depth
+		SELECT id, name, version, title, description, content, metadata, status, kind, created_at, updated_at, relation_type, depth
 		FROM dep_tree
 		ORDER BY depth, name
 	`, rootSkill.ID, maxDepth)
@@ -254,7 +317,7 @@ func (s *Store) GetDependencyTree(ctx context.Context, rootName string, maxDepth
 		if err := rows.Scan(
 			&fn.skill.ID, &fn.skill.Name, &fn.skill.Version, &fn.skill.Title,
 			&fn.skill.Description, &fn.skill.Content, &metaJSON,
-			&fn.skill.Status, &fn.skill.CreatedAt, &fn.skill.UpdatedAt,
+			&fn.skill.Status, &fn.skill.Kind, &fn.skill.CreatedAt, &fn.skill.UpdatedAt,
 			&fn.relationType, &fn.depth,
 		); err != nil {
 			return nil, fmt.Errorf("scan dep tree node: %w", err)
@@ -329,7 +392,7 @@ func collectIDs(nodes []flatNode) []uuid.UUID {
 // GetDependents returns all skills that directly depend on the given skill.
 func (s *Store) GetDependents(ctx context.Context, skillID uuid.UUID) ([]models.Skill, error) {
 	rows, err := s.pool.Query(ctx, `
-		SELECT s.id, s.name, s.version, s.title, s.description, s.content, s.metadata, s.status, s.created_at, s.updated_at
+		SELECT s.id, s.name, s.version, s.title, s.description, s.content, s.metadata, s.status, s.kind, s.created_at, s.updated_at
 		FROM skill_dependencies sd
 		JOIN skills s ON s.id = sd.skill_id
 		WHERE sd.depends_on = $1
@@ -357,7 +420,7 @@ func (s *Store) GetAllDependencies(ctx context.Context, skillID uuid.UUID) ([]mo
 			FROM skill_dependencies sd
 			INNER JOIN all_deps ad ON ad.id = sd.skill_id
 		)
-		SELECT s.id, s.name, s.version, s.title, s.description, s.content, s.metadata, s.status, s.created_at, s.updated_at
+		SELECT s.id, s.name, s.version, s.title, s.description, s.content, s.metadata, s.status, s.kind, s.created_at, s.updated_at
 		FROM all_deps ad
 		JOIN skills s ON s.id = ad.id
 		ORDER BY s.name
@@ -379,7 +442,7 @@ func scanSkills(rows pgx.Rows) ([]models.Skill, error) {
 		if err := rows.Scan(
 			&sk.ID, &sk.Name, &sk.Version, &sk.Title,
 			&sk.Description, &sk.Content, &metaJSON,
-			&sk.Status, &sk.CreatedAt, &sk.UpdatedAt,
+			&sk.Status, &sk.Kind, &sk.CreatedAt, &sk.UpdatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan skill: %w", err)
 		}

@@ -17,6 +17,14 @@ vendor/
 # NOTE: go.sum IS committed (supply-chain integrity + reproducible builds).
 # Do not ignore it.
 
+# Python (seed/validate_dag.py + tooling — §11.4.30: build/cache artefacts never versioned)
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
 # Environment
 .env
 .env.local
