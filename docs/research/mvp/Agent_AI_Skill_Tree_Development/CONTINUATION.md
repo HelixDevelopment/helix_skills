@@ -1,7 +1,7 @@
 # CONTINUATION — HelixKnowledge Skill Graph System (MVP)
 
-**Revision:** 7
-**Last modified:** 2026-07-15T17:53:32Z
+**Revision:** 8
+**Last modified:** 2026-07-15T18:24:57Z
 **Purpose:** §12.10 / §11.4.131 standing session-resumption file. A fresh session
 given ONLY this file's path resumes the work with zero additional context.
 Keep in sync on every material state change.
@@ -19,6 +19,41 @@ Read this file + `REQUIREMENTS.md` + `IMPLEMENTATION_PLAN.md` + `GAPS_AND_RISKS_
 correctness gaps from the R17 register) as a single serialized Go-mutator lane with a
 mandatory **§11.4.209 Fable-xhigh review before every commit**, keeping 2–3
 design-research streams one step ahead in parallel (3–4 total per operator mandate).
+
+## LATE-SESSION DELTA — Rev 8 (2026-07-15T18:24Z) — supersedes Rev 7 where they conflict
+
+- **4 operator decisions RESOLVED + captured in REQUIREMENTS.md** (this turn):
+  (1) **G14/X1 submodule policy = VENDOR FRESH under this project** — each dep a fresh
+  git submodule under our own `submodules/<snake_case>/` (§11.4.28(C)), REVERSES the
+  autonomously-adopted Option-A single-canonical; R22-catalogue ADOPT verdicts stand, layout
+  becomes project-local vendoring + `install_upstreams` + recursive helix-deps. open-design →
+  `submodules/open_design/`. (2) **R25 canonical project key = `hxs`** — used EVERYWHERE as
+  the `hxs-NNN` id prefix (supersedes G0x/R0x/P0x) + `hxs-<version>` release prefix; a
+  DEDICATED integrity-gated rename pass (id-map + zero-orphan gate) runs once the current
+  doc-churn settles. (3) **§11.4.185 manual QA = QA team at milestones** — drive to
+  autonomous-GREEN + evidence + build, then hand off to the operator's QA team for the FINAL
+  sign-off; completion/release tags wait on it. (4) **R7/R19 creds = `~/api_keys.sh` OR local
+  `.env`** (both supported like other Helix projects); §11.4.10 field-names-only, `.env`
+  gitignored. G14/R7/R19 lanes UNBLOCKED.
+- **P1.T1 Fable-xhigh review returned NO-GO (§11.4.134)** — did NOT commit (findings ⇒
+  remediate, never commit on findings). BLOCKING **B1:** `TOMLSkillWrapper` DOTTED struct
+  tags (`toml:"skill.dependencies"` etc.) never decode nested `[skill.dependencies]` tables
+  (BurntSushi matches dotted tags only to quoted-literal keys) → every P1.T1 field unreachable
+  through `Store.ImportFromTOML` (= MCP `skill_create` path); exposed a pre-existing dead
+  import. Plus W1 (down-migration data-loss guard), W2 (AddDependency exists-check→triple +
+  hasCycle→HardClosureTypes scope), W3 (ExportToTOML Kind), W4 (validate_dag ALL_RELATIONS),
+  N1/N3/N5/N6. **Remediation fix subagent dispatched** (nest Dependencies/Resources/Components
+  INTO TOMLSkillDef with plain tags; extend M10 to assert imported edge count RED-then-GREEN;
+  fix W1–W4 + nits). On its GREEN: independent build/vet/live-DB re-verify → Fable-xhigh
+  **re-review** → on GO, commit the Go change-set (SPEC.md + project/ + migrations + tests)
+  to the 4 upstreams. **P1.T1 is NOT done until GO.**
+- **Discovery/compliance registers advanced:** design docs landed for G40 (workable_items DB
+  adoption — engine builds clean, atm_id is TEXT-no-CHECK so G0x/hxs usable as key; found
+  engine schema-drift), G43 (docs_chain export wiring — real, builds clean, pandoc+weasyprint
+  present, recommend vendoring `constitution/submodules/docs_chain/`), R22 full-catalogue
+  incorporation (LLMProvider/http3/PipelineRuntime ADOPT, token_optimizer WIRE), P05 HIGH-defect
+  fix designs (G35→X-API-Key, G31→canonicalize+jail, G29→NewStore RRF-merge, G32→consolidate
+  never-completed dual-writer). These 4 docs commit narrow-staged this turn.
 
 ## LATE-SESSION DELTA — Rev 7 (2026-07-15T17:53Z) — supersedes stale lines below
 

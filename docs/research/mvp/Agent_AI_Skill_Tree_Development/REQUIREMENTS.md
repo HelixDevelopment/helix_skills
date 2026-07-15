@@ -294,6 +294,36 @@ Each stage lands only with captured build/test evidence; SDD dispatches per task
   `UserPromptSubmit`-class hook appending a row per new prompt) so future intake is
   captured at accept-time, not reconstructed. Composes §11.4.197 (loss-of-requirements
   FORBIDDEN) + §11.4.208 + §11.4.202 + §11.4.6.
+- **R25 — canonical project key `hxs`, used EVERYWHERE (operator mandate 2026-07-15):**
+  the project name is HelixSkill; the canonical project key MUST be **`hxs`** (lowercase,
+  §11.4.29). It MUST be used everywhere — as the ticket/workable-item id prefix
+  (`hxs-NNN`, superseding the G0x/R0x/P0x scheme) AND as the §11.4.151 release/version
+  prefix (`hxs-<version>`). ALL occurrences MUST be fully updated and ALL references too,
+  everywhere — with ZERO broken references (§11.4.6: a rename is forbidden without proving
+  every reference resolved). Executed as a DEDICATED integrity-gated pass (deterministic
+  id-map G0x/R0x/P0x → hxs-NNN; a post-rename gate asserting zero orphan old-ids + every
+  hxs-NNN resolvable + no broken links), run once the current design-doc churn settles so
+  the FULL doc set renames atomically. Composes §11.4.29/§11.4.54/§11.4.151/§11.4.6/§11.4.124.
+
+## Operator decisions RESOLVED (2026-07-15) — supersede the pending sign-off items above
+
+- **G14/X1 submodule policy → VENDOR FRESH under this project.** Operator chose: each
+  dependency (LLMProvider, http3, docs_chain, containers, dag_orchestrator, PipelineRuntime,
+  design_system, open-design) is vendored FRESH as a git submodule under THIS project's own
+  `submodules/<snake_case_name>/` (§11.4.28(C) `<project_root>/submodules/`), independent of
+  `helix_code`. Supersedes the autonomously-adopted single-canonical consume-by-reference
+  (Option A). The R22-catalogue ADOPT verdicts stand; the LAYOUT becomes project-local fresh
+  vendoring + `install_upstreams` (§11.4.36) + recursive helix-deps (§11.4.31). open-design
+  dir → `submodules/open_design/` (§11.4.29 snake_case, our own tree). Vendoring lane UNBLOCKED.
+- **§11.4.185 manual QA → QA team at milestones.** Drive to autonomous-GREEN + captured
+  evidence + build, then hand off to the operator's QA team for the FINAL manual sign-off;
+  completion/release tags wait on that confirmation. The §11.4.126 release-terminal precondition
+  for this project.
+- **R7/R19 credentials → `~/api_keys.sh` OR local `.env` (both supported, like other Helix
+  projects).** The provider layer loads API tokens from `$HOME/api_keys.sh` and/or a local
+  `.env` (both MUST be supported). §11.4.10 single-source: field NAMES only ever in git, values
+  never; `.env` stays gitignored (§11.4.30). Unblocks R7/R19 live acceptance.
+
 - **Security:** sync_submodules.sh hardened (fail-closed validation; paired attack
   proof) — committed c473d01.
 - **Seed corpus:** R13 validation corpus + 8 real seed skills committed 0e0bc3b

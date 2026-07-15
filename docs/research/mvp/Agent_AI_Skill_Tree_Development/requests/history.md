@@ -1,7 +1,7 @@
 # Operator Request History — HelixKnowledge Skill Graph System (MVP)
 
-**Revision:** 1
-**Last modified:** 2026-07-15T17:40:21Z
+**Revision:** 2
+**Last modified:** 2026-07-15T18:24:57Z
 **Purpose:** §11.4.208 project-local operator-request ledger. Append-only,
 newest-first. Every operator request/prompt is recorded here with its content,
 accepted timestamp (explicit TZ), the Track that processed it, the alias that
@@ -46,6 +46,21 @@ recorded `UNKNOWN` where not determinable (§11.4.208(A)); the standing session
 default is high-effort autonomous operation.
 
 ## Request ledger (newest first)
+
+### REQ-025 — Four blocker decisions (submodule policy / project key / manual-QA / creds)
+- **Content (faithful summary — §11.4.208(A); answers to the BACKGROUND blocker-questions
+  request):** (1) submodule policy = **VENDOR FRESH under this project**; (2) "Since the
+  project name is HelixSkill, the key which MUST BE used everywhere MUST BE: **hxs**. All
+  occurrences MUST BE fully updated, all references too! Everywhere!"; (3) manual QA =
+  **your QA team, at milestones**; (4) "All API tokens can be taken / loaded from
+  **api_keys.sh** located in home directory of the host or local **.env** file! Both MUST
+  BE fully supported like other Helix projects do!"
+- **Accepted:** 2026-07-15, time UNKNOWN, UTC · **Track:** T1/main · **Alias:** claude1 · **Model+effort:** claude-opus-4-8 / high
+- **Requirement:** **R25** (hxs key) + resolves **G14/X1** (vendor-fresh) + §11.4.185
+  manual-QA binding + **R7/R19** creds source — all recorded in REQUIREMENTS.md this turn.
+  **Disposition:** CAPTURED + acted on: REQUIREMENTS.md "Operator decisions RESOLVED" block
+  + R25 added; CONTINUATION Rev 8; G14 lane unblocked; hxs rename queued as a dedicated
+  integrity-gated pass (post doc-churn). No decision dropped.
 
 ### REQ-024 — Request-loss audit + every-request-respected mandate
 - **Content (verbatim):** "CRITICAL: We MUST CHECK which requests / prompts we
