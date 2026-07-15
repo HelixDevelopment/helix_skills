@@ -11,8 +11,9 @@
 //   - MCP both mode (--mcp both): Runs both stdio and HTTP transports
 //
 // Environment variables:
-//   HELIX_DB_HOST, HELIX_DB_PORT, HELIX_DB_NAME, HELIX_DB_USER, HELIX_DB_PASSWORD
-//   HELIX_LOG_LEVEL, HELIX_MCP_TRANSPORT
+//
+//	HELIX_DB_HOST, HELIX_DB_PORT, HELIX_DB_NAME, HELIX_DB_USER, HELIX_DB_PASSWORD
+//	HELIX_LOG_LEVEL, HELIX_MCP_TRANSPORT
 package main
 
 import (
@@ -26,6 +27,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/helixdevelopment/skill-system/internal/api"
 	"github.com/helixdevelopment/skill-system/internal/config"
 	"github.com/helixdevelopment/skill-system/internal/db"
 	"github.com/helixdevelopment/skill-system/internal/mcp"
@@ -102,42 +104,40 @@ func main() {
 
 	switch mode {
 	case "stdio":
-		// Pure MCP stdio mode - no HTTP API
+		// Pure MCP stdio mode - no HTTP listener at all.
 		logger.Info("Running in MCP stdio mode (stdout reserved for JSON-RPC)")
 		if err := mcpServer.RunStdio(); err != nil {
 			logger.Fatal("MCP stdio server failed", zap.Error(err))
 		}
 
-	case "http":
-		// MCP HTTP mode - serve MCP over HTTP/SSE + REST API
-		httpAddr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.HTTPPort)
-		if err := mcpServer.RunHTTP(httpAddr); err != nil {
-			logger.Fatal("MCP HTTP server failed", zap.Error(err))
-		}
-		setupAPI(cfg, pool, skillStore, skillRegistry, logger)
-		waitForShutdown(ctx, logger, mcpServer)
-
 	case "both":
-		// Both stdio (blocking) and HTTP (background)
-		httpAddr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.HTTPPort)
-		setupAPI(cfg, pool, skillStore, skillRegistry, logger)
-		if err := mcpServer.RunBoth(httpAddr); err != nil {
-			logger.Fatal("MCP server failed", zap.Error(err))
+		// ONE hardened HTTP listener (background goroutine, MCP routes mounted +
+		// auth-guarded) PLUS stdio in the foreground (blocking). There is no
+		// second HTTP listener: the MCP HTTP surface lives on the same router as
+		// /api/v1 under the same fail-closed policy.
+		srv := setupAPI(cfg, pool, skillStore, skillRegistry, mcpServer, logger)
+		if err := mcpServer.RunStdio(); err != nil {
+			logger.Fatal("MCP stdio server failed", zap.Error(err))
 		}
+		// stdio ended (EOF/stop): drain the HTTP server and the MCP server.
+		gracefulShutdown(ctx, logger, mcpServer, srv)
 
 	default:
-		// Standard API mode with MCP over HTTP
-		httpAddr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.HTTPPort)
-		if err := mcpServer.RunHTTP(httpAddr); err != nil {
-			logger.Fatal("MCP HTTP server failed", zap.Error(err))
-		}
-		setupAPI(cfg, pool, skillStore, skillRegistry, logger)
-		waitForShutdown(ctx, logger, mcpServer)
+		// "http" and the standard API mode both serve a SINGLE hardened HTTP
+		// listener with the MCP routes mounted and auth-guarded, then block
+		// until a shutdown signal. Exactly one server binds the port.
+		srv := setupAPI(cfg, pool, skillStore, skillRegistry, mcpServer, logger)
+		waitForShutdown(ctx, logger, mcpServer, srv)
 	}
 }
 
-// setupAPI configures the Gin REST API server.
-func setupAPI(cfg *config.Config, pool *db.Pool, store *skill.Store, reg *registry.Registry, logger *zap.Logger) *gin.Engine {
+// buildRouter assembles the SINGLE hardened Gin router used by every
+// HTTP-serving mode. It wires the config-driven CORS allowlist, resolves the
+// fail-closed API-key auth ONCE, and guards BOTH the /api/v1 data routes AND the
+// mounted MCP /mcp/v1 routes with that same middleware. /health and / are the
+// only open routes. No listener is started here (see setupAPI) so this assembly
+// is directly unit-testable.
+func buildRouter(cfg *config.Config, pool *db.Pool, store *skill.Store, reg *registry.Registry, mcpServer *mcp.MCPServer, logger *zap.Logger) *gin.Engine {
 	if cfg.Server.EnableBrotli {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -145,9 +145,21 @@ func setupAPI(cfg *config.Config, pool *db.Pool, store *skill.Store, reg *regist
 	router := gin.New()
 	router.Use(gin.Recovery())
 	router.Use(apiLoggingMiddleware(logger))
-	router.Use(corsMiddleware())
+	// Hardened, config-driven CORS allowlist (internal/api.CORS): an empty
+	// allowlist is fail-closed and no wildcard "*" origin is ever emitted with
+	// credentials. This replaces the previous wildcard corsMiddleware().
+	router.Use(api.CORS(cfg.Server.AllowedOrigins))
 
-	// Health check
+	// Resolve the fail-closed auth middleware ONCE and share the SAME instance
+	// across BOTH the /api/v1 data routes and the mounted MCP /mcp/v1 routes so
+	// the two surfaces enforce identical authentication (and the startup log
+	// fires exactly once). ResolveAPIKeyAuth is fail-CLOSED: with no API keys
+	// and auth not explicitly disabled it rejects every request (503) rather
+	// than serving these routes open. nil is returned ONLY in the explicit
+	// auth-disabled mode.
+	authMW := api.ResolveAPIKeyAuth(cfg.Server.APIKeys, cfg.Server.AuthDisabled, logger)
+
+	// Health check (open)
 	router.GET("/health", func(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
@@ -166,8 +178,14 @@ func setupAPI(cfg *config.Config, pool *db.Pool, store *skill.Store, reg *regist
 		})
 	})
 
+	// All /api/v1 data routes are authenticated under the fail-closed guard.
+	v1 := router.Group("/api/v1")
+	if authMW != nil {
+		v1.Use(authMW)
+	}
+
 	// Skills API
-	skills := router.Group("/api/v1/skills")
+	skills := v1.Group("/skills")
 	{
 		skills.GET("", func(c *gin.Context) {
 			ctx := c.Request.Context()
@@ -219,7 +237,7 @@ func setupAPI(cfg *config.Config, pool *db.Pool, store *skill.Store, reg *regist
 	}
 
 	// Coverage API
-	router.GET("/api/v1/coverage", func(c *gin.Context) {
+	v1.GET("/coverage", func(c *gin.Context) {
 		ctx := c.Request.Context()
 		domain := c.Query("domain")
 		report, err := reg.GetCoverageReport(ctx, domain)
@@ -231,7 +249,7 @@ func setupAPI(cfg *config.Config, pool *db.Pool, store *skill.Store, reg *regist
 	})
 
 	// Missing skills API
-	router.GET("/api/v1/missing", func(c *gin.Context) {
+	v1.GET("/missing", func(c *gin.Context) {
 		ctx := c.Request.Context()
 		domain := c.Query("domain")
 		entries, err := store.GetMissingSkills(ctx, domain)
@@ -242,7 +260,15 @@ func setupAPI(cfg *config.Config, pool *db.Pool, store *skill.Store, reg *regist
 		c.JSON(http.StatusOK, gin.H{"missing_skills": entries, "count": len(entries)})
 	})
 
-	// Server info
+	// Mount the MCP HTTP routes (/mcp/v1/*) onto THIS same router, behind the
+	// SAME fail-closed auth guard as /api/v1. Previously these ran on a SECOND
+	// http.Server bound to the identical host:port with wildcard CORS and NO
+	// authentication; whichever server won the bind decided the live security
+	// posture, and the hardened /api/v1 routes 404'd when the MCP one won. One
+	// listener now serves both surfaces under one hardened policy.
+	mcpServer.RegisterHTTPRoutes(router, authMW)
+
+	// Server info (open) — reflects the real, live, auth-guarded route surface.
 	router.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"name":        "HelixKnowledge Skill Graph System",
@@ -250,40 +276,59 @@ func setupAPI(cfg *config.Config, pool *db.Pool, store *skill.Store, reg *regist
 			"description": "API and MCP server for AI agent skill management",
 			"endpoints": []string{
 				"GET  /health",
-				"GET  /api/v1/skills",
-				"GET  /api/v1/skills/search?q=query",
-				"GET  /api/v1/skills/:name",
-				"GET  /api/v1/skills/:name/tree",
-				"GET  /api/v1/coverage?domain=optional",
-				"GET  /api/v1/missing?domain=optional",
-				"POST /mcp/v1/messages (JSON-RPC)",
-				"GET  /mcp/v1/sse (SSE streaming)",
+				"GET  /api/v1/skills (auth required)",
+				"GET  /api/v1/skills/search?q=query (auth required)",
+				"GET  /api/v1/skills/:name (auth required)",
+				"GET  /api/v1/skills/:name/tree (auth required)",
+				"GET  /api/v1/coverage?domain=optional (auth required)",
+				"GET  /api/v1/missing?domain=optional (auth required)",
+				"POST /mcp/v1/messages (JSON-RPC, auth required)",
+				"GET  /mcp/v1/sse (SSE streaming, auth required)",
+				"GET  /mcp/v1/tools (auth required)",
+				"POST /mcp/v1/tools/:name/call (auth required)",
+				"GET  /mcp/v1/prompts (auth required)",
+				"GET  /mcp/v1/prompts/:name (auth required)",
 			},
 		})
 	})
 
-	// Start the HTTP server
-	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.HTTPPort)
-	logger.Info("API server starting", zap.String("addr", addr))
-
-	go func() {
-		srv := &http.Server{
-			Addr:         addr,
-			Handler:      router,
-			ReadTimeout:  30 * time.Second,
-			WriteTimeout: 30 * time.Second,
-			IdleTimeout:  120 * time.Second,
-		}
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Error("API server error", zap.Error(err))
-		}
-	}()
-
 	return router
 }
 
-// waitForShutdown blocks until a shutdown signal is received.
-func waitForShutdown(ctx context.Context, logger *zap.Logger, mcpServer *mcp.MCPServer) {
+// setupAPI builds the single hardened router and starts the ONE HTTP listener,
+// returning the *http.Server so the caller can shut it down gracefully. A bind
+// failure is FATAL: a server that cannot bind its port is NOT serving, and the
+// process must not continue as if it were (that is exactly the silent
+// "fixed-but-not-live" failure this remediation closes).
+func setupAPI(cfg *config.Config, pool *db.Pool, store *skill.Store, reg *registry.Registry, mcpServer *mcp.MCPServer, logger *zap.Logger) *http.Server {
+	router := buildRouter(cfg, pool, store, reg, mcpServer, logger)
+
+	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.HTTPPort)
+	srv := &http.Server{
+		Addr:         addr,
+		Handler:      router,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
+
+	logger.Info("API server starting (single hardened listener; MCP mounted + auth-guarded)",
+		zap.String("addr", addr))
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			// A failed bind (e.g. address already in use) means we are NOT
+			// serving — fail hard instead of silently continuing.
+			logger.Fatal("API server failed", zap.String("addr", addr), zap.Error(err))
+		}
+	}()
+
+	return srv
+}
+
+// waitForShutdown blocks until a shutdown signal is received, then drains both
+// the HTTP server and the MCP server.
+func waitForShutdown(ctx context.Context, logger *zap.Logger, mcpServer *mcp.MCPServer, srv *http.Server) {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
 
@@ -291,11 +336,22 @@ func waitForShutdown(ctx context.Context, logger *zap.Logger, mcpServer *mcp.MCP
 	sig := <-sigCh
 	logger.Info("Received shutdown signal", zap.String("signal", sig.String()))
 
+	gracefulShutdown(ctx, logger, mcpServer, srv)
+}
+
+// gracefulShutdown drains the HTTP listener (triggering ListenAndServe to return
+// http.ErrServerClosed) and then the MCP server, within a bounded timeout.
+func gracefulShutdown(ctx context.Context, logger *zap.Logger, mcpServer *mcp.MCPServer, srv *http.Server) {
 	shutdownCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
+	if srv != nil {
+		if err := srv.Shutdown(shutdownCtx); err != nil {
+			logger.Error("HTTP server shutdown error", zap.Error(err))
+		}
+	}
 	if err := mcpServer.Shutdown(shutdownCtx); err != nil {
-		logger.Error("Shutdown error", zap.Error(err))
+		logger.Error("MCP shutdown error", zap.Error(err))
 	}
 
 	logger.Info("Graceful shutdown complete")
@@ -355,19 +411,5 @@ func apiLoggingMiddleware(logger *zap.Logger) gin.HandlerFunc {
 			zap.Int("status", c.Writer.Status()),
 			zap.Duration("duration", time.Since(start)),
 		)
-	}
-}
-
-// corsMiddleware adds CORS headers.
-func corsMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", "*")
-		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(http.StatusNoContent)
-			return
-		}
-		c.Next()
 	}
 }

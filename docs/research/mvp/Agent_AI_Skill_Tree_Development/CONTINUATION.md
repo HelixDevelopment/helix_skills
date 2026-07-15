@@ -1,91 +1,83 @@
 # CONTINUATION — HelixKnowledge Skill Graph System (MVP)
 
-**Revision:** 1
-**Last modified:** 2026-07-15T21:00:00Z
+**Revision:** 2
+**Last modified:** 2026-07-15T21:30:00Z
 **Purpose:** §12.10 / §11.4.131 standing session-resumption file. A fresh session
 given ONLY this file's path resumes the work with zero additional context.
-Keep in sync on every material state change (new HEAD, phase, in-flight agent,
-blocking decision).
+Keep in sync on every material state change.
 
 ---
 
 ## SHORT resume sentence (§11.4.127)
 
 Read this file + `REQUIREMENTS.md` + `IMPLEMENTATION_PLAN.md` + `GAPS_AND_RISKS_REGISTER.md`,
-`git fetch --all`, then continue the **P0.5 critical-remediation spine** (security
-gaps from the R17 register) as a single serialized Go-mutator lane with a mandatory
-**§11.4.209 Fable-xhigh review before every commit**, keeping ≤1 design-research
-stream one step ahead in parallel.
+`git fetch --all`, then continue the **P0.5 critical-remediation spine** (security +
+correctness gaps from the R17 register) as a single serialized Go-mutator lane with a
+mandatory **§11.4.209 Fable-xhigh review before every commit**, keeping 2–3
+design-research streams one step ahead in parallel (3–4 total per operator mandate).
 
 ## Where this work lives
 
-- **Repo:** `helix_skills` (top-level git repo; only submodule = `constitution`).
-  This project is the subtree `docs/research/mvp/Agent_AI_Skill_Tree_Development/`.
-- **Go backend:** `project/` (module `github.com/helixdevelopment/skill-system`).
-- **Upstreams (4, push via `git push origin HEAD:main` — fans out):** gitflic,
-  github, gitlab, gitverse. **Absolute no force-push (§11.4.113); fast-forward only.**
-- **Current HEAD:** `41f926a` (all 4 upstreams in sync as of this revision).
+- **Repo:** `helix_skills` (top-level; only submodule = `constitution`). This project =
+  subtree `docs/research/mvp/Agent_AI_Skill_Tree_Development/`. Go backend = `project/`
+  (module `github.com/helixdevelopment/skill-system`).
+- **Upstreams (4, `git push origin HEAD:main` fans out):** gitflic, github, gitlab,
+  gitverse. **Absolute no force-push (§11.4.113); fast-forward only.**
+- **HEAD:** see `git log` (last landed: G01 security fix). Fetch first.
 
-## Authoritative docs (read these; do NOT duplicate their content here)
+## Authoritative docs (read; do NOT duplicate here)
 
-| Doc | Role |
-|---|---|
-| `REQUIREMENTS.md` | Living source of truth for R1–R17 + founding blueprint + the TOON correction (real TOON wire format, NOT TOML). |
-| `IMPLEMENTATION_PLAN.md` | Phases P0–P13 + **P0.5 critical remediation** + X1–X4 + traceability matrix. |
-| `GAPS_AND_RISKS_REGISTER.md` | The R17 adversarial audit — **27 findings G01–G27**; this IS the P0.5 work queue. |
-| `SPEC.md` | Technical spec (skill model, DAG, API, MCP). |
-| `research/*.md` | Landed design research: granularity, toon_go_codec, opendesign_incorporation (R12), helix_interop_incorporation (R4), testing_infrastructure_plan (R8/R17), docs_chain_incorporation (R10), g02_sandbox_faildesign (R17, in flight). |
+`REQUIREMENTS.md` (R1–R18 living SoT + TOON-not-TOML correction) · `IMPLEMENTATION_PLAN.md`
+(P0–P13 + P0.5 remediation + X1–X4) · `GAPS_AND_RISKS_REGISTER.md` (27 findings G01–G27 =
+the P0.5 queue) · `SPEC.md` · `research/*.md` (granularity, toon_go_codec, opendesign R12,
+helix_interop R4, testing_infrastructure R8/R17, docs_chain R10, g02_sandbox_faildesign R17,
+g06_g07_skilltree_dag_design, + R18 doc-delivery design landing).
 
 ## PHASE / NEXT / terminal goal
 
-- **PHASE:** P0.5 critical remediation (security + correctness gaps) before feature phases.
-- **Terminal goal:** the full self-growing HelixKnowledge Skill Graph System per R1–R17,
-  built BY the system, ~100% test-covered, zero bluff.
-- **Immediate NEXT:** finish G01 attempt-2 → Fable-xhigh re-review → GO → commit → G02
-  Go fix (against `research/g02_sandbox_faildesign.md`) → G03 → G05 → G06/G07 → G11.
+- **PHASE:** P0.5 critical remediation (security + correctness) before feature phases.
+- **DONE (proven):** G01 — runtime security hole (double-bound wildcard-CORS + unauth MCP
+  write surface) CLOSED, Fable-xhigh GO, 6 §1.1 mutations RED-verified. Committed + pushed.
+- **NEXT (Go spine, serialized):** implement G02 static-validator + delete host-exec paths +
+  wire validation/autoexpand pipelines live (G03) + jury fail-closed ≥2 votes (G05), against
+  the committed `research/g02_sandbox_faildesign.md`. Then G06/G07 (DAG), G11 (worker panic),
+  G13/G17/G22/G24 (ops hardening), G10 (embedding dim), G14/X1 (submodule policy — operator).
+- **Terminal goal:** the full self-growing HelixKnowledge Skill Graph System per R1–R18,
+  built BY the system, ~100% test-covered, zero bluff, fully documented + always-in-sync.
 
-## Live-state anchors (moment-valid — update on change)
+## Live-state anchors (moment-valid)
 
-- **In flight (background agents):**
-  - **G01 attempt-2 fix** (Go, SOLE mutator): collapse the double-bound HTTP listeners
-    to ONE hardened listener (mount `/mcp/v1` routes behind the same fail-closed
-    CORS+auth via `HTTPTransport.RegisterRoutes`), fail-hard on bind error, fix the
-    config `${VAR}` interpolation trap on `api_keys`/`allowed_origins`, add config
-    tests + ops docs. Touches: `cmd/server/main.go`, `internal/mcp/http_transport.go`,
-    `internal/mcp/server.go`, `internal/config/config.go` + `_test.go`, `config/config.toml`,
-    `.env.example`, new `cmd/server/security_test.go`. **Not yet committed.**
-  - **G02 sandbox fail-closed design** (research): vetted static-first / rootless-Podman-or-
-    refuse design for the RCE sandbox. Writes `research/g02_sandbox_faildesign.md`.
-- **Uncommitted working tree:** the G01-fix Go/config files above (awaiting re-review + GO).
-- **G01 status:** attempt 1 was SOURCE-only; the §11.4.209 Fable-xhigh review returned
-  **NO-GO** on a confirmed §11.4.108 SOURCE≠RUNTIME defect (a second wildcard-CORS +
-  zero-auth MCP listener races the hardened one on the same port). Attempt-2 remediation
-  is the in-flight fix. See the G01 STATUS block in the register for the full forensic trail.
+- **Fleet target 3–4 parallel:** 1 Go-source mutator at a time (§11.4.84) + 2–3 read-only
+  design-research streams (each writes only its own `research/*.md`, tied to a tracked gap).
+- **G01 outcome:** see the G01 STATUS block in the register for the full forensic trail
+  (attempt 1 NO-GO → attempt 2 single-hardened-listener → Fable GO). Follow-ups O1 (SSE 30s
+  timeout), O2 (unset-var inert key) tracked; O3 dead `internal/api.Server` consolidation
+  deferred (§11.4.101/§11.4.124).
 
 ## Binding constraints (do NOT violate)
 
-- **Anti-bluff §11.4** — every claim carries captured evidence; I independently re-verify
-  every subagent claim (re-run build/vet/test, grep residue, verify reachability) before commit.
-- **§11.4.209** — the mandatory independent code review runs on **Fable at xhigh effort**
-  (Opus xhigh only if Fable genuinely unavailable). Applies before EVERY commit/build.
-- **§11.4.84** — never two Go-source mutators on this one tree at once; grep for mutation
-  residue + account for every staged file before commit; narrow-stage docs (never `git add -A`
-  while a mutator runs).
-- **§11.4.113** — force-push strictly forbidden; merge-onto-latest-main, ff-only.
-- **§11.4.108** — SOURCE green ≠ RUNTIME correct; prove the fix on the running binary.
-- **TOON not TOML** — API wire = real TOON (`toon-format/toon-go`, MIT, vendor) + JSON
-  fallback; TOML retained only for on-disk skill files + `config.toml`.
-- **No `--no-verify`/`--force`/bypass flags. No secrets in git (§11.4.10).**
+- **Anti-bluff §11.4** — I independently re-verify every subagent claim (re-run
+  build/vet/test, grep residue, verify reachability) before commit; upstreams only ever
+  receive verified state.
+- **§11.4.209** — mandatory independent review on **Fable at xhigh** (Opus xhigh only if
+  Fable genuinely unavailable), before EVERY commit/build; iterate to zero-finding GO (§11.4.134).
+- **§11.4.84** — never two Go mutators on this tree; residue-scan + account for every staged
+  file; narrow-stage (never `git add -A` while any agent writes).
+- **§11.4.113** no force-push · **§11.4.108** SOURCE≠RUNTIME (prove on the running binary) ·
+  **TOON not TOML** (wire = real TOON + JSON; TOML only on-disk/config) · no `--no-verify`/
+  bypass · no secrets in git (§11.4.10).
 
 ## OPEN operator decisions (surface before the dependent lane goes active)
 
-- **G14 / X1 — submodule policy:** §11.4.28C single-canonical vs. the operator's stated
-  parent-priority + both-synced. UNRESOLVED. Blocks vendoring OpenDesign / docs_chain /
-  containers / the 7 helix-deps. Surface via §11.4.66 before starting the vendoring lane.
+- **G14 / X1 — submodule policy:** §11.4.28C single-canonical vs. operator parent-priority +
+  both-synced. UNRESOLVED. Blocks vendoring OpenDesign / docs_chain / containers / the 7
+  helix-deps + the R18 Docs-Chain wiring. Surface via §11.4.66 before the vendoring lane.
 
-## Fleet discipline
+## R18 — full documentation-delivery mandate (2026-07-15, captured)
 
-Go remediation is one serialized mutator lane (§11.4.84). Parallelize only genuinely
-independent work: keep ≤1 design-research stream one step ahead of the Go lane (avoids an
-un-wired research backlog, §11.4.197). Every fix → Fable-xhigh review → commit → push 4
-upstreams → next link.
+Whole project delivered with: API docs (static + interactive), user manuals, guides,
+tutorials, FAQs; all diagrams/schemes/graphs with OpenDesign illustrations (R12/§11.4.162/
+§11.4.190); all SQL definitions, templates, materials; **exported to every mandatory format
+(§11.4.65)**; ALWAYS up to date + in sync via hooks + the Docs Chain submodule (R10/§11.4.106).
+Architecture design in flight (`research/` R18 doc). Composes R10 + R12 + §11.4.12/.44/.45/
+.53/.56/.57/.59/.60/.65/.106/.168/.170/.190.

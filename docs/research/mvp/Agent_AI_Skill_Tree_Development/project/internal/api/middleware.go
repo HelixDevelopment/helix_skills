@@ -309,6 +309,50 @@ func APIKeyAuth(validKeys []string) gin.HandlerFunc {
 	}
 }
 
+// RequireAuthConfigured is a fail-CLOSED middleware installed when API
+// authentication is neither configured (no API keys) nor explicitly disabled.
+// It rejects every request with 503 so protected routes are never served with
+// authentication silently absent.
+func RequireAuthConfigured() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		RespondErrorWithCode(c, http.StatusServiceUnavailable, "auth_not_configured",
+			"API authentication is not configured. Configure API keys, or set "+
+				"auth_disabled=true to run without authentication.")
+		c.Abort()
+	}
+}
+
+// ResolveAPIKeyAuth selects the authentication middleware for the protected API
+// group under a fail-CLOSED policy:
+//
+//   - API keys configured        -> APIKeyAuth validates every request.
+//   - no keys, authDisabled=true  -> nil (no auth middleware), logged loudly as
+//     a deliberate, explicit open-access mode.
+//   - no keys, authDisabled=false -> RequireAuthConfigured rejects every request
+//     (503). This replaces the prior fail-OPEN "len(keys) > 0" gate that served
+//     protected routes wide open whenever no keys happened to be configured.
+//
+// A nil return means "install no auth middleware" and occurs ONLY in the
+// explicit auth-disabled mode.
+func ResolveAPIKeyAuth(apiKeys []string, authDisabled bool, logger *zap.Logger) gin.HandlerFunc {
+	if logger == nil {
+		logger = zap.L()
+	}
+	switch {
+	case len(apiKeys) > 0:
+		return APIKeyAuth(apiKeys)
+	case authDisabled:
+		logger.Warn("API authentication is DISABLED by explicit configuration " +
+			"(auth_disabled=true); /api/v1 is publicly accessible")
+		return nil
+	default:
+		logger.Error("no API keys configured and auth_disabled is not set; " +
+			"failing closed — every /api/v1 request is rejected with 503 until " +
+			"API keys are configured or auth is explicitly disabled")
+		return RequireAuthConfigured()
+	}
+}
+
 // CORS returns a middleware that sets Cross-Origin Resource Sharing headers
 // driven by an explicit origin allowlist.
 //

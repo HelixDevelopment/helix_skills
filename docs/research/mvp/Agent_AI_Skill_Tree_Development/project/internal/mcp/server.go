@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/gin-gonic/gin"
 	"github.com/helixdevelopment/skill-system/internal/config"
 	"github.com/helixdevelopment/skill-system/internal/db"
 	"github.com/helixdevelopment/skill-system/internal/registry"
@@ -102,40 +103,34 @@ func (s *MCPServer) RunStdio() error {
 	return s.stdio.Run()
 }
 
-// RunHTTP starts the HTTP/SSE transport for remote agents (non-blocking).
-func (s *MCPServer) RunHTTP(addr string) error {
+// RegisterHTTPRoutes mounts the MCP HTTP routes (/mcp/v1/*) onto the provided
+// shared Gin router, guarded by authMW. This replaces the previous standalone
+// MCP HTTP listener: the process now serves exactly ONE HTTP listener (the
+// hardened API server in cmd/server), eliminating the two-servers-one-port race
+// that could expose an unauthenticated, wildcard-CORS MCP surface whenever the
+// MCP listener won the bind.
+//
+// authMW is the SAME fail-closed middleware guarding /api/v1 (from
+// api.ResolveAPIKeyAuth). It is nil ONLY in the explicit auth-disabled mode.
+func (s *MCPServer) RegisterHTTPRoutes(router *gin.Engine, authMW gin.HandlerFunc) {
 	s.http = NewHTTPTransport(s)
-	s.logger.Info("Starting MCP HTTP transport", zap.String("addr", addr))
-	return s.http.Start(addr)
+	s.http.RegisterRoutes(router, authMW)
+	s.logger.Info("MCP HTTP routes mounted on shared router",
+		zap.Bool("auth_guarded", authMW != nil),
+	)
 }
 
-// RunBoth starts both stdio and HTTP transports.
-// Stdio runs in the current goroutine (blocking), HTTP in a background goroutine.
-func (s *MCPServer) RunBoth(httpAddr string) error {
-	// Start HTTP in background
-	go func() {
-		if err := s.RunHTTP(httpAddr); err != nil {
-			s.logger.Error("HTTP transport failed", zap.Error(err))
-		}
-	}()
-
-	// Start stdio in foreground (blocking)
-	return s.RunStdio()
-}
-
-// Shutdown gracefully stops the server and all transports.
-func (s *MCPServer) Shutdown(ctx context.Context) error {
+// Shutdown gracefully stops the server and its transports.
+func (s *MCPServer) Shutdown(_ context.Context) error {
 	s.logger.Info("Shutting down MCP server")
 
 	if s.stdio != nil {
 		s.stdio.Stop()
 	}
 
-	if s.http != nil {
-		if err := s.http.Shutdown(ctx); err != nil {
-			s.logger.Warn("HTTP transport shutdown error", zap.Error(err))
-		}
-	}
+	// The HTTP transport no longer owns a listener — its /mcp/v1 routes are
+	// mounted on the shared API server (see RegisterHTTPRoutes), whose lifecycle
+	// the caller (cmd/server) manages. Only stdio needs an explicit stop here.
 
 	s.logger.Info("MCP server shutdown complete")
 	return nil

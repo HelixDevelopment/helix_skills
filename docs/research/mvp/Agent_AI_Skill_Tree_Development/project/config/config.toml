@@ -8,6 +8,24 @@ enable_http3 = false
 enable_brotli = true
 tls_cert = ""
 tls_key = ""
+# --- Authentication & CORS (both /api/v1 and /mcp/v1 are governed by these) ---
+# api_keys: keys accepted via the X-API-Key header. LEAVE EMPTY here and supply
+# real keys through the HELIX_API_KEYS environment variable (comma-separated) so
+# secrets never live in tracked config (§11.4.10). ${VAR} placeholders are
+# interpolated from the environment; an unresolved placeholder fails closed.
+# api_keys = []
+#
+# auth_disabled: when true, /api/v1 and /mcp/v1 run with NO authentication. The
+# default (false) is FAIL-CLOSED: with no api_keys AND auth_disabled=false the
+# server rejects every /api/v1 and /mcp/v1 request with HTTP 503 until keys are
+# configured. Set true ONLY for a deliberately open deployment.
+# auth_disabled = false
+#
+# allowed_origins: CORS allowlist of exact origins (e.g. "https://app.example.com").
+# Empty (the default) is fail-closed — no cross-origin browser access, and no
+# wildcard "*" is ever emitted. A single "*" entry allows any origin but ONLY
+# for non-credentialed requests.
+# allowed_origins = []
 
 [database]
 host = "db"

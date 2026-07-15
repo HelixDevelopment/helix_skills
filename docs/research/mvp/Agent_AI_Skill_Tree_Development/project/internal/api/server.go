@@ -30,6 +30,10 @@ type ServerConfig struct {
 	// back in Access-Control-Allow-Origin. A single "*" entry allows any
 	// origin but only without credentials. Empty means no cross-origin access.
 	AllowedOrigins []string
+	// AuthDisabled, when true, runs the API with NO authentication. It is an
+	// explicit, logged mode. When false and APIKeys is empty, the server fails
+	// CLOSED (every /api/v1 request is rejected) rather than serving open.
+	AuthDisabled bool
 }
 
 // Config is the top-level application configuration.
@@ -159,9 +163,12 @@ func (s *Server) SetupRoutes() {
 	// API v1 group
 	v1 := s.router.Group("/api/v1")
 
-	// Apply API key auth to all v1 routes (if keys configured)
-	if len(s.cfg.APIKeys) > 0 {
-		v1.Use(APIKeyAuth(s.cfg.APIKeys))
+	// Apply authentication to all v1 routes. ResolveAPIKeyAuth is fail-CLOSED:
+	// with no API keys configured and auth not explicitly disabled it installs
+	// a middleware that rejects every request (503), instead of the previous
+	// fail-OPEN behaviour that served protected routes with no auth at all.
+	if mw := ResolveAPIKeyAuth(s.cfg.APIKeys, s.cfg.AuthDisabled, s.logger); mw != nil {
+		v1.Use(mw)
 	}
 
 	// Skills CRUD

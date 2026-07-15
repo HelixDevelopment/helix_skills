@@ -148,6 +148,130 @@ func TestApplyEnvOverrides_UnsetVarsLeaveDefaultsUntouched(t *testing.T) {
 	}
 }
 
+// TestApplyEnvOverrides_APIKeysCommaSplit verifies the HELIX_API_KEYS override
+// is comma-split, trimmed, and empty-filtered into Server.APIKeys.
+// Paired-mutation: deleting the HELIX_API_KEYS branch in applyEnvOverrides
+// leaves Server.APIKeys nil and this test FAILs.
+func TestApplyEnvOverrides_APIKeysCommaSplit(t *testing.T) {
+	t.Setenv("HELIX_API_KEYS", " key-one , key-two ,, key-three ")
+
+	cfg := defaultConfig()
+	applyEnvOverrides(&cfg)
+
+	want := []string{"key-one", "key-two", "key-three"}
+	if !reflect.DeepEqual(cfg.Server.APIKeys, want) {
+		t.Errorf("Server.APIKeys = %#v, want %#v (comma-split, trimmed, empties dropped)", cfg.Server.APIKeys, want)
+	}
+}
+
+// TestApplyEnvOverrides_AuthDisabled verifies the HELIX_AUTH_DISABLED override
+// maps truthy values to true and everything else to false — actively setting
+// the field in BOTH directions. Paired-mutation: deleting the branch leaves the
+// truthy cases at their default (false) and those subtests FAIL.
+func TestApplyEnvOverrides_AuthDisabled(t *testing.T) {
+	for _, v := range []string{"1", "true", "TRUE", "True"} {
+		t.Run("truthy/"+v, func(t *testing.T) {
+			t.Setenv("HELIX_AUTH_DISABLED", v)
+			cfg := defaultConfig() // AuthDisabled defaults to false
+			applyEnvOverrides(&cfg)
+			if !cfg.Server.AuthDisabled {
+				t.Errorf("HELIX_AUTH_DISABLED=%q -> AuthDisabled=false, want true", v)
+			}
+		})
+	}
+	for _, v := range []string{"0", "false", "no", "anything-else"} {
+		t.Run("falsy/"+v, func(t *testing.T) {
+			t.Setenv("HELIX_AUTH_DISABLED", v)
+			cfg := defaultConfig()
+			cfg.Server.AuthDisabled = true // the override must ACTIVELY set it false
+			applyEnvOverrides(&cfg)
+			if cfg.Server.AuthDisabled {
+				t.Errorf("HELIX_AUTH_DISABLED=%q -> AuthDisabled=true, want false", v)
+			}
+		})
+	}
+}
+
+// TestSplitAndTrim exercises the comma-split helper used by list-valued env
+// overrides: trimming and empty-filtering. Paired-mutation: removing the
+// non-empty (trim-and-skip-blank) filter makes the empty-token cases FAIL.
+func TestSplitAndTrim(t *testing.T) {
+	tests := []struct {
+		in   string
+		want []string
+	}{
+		{"", []string{}},
+		{"a", []string{"a"}},
+		{" a , b ", []string{"a", "b"}},
+		{"a,,b", []string{"a", "b"}},
+		{" , , ", []string{}},
+		{",a,", []string{"a"}},
+	}
+	for _, tt := range tests {
+		if got := splitAndTrim(tt.in); !reflect.DeepEqual(got, tt.want) {
+			t.Errorf("splitAndTrim(%q) = %#v, want %#v", tt.in, got, tt.want)
+		}
+	}
+}
+
+// TestSubstituteEnv_InterpolatesServerListFields verifies ${VAR} placeholders in
+// Server.APIKeys and Server.AllowedOrigins are interpolated (not left literal).
+// Paired-mutation: deleting the list-field interpolation loops in substituteEnv
+// leaves the "${HELIX_TEST_*}" literals in place and this test FAILs — the exact
+// defect where api_keys = ["${PROD_KEY}"] became a literal valid credential.
+func TestSubstituteEnv_InterpolatesServerListFields(t *testing.T) {
+	t.Setenv("HELIX_TEST_PROD_KEY", "resolved-secret-key")
+	t.Setenv("HELIX_TEST_ORIGIN", "https://app.example.com")
+
+	cfg := defaultConfig()
+	cfg.Server.APIKeys = []string{"${HELIX_TEST_PROD_KEY}", "static-key"}
+	cfg.Server.AllowedOrigins = []string{"${HELIX_TEST_ORIGIN}", "https://other.example.com"}
+
+	if err := substituteEnv(&cfg); err != nil {
+		t.Fatalf("substituteEnv returned unexpected error: %v", err)
+	}
+
+	wantKeys := []string{"resolved-secret-key", "static-key"}
+	if !reflect.DeepEqual(cfg.Server.APIKeys, wantKeys) {
+		t.Errorf("Server.APIKeys = %#v, want %#v (${VAR} must be interpolated, not literal)", cfg.Server.APIKeys, wantKeys)
+	}
+	wantOrigins := []string{"https://app.example.com", "https://other.example.com"}
+	if !reflect.DeepEqual(cfg.Server.AllowedOrigins, wantOrigins) {
+		t.Errorf("Server.AllowedOrigins = %#v, want %#v", cfg.Server.AllowedOrigins, wantOrigins)
+	}
+}
+
+// TestValidate_RejectsUninterpolatedPlaceholderInSecrets verifies the
+// fail-closed defense-in-depth check: an api_keys/allowed_origins entry that
+// still holds a "${" placeholder after interpolation (unset var / malformed
+// placeholder) is rejected rather than trusted as a literal secret/origin.
+// Paired-mutation: deleting either validate() loop makes the matching subtest
+// FAIL (validate would return nil).
+func TestValidate_RejectsUninterpolatedPlaceholderInSecrets(t *testing.T) {
+	t.Run("api_keys", func(t *testing.T) {
+		cfg := defaultConfig()
+		cfg.Server.APIKeys = []string{"${MISSING_CLOSING_BRACE"} // malformed: survives interpolation
+		err := validate(&cfg)
+		if err == nil {
+			t.Fatal("validate() = nil, want an error for api_keys with an uninterpolated ${ placeholder")
+		}
+		if !strings.Contains(err.Error(), "server.api_keys") {
+			t.Errorf("validate() error = %q, want it to mention server.api_keys", err.Error())
+		}
+	})
+	t.Run("allowed_origins", func(t *testing.T) {
+		cfg := defaultConfig()
+		cfg.Server.AllowedOrigins = []string{"${MISSING_CLOSING_BRACE"}
+		err := validate(&cfg)
+		if err == nil {
+			t.Fatal("validate() = nil, want an error for allowed_origins with an uninterpolated ${ placeholder")
+		}
+		if !strings.Contains(err.Error(), "server.allowed_origins") {
+			t.Errorf("validate() error = %q, want it to mention server.allowed_origins", err.Error())
+		}
+	})
+}
+
 // ---------------------------------------------------------------------------
 // validate
 // ---------------------------------------------------------------------------

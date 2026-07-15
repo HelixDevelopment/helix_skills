@@ -61,6 +61,16 @@ type ServerConfig struct {
 	// entry allows any origin but only without credentials. Empty (the default)
 	// disallows all cross-origin access.
 	AllowedOrigins []string `toml:"allowed_origins"`
+	// APIKeys is the set of valid keys that authenticate /api/v1 requests via
+	// the X-API-Key header. Prefer providing these through the HELIX_API_KEYS
+	// environment override (comma-separated) so secrets never live in tracked
+	// config (§11.4.10). When APIKeys is empty AND AuthDisabled is false, the
+	// server fails CLOSED and refuses every /api/v1 request.
+	APIKeys []string `toml:"api_keys"`
+	// AuthDisabled explicitly runs the API with NO authentication. It must be
+	// set deliberately and is logged loudly at startup. Absent keys without
+	// this flag is a fail-closed error, never a silent open server.
+	AuthDisabled bool `toml:"auth_disabled"`
 }
 
 // DatabaseConfig controls the PostgreSQL connection pool.
@@ -104,9 +114,9 @@ type EmbeddingConfig struct {
 // ValidationConfig controls the skill validation pipeline.
 type ValidationConfig struct {
 	Enabled             bool   `toml:"enabled"`
-	SandboxType         string `toml:"sandbox_type"`         // "wasm" | "docker" | "none"
-	JurySize            int    `toml:"jury_size"`            // number of validators
-	ApprovalThreshold   int    `toml:"approval_threshold"`   // votes required
+	SandboxType         string `toml:"sandbox_type"`       // "wasm" | "docker" | "none"
+	JurySize            int    `toml:"jury_size"`          // number of validators
+	ApprovalThreshold   int    `toml:"approval_threshold"` // votes required
 	AutoApproveEvidence bool   `toml:"auto_approve_evidence"`
 	RequireHumanReview  bool   `toml:"require_human_review"`
 }
@@ -290,6 +300,15 @@ func substituteEnv(cfg *Config) error {
 	cfg.Server.Host = sub(cfg.Server.Host)
 	cfg.Server.TLSCert = sub(cfg.Server.TLSCert)
 	cfg.Server.TLSKey = sub(cfg.Server.TLSKey)
+	// Server list fields honor the same ${VAR} promise as scalar fields so a
+	// TOML entry like api_keys = ["${PROD_KEY}"] is interpolated from the
+	// environment rather than stored as a literal (and dangerously valid) key.
+	for i := range cfg.Server.APIKeys {
+		cfg.Server.APIKeys[i] = sub(cfg.Server.APIKeys[i])
+	}
+	for i := range cfg.Server.AllowedOrigins {
+		cfg.Server.AllowedOrigins[i] = sub(cfg.Server.AllowedOrigins[i])
+	}
 
 	// Database
 	cfg.Database.Host = sub(cfg.Database.Host)
@@ -381,6 +400,25 @@ func applyEnvOverrides(cfg *Config) {
 	if v := os.Getenv("HELIX_MCP_TRANSPORT"); v != "" {
 		cfg.MCP.Transport = v
 	}
+	if v := os.Getenv("HELIX_API_KEYS"); v != "" {
+		cfg.Server.APIKeys = splitAndTrim(v)
+	}
+	if v := os.Getenv("HELIX_AUTH_DISABLED"); v != "" {
+		cfg.Server.AuthDisabled = v == "1" || strings.EqualFold(v, "true")
+	}
+}
+
+// splitAndTrim splits a comma-separated string into non-empty, trimmed values.
+// Used for list-valued environment overrides such as HELIX_API_KEYS.
+func splitAndTrim(v string) []string {
+	parts := strings.Split(v, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 // ---------------------------------------------------------------------------
@@ -395,6 +433,22 @@ func validate(cfg *Config) error {
 	}
 	if cfg.Server.HTTP3Port <= 0 || cfg.Server.HTTP3Port > 65535 {
 		issues = append(issues, fmt.Sprintf("invalid server.http3_port: %d", cfg.Server.HTTP3Port))
+	}
+
+	// Defense-in-depth (§11.4.10): an api_keys/allowed_origins entry that still
+	// contains a "${" placeholder AFTER interpolation means a referenced
+	// environment variable was never set (or the placeholder was malformed).
+	// Fail CLOSED rather than treat the literal placeholder as a valid secret
+	// or origin. Values are never echoed — only the field name and index.
+	for i, k := range cfg.Server.APIKeys {
+		if strings.Contains(k, "${") {
+			issues = append(issues, fmt.Sprintf("server.api_keys[%d] contains an uninterpolated ${...} placeholder (set the referenced environment variable or remove the entry)", i))
+		}
+	}
+	for i, o := range cfg.Server.AllowedOrigins {
+		if strings.Contains(o, "${") {
+			issues = append(issues, fmt.Sprintf("server.allowed_origins[%d] contains an uninterpolated ${...} placeholder", i))
+		}
 	}
 
 	if cfg.Database.Port <= 0 || cfg.Database.Port > 65535 {
