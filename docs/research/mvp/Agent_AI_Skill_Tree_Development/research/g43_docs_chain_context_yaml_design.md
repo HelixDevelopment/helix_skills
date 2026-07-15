@@ -1,13 +1,33 @@
 # G43 — Docs Chain Context-YAML + Export-Gate Wiring Design (concrete)
 
-**Revision:** 1
-**Last modified:** 2026-07-15T18:44:42Z
+**Revision:** 2
+**Last modified:** 2026-07-15T19:02:24Z
 **Scope:** DESIGN ONLY. No `.docs_chain/` file created, no context YAML written to
 disk, no gate script created, no export generated, no submodule added, no git
 operation, nothing under `project/` touched by this document's author. The only
 artefact this task produced is this one markdown file. The fenced YAML/shell
 blocks below are the *proposed content* for the wiring step to author later, not
 files that exist today.
+**Revision 2 changes (this pass, re-dispatched after Revision 1 landed complete
+— re-verified, not re-derived from scratch):** (a) independently re-confirmed
+every Revision-1 source-code claim about `cmd/docs_chain/main.go` directly
+against the still-present external scratch clone (`cmdVerify`'s comment text,
+`runSyncContexts`'s `writeEvidence` call, the confirmed absence of a
+`writeEvidence` call inside `cmdVerify`) — all VERBATIM-accurate, none
+hallucinated; (b) found and cross-referenced a **second, independent, real-world
+evidence source** Revision 1 did not have: a sibling Helix-family project's own
+LIVE, currently-tracked `.docs_chain/contexts/*.yaml` files (read-only, external
+to this repo, untouched) plus its `USE_CASE_CATALOGUE.md` Appendix Z — proving
+the engine is used in PRODUCTION by ≥2 independent real consumers, not merely
+buildable-in-isolation (§2.5, new); (c) **fixed a genuine §11.4.208 compliance
+gap**: the request-history document (`requests/history.md`) specifically
+requires a four-format `.docx` sibling per this project's own inherited
+§11.4.208 clause (C) — Revision 1's §10 honest-gaps note ("DOCX … not designed
+in") incorrectly treated `docx` as uniformly out-of-scope; §4.2 now adds the
+`history_docx` node/edge, and the sibling project's own real
+`request_history.yaml` independently confirms the same requirement for the
+identical anchor (§2.5); (d) flagged a schema-documentation discrepancy in
+`CONFIG_SCHEMA.md` §3.1 itself (§2.2).
 **Builds on:** `research/g43_docs_chain_export_wiring_design.md` (Rev 1) — that
 doc settled the STRATEGY (adopt the real `vasic-digital/docs_chain` engine; it
 builds clean, `go test ./...` green; pandoc 3.10 + weasyprint 69.0 present;
@@ -19,7 +39,8 @@ export gate, grounded field-for-field in the engine's REAL config schema.
 §11.4.86 (fingerprint/content-hash not mtime) / §11.4.44 (revision header) /
 §11.4.28(B) + §11.4.177 (decoupling — engine by reference, project literals in
 consumer-owned data) / §11.4.50 (deterministic gate) / §11.4.69 (captured
-evidence) / §11.4.6 (no-guessing).
+evidence) / §11.4.208 (request-history four-format mandate, binds §4.2) /
+§11.4.6 (no-guessing).
 **Closes (design half of):** `GAPS_AND_RISKS_REGISTER.md` **G43** (HIGH,
 §11.4.106/§11.4.65) — "zero `.html`/`.pdf` exports exist for any tracked doc".
 
@@ -100,8 +121,21 @@ transforms: <map>          # REQUIRED if any edge names a transform
 
   (Also available but out of scope: `sqlite`, `summary`, `status`,
   `status_summary`, `fingerprint`. `docx` is a valid derived kind reachable via
-  the `pandoc-docx` builtin but is NOT part of the §11.4.65 baseline mandate —
-  omitted, see §5.4.)
+  the `pandoc-docx` builtin; it is NOT part of the §11.4.65 *baseline* mandate,
+  but IS separately REQUIRED for exactly one document in this set — see §4.2's
+  `history_docx` node and §2.5/§9's cross-reference to the §11.4.208
+  request-history four-format mandate. Revision 1 of this design treated `docx`
+  as uniformly out-of-scope; Revision 2 corrects that.)
+
+  **Schema-doc discrepancy, flagged not silently resolved (§11.4.6):**
+  `CONFIG_SCHEMA.md` §3.1's own allowed-`kind` table does **not** list `docx`
+  at all, yet (a) the engine's own dogfood context `self-docs.yaml` uses
+  `kind: docx` on four nodes, and (b) the `pandoc-docx` builtin (`markdown →
+  docx`) IS listed in the same document's §5.1 builtins table two sections
+  later. This reads as the §3.1 table lagging the §5.1 builtins table (docx
+  support was evidently added after §3.1 was last revised), not as `docx`
+  being genuinely unsupported — confirmed further by the independent
+  production usage in §2.5. This design treats `kind: docx` as valid.
 
 - **Edge spec — `derive-from`** (one-way; `§4.1`), the only edge shape this
   design uses:
@@ -157,6 +191,58 @@ the gate never string-matches to tell a real drift from an honest tool-absence
 | §11.4.12 | derive `summary ← markdown` + early-cutoff — n/a here (no summary docs in set) |
 | §11.4.86 | content-hash change detection (NOT mtime) — engine-wide, `state.json` records byte-hashes, `verify` recomputes bytes |
 | §11.4.106(E) | typed `ToolAbsentError` — "refusing to fake success" (confirmed in `internal/adapter/adapter.go`) |
+
+### 2.5 Independent real-world production validation (Revision 2, new)
+
+Revision 1's only worked reference was the engine's own dogfood context
+(`self-docs.yaml` — the engine exporting its own docs). This pass searched the
+host more broadly and found something stronger: **a sibling Helix-family
+project (checked out read-only at `/mnt/track1/atmosphere-t1/`, entirely
+external to this repo, untouched by this task) already has a LIVE, populated
+`.docs_chain/contexts/` directory** with 15 real, currently-tracked context
+files, plus a gate wrapper (`scripts/testing/verify_docs_chain_engine.sh`), a
+git pre-commit hook (`scripts/git_hooks/lib/docs_chain_autosync.sh`), and a
+sync-all wrapper (`scripts/testing/sync_all_docs_chain.sh`). Three of its
+contexts map almost exactly onto this design's own doc classes:
+
+- **`continuation.yaml`** ↔ this design's `CONTINUATION.md` node (§4.2) — same
+  shape (`markdown → html → pdf`, `pandoc-html` + `weasyprint-pdf`).
+- **`request_history.yaml`** ↔ this design's `history_*` nodes (§4.2) — and
+  critically, that real production context **already includes a `docx` node**
+  (`reqhist_docx: { kind: docx, ... }`, transform `md-to-docx: { builtin:
+  pandoc-docx }`) for the identical `docs/requests/history.md` document under
+  the identical §11.4.208 anchor — direct, independent confirmation that this
+  design's Revision-2 `history_docx` fix (§4.2) is the correct, precedented
+  shape, not a speculative addition.
+- **`research_completion.yaml`** ↔ this design's `skilltree_research` context
+  (§4.4) — a fingerprint + single-`exec`-transform batch-export shape (one
+  `sha256`-of-sorted-`research/**/*.md` fingerprint node, one `summary` marker
+  node, one `exec:` transform re-exporting every changed doc as a side
+  effect). This is a **viable alternate shape** to §4.4's generator-produced
+  full-enumeration approach, worth recording: it trades native per-file
+  atomic-rename/rollback (§5.3's per-node guarantee, which full enumeration
+  keeps) for a flat, enumeration-free config that scales without a generator
+  script — but the atomicity of each individual `.html`/`.pdf` side-effect
+  write then depends on the `exec` script's OWN temp-write-then-rename
+  discipline, not the engine's native per-node commit. §4.4's generator-based
+  full enumeration remains this design's recommendation for that reason.
+
+The catalogue this sibling project fetched into the same kind of scratch clone
+(`docs/USE_CASE_CATALOGUE.md`) also documents **Appendix Z — a worked,
+`verify`-green, IMPLEMENTED consumer (a real downstream project, Herald)
+exporting a 66-doc corpus**, upgrading confidence from "the engine builds and
+its own tests pass in isolation" (Revision 1's finding) to "the engine is
+genuinely used in production, verify-green, by at least two independent real
+Helix-family projects today."
+
+**Honest boundary (§11.4.6):** the sibling project's contexts are evidence of
+the *pattern* and of the *§11.4.208 docx requirement*, not evidence that
+*this* repo's wiring is done — nothing was copied verbatim into §4; every
+context in §4 is authored fresh against this repo's own doc paths and its own
+`--root <MVP>` anchoring decision (§4.1), which the sibling project's contexts
+do not use (they anchor at their own repo root instead — a different, equally
+valid choice for a project not planning the same future extraction §4.1
+describes).
 
 ---
 
@@ -254,11 +340,21 @@ The alternative (root = `helix_skills`, paths like
 but re-couples every path to the current nesting and does not survive extraction
 — rejected for that reason.
 
-### 4.2 `skilltree_tracking.yaml` (fully enumerated — 7 docs, 21 nodes)
+### 4.2 `skilltree_tracking.yaml` (fully enumerated — 7 docs, 22 nodes)
+
+**Revision 2 fix:** `requests/history.md` carries an additional `history_docx`
+node/edge/transform beyond the other 6 docs' `md→html→pdf` triple, because
+this project's own inherited §11.4.208 clause (C) explicitly requires a
+four-format (`.md`+`.html`+`.pdf`+`.docx`) export for the request-history
+ledger specifically — confirmed independently by the sibling project's real
+`request_history.yaml` doing the same thing for the identical anchor (§2.5).
+The other 6 docs stay at the §11.4.65 baseline triple (no `docx` requirement
+applies to them).
 
 ```yaml
 context: skilltree_tracking
-description: Living tracker docs (read first on resume) — md -> html -> pdf per §11.4.65
+description: Living tracker docs (read first on resume) — md -> html -> pdf per §11.4.65;
+  requests/history.md additionally gets a docx sibling per §11.4.208 clause (C).
 nodes:
   requirements_md:   { kind: markdown, path: REQUIREMENTS.md }
   requirements_html: { kind: html,     path: REQUIREMENTS.html }
@@ -281,6 +377,7 @@ nodes:
   history_md:        { kind: markdown, path: requests/history.md }
   history_html:      { kind: html,     path: requests/history.html }
   history_pdf:       { kind: pdf,      path: requests/history.pdf }
+  history_docx:      { kind: docx,     path: requests/history.docx }
 edges:
   - { type: derive-from, from: requirements_md,   to: requirements_html,  transform: md2html }
   - { type: derive-from, from: requirements_html, to: requirements_pdf,   transform: html2pdf }
@@ -296,9 +393,11 @@ edges:
   - { type: derive-from, from: plan_html,         to: plan_pdf,           transform: html2pdf }
   - { type: derive-from, from: history_md,        to: history_html,       transform: md2html }
   - { type: derive-from, from: history_html,      to: history_pdf,        transform: html2pdf }
+  - { type: derive-from, from: history_md,        to: history_docx,       transform: md2docx }
 transforms:
   md2html:  { builtin: pandoc-html }
   html2pdf: { builtin: weasyprint-pdf }
+  md2docx:  { builtin: pandoc-docx }
 ```
 
 ### 4.3 `skilltree_service_docs.yaml` (fully enumerated — 6 docs, 18 nodes)
@@ -635,10 +734,19 @@ design.
 - Whether `docs_chain` lands at `constitution/submodules/docs_chain/` vs this
   project's own `submodules/docs_chain/` is a G14/constitution decision this doc
   cross-references (§8) but does not make.
-- DOCX siblings are out of the §11.4.65 baseline mandate; a `pandoc-docx` builtin
-  exists (used by the engine's own `self-docs.yaml`) but is not designed in.
+- DOCX siblings are out of the §11.4.65 *baseline* mandate for most docs in this
+  set; `requests/history.md` is the one documented exception (§11.4.208 clause
+  C), fixed into §4.2 in Revision 2. If a future anchor extends the four-format
+  requirement to other docs, §4.2/§4.3's node lists would need the same
+  `_docx`/`md2docx` addition — not automatic today.
+- The `CONFIG_SCHEMA.md` §3.1 kind-table vs §5.1 builtin-table `docx`
+  discrepancy (§2.2, Revision 2) is reported, not silently patched around —
+  worth correcting upstream in the engine's own docs.
+- This design's additional real-world grounding (§2.5, Revision 2) is
+  read-only evidence from a sibling project's checkout external to this repo
+  — nothing from it was copied into this repo, and that sibling project's own
+  wiring status is not a claim about this repo's wiring status.
 - The §11.4.44 revision-header backfill for the 5 header-less top-level docs (G44)
   is a coupled but independent effort (g43 §5) — Docs Chain exports whatever the
   source says, header or not; recommend landing G44 in the same batch so the
   first `sync` produces header-carrying exports.
-```

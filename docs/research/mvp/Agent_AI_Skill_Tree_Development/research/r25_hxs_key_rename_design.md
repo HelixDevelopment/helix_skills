@@ -1,7 +1,7 @@
 # R25 — Canonical `hxs` Project-Key Rename: Airtight Integrity-Gated Design (DESIGN ONLY)
 
-**Revision:** 1
-**Last modified:** 2026-07-15T18:54:27Z
+**Revision:** 2
+**Last modified:** 2026-07-15T19:03:45Z
 **Status:** DESIGN ONLY — execution is a dedicated LATER pass (post doc-churn freeze). This document does NOT execute any rename; it produces the airtight, re-runnable specification so the apply pass has zero risk of orphaned/broken references (§11.4.6).
 **Scope:** the HelixKnowledge Skill Graph System MVP doc set + `project/` code references, under `docs/research/mvp/Agent_AI_Skill_Tree_Development/`.
 **Composes:** §11.4.29 (lowercase) · §11.4.54 (stable auto-incremental workable-item ids) · §11.4.151 (`<prefix>-<version>` release naming) · §11.4.6 (no-guessing — prove every reference resolves) · §11.4.124 (investigate-before-remove — a rename that drops an id is a violation) · §9.2 (hardlinked backup) · §11.4.113 (absolute no-force-push) · §11.4.66 (surface genuine decisions) · §11.4.84 (working-tree quiescence) · §11.4.86 (fingerprint-driven re-arm).
@@ -78,7 +78,8 @@ The id grammar collides with real technical vocabulary. Confirmed collisions (ca
 
 - **`R8`** — the **Android R8 shrinker/optimizer** ("D8/R8, DEX, shrink/obfuscate"). A blind `\bR8\b → hxs-…` rewrite would CORRUPT a domain skill description. `R8` the shrinker is inside the 839 `R[0-9]{1,2}` matches but is NOT a requirement id.
 - **`D8`** — the **Android DEX compiler** ("D8/R8 lowering"). Collides with the `D<n>` tutorial-label grammar.
-- Residual risk class: any two-char `[A-Z][0-9]` technical token (part numbers, register names, protocol versions) that appears in skill content.
+- **`P50`/`P95`/`P99`** — **latency percentiles** quoted verbatim inside external research excerpts, colliding with the `P<n>` phase-id grammar the SAME way `R8` collides with the `R<n>` requirement grammar (captured evidence — re-verified 2026-07-15T19:03Z): `research/skillgraph_dim04_vectordb.md:235` (*"a 1B-vector, sub-100ms **P99** requirement"*) and `:273` (*"achieving 35ms **P50** latency with top10 recall@95%"*); `research/skillgraph_dim06_validation_techniques.md:485` (*"latency (**P95**), audit readiness"*). A blind `\bP[0-9]{2}\b → hxs-p…` rewrite would corrupt three unrelated citations from an external vector-DB benchmark and a validation-technique survey — the exact same failure mode as the R8/D8 case, one axis over. Added to the seed deny-list (§4.1/§6 step 3) alongside `R8`/`D8`.
+- Residual risk class: any two-char `[A-Z][0-9]` technical token (part numbers, register names, protocol versions, percentile labels) that appears in skill content or quoted external research.
 
 **Design consequence (load-bearing, applies to BOTH Model A and Model B):** the id-map + rewrite MUST be **definition-anchored and deny-list-aware**, never a blind `sed s/\bG[0-9][0-9]\b/…/g`. An id is rewritten ONLY if it is in the DEFINED id universe (§2.2) OR is a cross-reference whose token matches a defined id AND is not on the domain-term deny-list. The deny-list (seeded: `R8`, `D8`; extended at apply time by a scan of skill/technology content) is itself captured evidence and reviewed before the pass.
 
@@ -144,7 +145,7 @@ The doc set is still churning (38 research docs + register + plan actively edite
 
 ### 4.1 Algorithm
 
-**Inputs:** the doc set `$DOCSET`; the axis-fold flag (D1/D2 from §3.4); the domain-term deny-list (seed `{R8, D8}`, extended by a content scan).
+**Inputs:** the doc set `$DOCSET`; the axis-fold flag (D1/D2 from §3.4); the domain-term deny-list (seed `{R8, D8, P50, P95, P99}`, extended by a content scan).
 
 **Step 1 — enumerate the DEFINED id universe (definition-anchored, §2.2), not blind tokens.**
 ```
@@ -170,7 +171,7 @@ This yields the authoritative id set. Any grammar-matching token NOT in this set
 Invariants (§11.4.54): once assigned an `hxs_id` is **never** renumbered, reused, decremented, or gapped; the sequence is monotonic with no holes; the map is append-only. The `defined_in` field is the binding key (survives heading reflow). Aliases (`P0.5.Gxx`) are recorded so the rewrite maps them to the same id.
 
 **Step 4 — rewrite (definition-anchored + deny-list-aware).** For every file in `$DOCSET` (+ the §2.4 `project/` refs if in scope — decision D4), replace each occurrence of every mapped `old_id` — its definition AND every cross-reference (including `§G0x` in-code forms) — with its `hxs_id`, using an anchored word-boundary transform that:
-- SKIPS any token on the domain-term deny-list (`R8`, `D8`, extended);
+- SKIPS any token on the domain-term deny-list (`R8`, `D8`, `P50`, `P95`, `P99`, extended);
 - SKIPS any token not in the mapped universe (unknown two-char tokens are left literal, never guessed — §11.4.6);
 - handles the zero-padded variants (`R01`/`R09`) by normalizing to the canonical id before lookup;
 - rewrites compound `P0.5.Gxx` to the `Gxx`→`hxs` mapping (dedup), and `Pn.Tm` under D1 to `hxs-p<n>.t<m>`.
@@ -189,13 +190,13 @@ A deterministic PASS/FAIL gate that runs AFTER the rewrite and BEFORE the commit
 
 ### 5.1 Gate invariants (all must hold)
 
-1. **Zero orphan old-ids.** No live `G0x`/`R0x`/`P0x`/`Pn.Tm`/`Xn` id token survives anywhere in `$DOCSET` (+ in-scope `project/` refs), EXCEPT: (a) tokens on the domain-term deny-list (`R8`/`D8`/extended), (b) the `hxs_id_map.{json,md}` crosswalk itself (which legitimately records old ids), (c) historical/supersession notes explicitly quoting an old id as history (allow-listed by line). Check:
+1. **Zero orphan old-ids.** No live `G0x`/`R0x`/`P0x`/`Pn.Tm`/`Xn` id token survives anywhere in `$DOCSET` (+ in-scope `project/` refs), EXCEPT: (a) tokens on the domain-term deny-list (`R8`/`D8`/`P50`/`P95`/`P99`/extended), (b) the `hxs_id_map.{json,md}` crosswalk itself (which legitimately records old ids), (c) historical/supersession notes explicitly quoting an old id as history (allow-listed by line). Check:
    `grep -rEn '\b(G[0-9]{2}|R[0-9]{1,2}|P[0-9]+(\.[0-9]+)?(\.T[0-9]+)?|X[1-4])\b' $DOCSET | <filter deny-list + crosswalk + allow-list> | wc -l == 0`.
 2. **Every `hxs-NNN` resolves to exactly one definition.** Build a definition index from the rewritten tree; assert every gap `hxs-NNN` has exactly one definition heading/bullet (no dup, no missing).
 3. **Sequence integrity (§11.4.54).** The gap `hxs-NNN` sequence is monotonic with NO gaps and NO duplicates; the `hxs_id_map.json` is append-only and internally consistent (every mapped old id appears exactly once).
 4. **Every cross-reference resolves.** Every `hxs-…` token used as a reference has a matching definition in the index (no dangling reference).
 5. **No broken markdown links / anchors.** Extract every `[text](target)` + intra-doc `#anchor`; resolve each against the rewritten tree; zero unresolved.
-6. **Deny-list untouched.** Assert each seed domain term (`R8`/`D8`) still appears verbatim in its original file:line (the rewrite did NOT corrupt a technical term).
+6. **Deny-list untouched.** Assert each seed domain term (`R8`/`D8`/`P50`/`P95`/`P99`) still appears verbatim in its original file:line (the rewrite did NOT corrupt a technical term or a quoted external benchmark).
 7. **Release-prefix present (§6).** `HELIX_RELEASE_PREFIX=hxs` resolvable in `.env.example`; version strings that carry a prefix use `hxs-`.
 
 Each invariant prints its resolved evidence on FAIL (§11.4.201 — a guard reports why it refused), naming the exact offending file:line.
@@ -210,8 +211,9 @@ Run in a scratchpad copy (§11.4.84 — never the real tree). Each mutation MUST
 - **M4 (dangling ref):** insert an `hxs-999` reference with no definition → invariant 4 FAILs.
 - **M5 (broken link):** rewrite a `[…](GAPS_AND_RISKS_REGISTER.md#g14)` anchor without updating the target → invariant 5 FAILs.
 - **M6 (domain-term corruption):** let the rewrite touch `R8`→`hxs-…` in the Android skill description → invariant 6 FAILs.
+- **M7 (percentile corruption):** let the rewrite touch `P99`→`hxs-p99` in the `skillgraph_dim04_vectordb.md` benchmark quote (or `P50`/`P95` in the sibling docs) → invariant 6 FAILs, naming the exact quoted-excerpt file:line.
 
-A gate that PASSes any of M1–M6 is itself the bluff (§11.4.107(10) self-validation): ship a golden-good fixture (correctly renamed tree → PASS) + these six golden-bad fixtures (→ FAIL) wired into meta-test.
+A gate that PASSes any of M1–M7 is itself the bluff (§11.4.107(10) self-validation): ship a golden-good fixture (correctly renamed tree → PASS) + these seven golden-bad fixtures (→ FAIL) wired into meta-test.
 
 ---
 
@@ -267,7 +269,7 @@ The G40 design (`research/g40_workable_items_db_adoption_design.md`) adopts the 
 | **D3 (REQ ledger)** | Re-key intake-ledger `REQ-NNN` → `hxs-req-NNN`, or leave? | Leave (or `hxs-req-`) | §11.4.208 request-ledger is a distinct intake axis, not a workable-item ticket. "hxs everywhere" arguably reaches it — flag. |
 | **D4 (code scope)** | Rename the 17 `§G0x` in-code comments + seed-TOML `R`-cites too, or docs-only? | Include code (operator said "everywhere") | Code refs are stable design citations tangled with domain content; the deny-list (§2.3) is essential; confirm scope. |
 | **D5 (alias retention)** | Keep a `legacy_id` alias (crosswalk / DB column) so old cross-refs in git history + external trackers still resolve, or hard-supersede? | Keep the `hxs_id_map.md` crosswalk as the durable alias record (G47 option-b spirit) | §11.4.124 — never drop the old id's provenance; historical commits + any external tracker still reference `G14`. |
-| **D6 (deny-list)** | Confirm the domain-term exclusions (`R8` Android shrinker, `D8` DEX, + any others found by the apply-time content scan) | Confirm + extend at apply time | A missed deny-list entry corrupts a technical term (§2.3); an over-broad one leaves an orphan id. |
+| **D6 (deny-list)** | Confirm the domain-term exclusions (`R8` Android shrinker, `D8` DEX, `P50`/`P95`/`P99` latency percentiles in quoted research excerpts, + any others found by the apply-time content scan) | Confirm + extend at apply time | A missed deny-list entry corrupts a technical term or an external quotation (§2.3); an over-broad one leaves an orphan id. |
 
 ---
 
@@ -301,8 +303,10 @@ This is a DESIGN. It proves the apply pass CAN be made airtight (definition-anch
    old→hxs mapping is captured ONCE in a tracked `MIGRATION_MAP.md` (the §11.4.124
    investigate-before-remove audit evidence) + the §11.4.208 ledger notes the pass.
 4. **Deny-list = CONFIRMED exclude** domain terms that collide with the id grammar
-   (`R8` Android shrinker, `D8` DEX, any non-definition-anchored token). Only
-   definition-anchored ids are re-keyed.
+   (`R8` Android shrinker, `D8` DEX, `P50`/`P95`/`P99` latency percentiles quoted
+   in `research/skillgraph_dim04_vectordb.md:235,273` and
+   `research/skillgraph_dim06_validation_techniques.md:485`, any non-definition-anchored
+   token). Only definition-anchored ids are re-keyed.
 
 **Load-bearing findings ACCEPTED (bind the apply pass):**
 - **No blind token substitution** — the rewrite MUST be definition-anchored +
