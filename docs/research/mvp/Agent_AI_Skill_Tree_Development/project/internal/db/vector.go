@@ -2,12 +2,14 @@ package db
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/pgvector/pgvector-go"
 	"go.uber.org/zap"
 )
@@ -394,8 +396,33 @@ func VectorIndexStats(
 	return indexedCount, indexSizeBytes, nil
 }
 
+// indexReadyQuery reports whether an index (identified by its pg_class.relname)
+// is valid. The index name lives on pg_class, NOT on pg_index — pg_index has no
+// name column, only indexrelid, an OID reference into pg_class. The earlier
+// `SELECT indisvalid FROM pg_index WHERE indexrelname = $1` form therefore
+// always failed at parse/plan time with `column "indexrelname" does not exist`,
+// and because that error was swallowed by a catch-all "not ready yet" branch,
+// WaitForVectorIndexReady could only ever time out — it never detected a ready
+// index. Joining pg_index to pg_class on indexrelid and matching c.relname is
+// the correct catalog lookup. A genuinely absent index returns ZERO rows
+// (pgx.ErrNoRows), which is the real "still building / not created yet" signal.
+const indexReadyQuery = `SELECT i.indisvalid
+	FROM pg_index i
+	JOIN pg_class c ON c.oid = i.indexrelid
+	WHERE c.relname = $1`
+
 // WaitForVectorIndexReady polls until the pgvector HNSW index for the
-// given table is ready (no invalid index entries), or until the timeout.
+// given table is ready (indisvalid = true), or until the timeout.
+//
+// Error handling distinguishes the two cases the previous swallow-everything
+// `continue` conflated (§11.4.201 — a guard must assert the real condition, not
+// a proxy that any failure satisfies): pgx.ErrNoRows means the index does not
+// exist yet and polling should continue, whereas any OTHER query error means
+// the query itself (or the connection) is broken and is surfaced immediately
+// rather than silently spun on until the deadline. A per-iteration query
+// cancelled by this function's own deadline is not a broken query — it is
+// deferred to the ctx.Done() branch so the timeout is reported once, with its
+// clearer message.
 func WaitForVectorIndexReady(
 	ctx context.Context,
 	pool *Pool,
@@ -421,19 +448,26 @@ func WaitForVectorIndexReady(
 			return fmt.Errorf("timeout waiting for index %s to be ready: %w", indexName, ctx.Err())
 		case <-ticker.C:
 			var isValid bool
-			err := pool.QueryRow(ctx,
-				`SELECT indisvalid FROM pg_index WHERE indexrelname = $1`,
-				indexName,
-			).Scan(&isValid)
-			if err != nil {
-				// Index may not exist yet; keep waiting.
+			err := pool.QueryRow(ctx, indexReadyQuery, indexName).Scan(&isValid)
+			switch {
+			case err == nil:
+				if isValid {
+					return nil
+				}
+				zap.L().Debug("vector index still building", zap.String("index", indexName))
+			case errors.Is(err, pgx.ErrNoRows):
+				// Index does not exist yet — the genuine "keep waiting" case.
 				zap.L().Debug("vector index not found yet", zap.String("index", indexName))
-				continue
+			case errors.Is(err, context.DeadlineExceeded), errors.Is(err, context.Canceled):
+				// The per-iteration query lost the race with the deadline; let
+				// the ctx.Done() branch report the timeout on the next loop turn.
+				zap.L().Debug("vector index readiness query cancelled", zap.String("index", indexName))
+			default:
+				// A genuine query/connection error (broken SQL, dead pool) —
+				// surface it rather than spinning until timeout, which is exactly
+				// the failure the previous catch-all `continue` masked.
+				return fmt.Errorf("query readiness of index %s: %w", indexName, err)
 			}
-			if isValid {
-				return nil
-			}
-			zap.L().Debug("vector index still building", zap.String("index", indexName))
 		}
 	}
 }
