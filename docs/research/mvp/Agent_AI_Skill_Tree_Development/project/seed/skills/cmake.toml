@@ -1,0 +1,58 @@
+[skill]
+name = "cmake.build_system"
+version = "0.1.0"
+title = "CMake Cross-Platform Build System"
+description = "Reference for CMake: CMakeLists.txt authoring, target-based modern idioms, find_package/FetchContent dependency resolution, and its role in Android NDK and Qt native builds."
+content = """
+# CMake
+
+## Overview
+CMake is a cross-platform, open-source meta-build system that generates
+native build files (Makefiles, Ninja files, Visual Studio/Xcode projects)
+from declarative `CMakeLists.txt` scripts. It decouples project description
+from the underlying build tool, making C/C++ (and Fortran/CUDA) projects
+portable across compilers and operating systems.
+
+## Key facts
+- Two-phase workflow: `cmake -S . -B build` (configure/generate) then
+  `cmake --build build` (invoke the generated build system).
+- Core commands: `project()`, `add_executable()`, `add_library()`,
+  `target_link_libraries()`, `target_include_directories()`. Modern CMake
+  (3.x+) favors target-based "usage requirements" idioms over legacy global
+  `include_directories()` / `link_libraries()` calls.
+- `find_package()` locates dependencies via Config-file packages or
+  `Find<Pkg>.cmake` modules; `FetchContent` and `ExternalProject` pull
+  dependencies at configure or build time for source-based integration.
+- Build types (`CMAKE_BUILD_TYPE=Debug|Release|RelWithDebInfo`) control
+  optimization level and debug-symbol generation.
+- CTest (test running) and CPack (packaging) ship alongside CMake as
+  companion tools invoked from the same build tree.
+- `CMakePresets.json` standardizes configure/build/test invocations across
+  developer machines and CI without shell-script glue.
+
+## Why it matters here
+CMake is one of the six technologies in the R6 canonical wizard example
+(`android, android-aosp, java, kotlin, c++, cmake`) and is the standard
+build generator for C++ code invoked from the Android NDK, and for
+cross-platform desktop toolkits such as Qt.
+"""
+
+[skill.metadata]
+tags = ["cmake", "build", "cpp", "ninja", "ndk"]
+domain = "build"
+complexity = "intermediate"
+
+[skill.dependencies]
+requires = ["make.build_system", "cpp.language"]
+extends = []
+recommends = []
+
+[[skill.resources]]
+url = "https://cmake.org/cmake/help/latest/"
+title = "CMake Documentation (Latest)"
+resource_type = "official-doc"
+
+[[skill.resources]]
+url = "https://cmake.org/cmake/help/latest/guide/tutorial/index.html"
+title = "CMake Tutorial"
+resource_type = "official-doc"

@@ -1,0 +1,61 @@
+[skill]
+name = "android.overview"
+version = "0.1.0"
+title = "Android Application Platform"
+description = "General reference for the Android OS and application framework: components, Jetpack Compose, the Gradle/AGP build pipeline, and distribution — the general skill android.aosp.build_system specializes."
+content = """
+# Android
+
+## Overview
+Android is Google's Linux-kernel-based mobile operating system and
+application platform, powering the large majority of the world's
+smartphones as well as tablets, TVs (Android TV), cars (Android Automotive),
+and wearables (Wear OS). Applications run on the Android Runtime (ART) and
+are typically written in Kotlin or Java, packaged as APKs or Android App
+Bundles (AABs).
+
+## Key facts
+- Application framework: Activities, Fragments/Compose screens, Services,
+  BroadcastReceivers, and ContentProviders are declared in
+  `AndroidManifest.xml` and form the four core component types.
+- Jetpack Compose (Kotlin-first declarative UI toolkit) is the current
+  recommended UI approach, alongside the older View/XML-layout system.
+- Build system: Gradle with the Android Gradle Plugin (AGP) compiles
+  Kotlin/Java to DEX bytecode via D8/R8 (also handling shrinking and
+  obfuscation), and native code via the NDK.
+- Distribution: Google Play (App Bundles, Play Console) is the primary
+  channel; sideloading and alternative stores are also supported, unlike
+  more closed mobile platforms.
+- The Android Open Source Project (AOSP) is the underlying open-source
+  platform source tree that OEMs customize per device; it uses its own
+  Soong/Make/Bazel-based build system, distinct from app-level Gradle
+  builds.
+- Versioning: yearly major releases identified by API level (e.g. Android
+  15 = API 35); `minSdkVersion`/`targetSdkVersion` gate compatibility.
+
+## Why it matters here
+`android.overview` is the general Android application-development skill
+that `android.aosp.build_system` specializes/extends, and is itself a hard
+prerequisite requiring both Java and Kotlin — matching the R6 canonical
+wizard tech set (`android, android-aosp, java, kotlin, c++, cmake`).
+"""
+
+[skill.metadata]
+tags = ["android", "mobile", "jetpack-compose", "gradle", "aosp"]
+domain = "android"
+complexity = "beginner"
+
+[skill.dependencies]
+requires = ["java.language", "kotlin.language"]
+extends = []
+recommends = []
+
+[[skill.resources]]
+url = "https://developer.android.com/guide"
+title = "Android Developer Guides"
+resource_type = "official-doc"
+
+[[skill.resources]]
+url = "https://source.android.com/"
+title = "Android Open Source Project (AOSP)"
+resource_type = "official-doc"

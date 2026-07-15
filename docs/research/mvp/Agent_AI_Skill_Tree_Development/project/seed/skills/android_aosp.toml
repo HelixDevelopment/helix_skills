@@ -1,0 +1,62 @@
+[skill]
+name = "android.aosp.build_system"
+version = "0.1.0"
+title = "AOSP Build System (Soong, Make, Bazel)"
+description = "Complete reference for the Android platform build: Soong Blueprint modules (Android.bp), legacy Make (Android.mk) via Kati, and the ongoing bp2build migration to Bazel."
+content = """
+# AOSP Build System (Soong, Make, Bazel)
+
+## Overview
+The Android Open Source Project (AOSP) build system compiles the platform
+itself (frameworks, system services, HALs, kernel packaging) — distinct
+from app-level Gradle builds. It has evolved from a pure Make-based system
+(`Android.mk`), to the Go-based Soong build system (`Android.bp` Blueprint
+files), with an active migration path to Bazel for parts of the tree.
+
+## Soong Blueprints
+`Android.bp` files declare modules (`cc_binary`, `cc_library`,
+`java_library`, `android_app`, etc.) in a declarative Blueprint (JSON-like)
+format parsed by Soong, which generates Ninja build files under the hood.
+Soong replaced ad hoc per-directory Makefile logic with typed, analyzable
+module definitions.
+
+## Key facts
+- Legacy `Android.mk` files (Make syntax) are still supported via `Kati`, a
+  Make-compatible tool that converts them to Ninja; new modules are
+  expected to use Soong or Bazel rather than Make.
+- `bp2build` converts Soong Blueprint modules to Bazel `BUILD` files, part
+  of Google's ongoing Make/Soong → Bazel migration for AOSP.
+- Build entered via `source build/envsetup.sh`, `lunch <target>`, then `m`
+  (builds the whole tree) or `mm`/`mmm` (builds a module or subtree).
+- Output artifacts (system images, boot images) land under
+  `out/target/product/<device>/`.
+- Device-specific configuration (board config, kernel, BSP) lives in
+  vendor/device trees layered on top of the AOSP core tree — this is where
+  SoC vendors (e.g. Rockchip) and SBC integrators (e.g. Orange Pi) plug in.
+
+## Why it matters here
+This is the SPEC.md §4.2 canonical worked example: it requires Linux,
+Python, and Make fundamentals, extends the general `android.overview`
+skill, and recommends Bazel knowledge given the ongoing Soong-to-Bazel
+migration.
+"""
+
+[skill.metadata]
+tags = ["android", "aosp", "build", "soong", "bazel"]
+domain = "android"
+complexity = "advanced"
+
+[skill.dependencies]
+requires = ["linux.os", "python.language", "make.build_system"]
+extends = ["android.overview"]
+recommends = ["bazel.build_system"]
+
+[[skill.resources]]
+url = "https://source.android.com/docs/setup/build/building"
+title = "Official Android Build Documentation"
+resource_type = "official-doc"
+
+[[skill.resources]]
+url = "https://android.googlesource.com/platform/build/soong/+/refs/heads/main/README.md"
+title = "Soong README"
+resource_type = "code"

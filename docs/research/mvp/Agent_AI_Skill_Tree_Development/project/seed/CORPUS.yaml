@@ -1,0 +1,379 @@
+# CORPUS.yaml — R13 Validation Skill Corpus (HelixKnowledge Skill Graph)
+#
+# Purpose: enumerate the full skill set that REQUIREMENTS.md §R13 says the
+# system must be able to create + validate end-to-end. Each entry is a future
+# (or already-authored, see `seed`) skill node in the DAG defined by
+# SPEC.md §4.2 ([skill.dependencies] requires/extends/recommends).
+#
+# Edge semantics (must match internal/models: DependencyType requires|extends|recommends):
+#   requires   — hard prerequisite; the skill assumes this knowledge.
+#   extends    — this skill is a specialization of a more general skill.
+#   recommends — complementary/optional skill, no hard prerequisite.
+#
+# Every edge target MUST be a `name` present in this file (closed-world corpus)
+# unless explicitly flagged `external: true` on the edge (none currently — the
+# corpus is self-contained). The combined requires+extends+recommends graph
+# MUST be acyclic (see seed/validate_dag.py).
+#
+# `seed: true` marks the 8 nodes with a fully-authored TOML file under
+# seed/skills/*.toml (R6 wizard example: android, android-aosp, java, kotlin,
+# c++, cmake, plus foundations linux and make). All other nodes are declared
+# corpus targets for future authoring passes; they are not yet materialized
+# as TOML skill files.
+
+version: 1
+generated: "2026-07-15"
+
+nodes:
+  # ---- Foundations / roots -------------------------------------------------
+  - name: linux.os
+    domain: os
+    complexity: beginner
+    seed: true
+    requires: []
+    extends: []
+    recommends: []
+
+  - name: macos.os
+    domain: os
+    complexity: beginner
+    seed: false
+    requires: []
+    extends: []
+    recommends: []
+
+  - name: c.language
+    domain: language
+    complexity: beginner
+    seed: false
+    requires: []
+    extends: []
+    recommends: [debugging.techniques]
+
+  - name: java.language
+    domain: language
+    complexity: beginner
+    seed: true
+    requires: []
+    extends: []
+    recommends: [design_patterns.overview]
+
+  - name: python.language
+    domain: language
+    complexity: beginner
+    seed: false
+    requires: []
+    extends: []
+    recommends: []
+
+  - name: javascript.language
+    domain: language
+    complexity: beginner
+    seed: false
+    requires: []
+    extends: []
+    recommends: []
+
+  - name: go.language
+    domain: language
+    complexity: intermediate
+    seed: false
+    requires: []
+    extends: []
+    recommends: []
+
+  - name: protocols.overview
+    domain: protocols
+    complexity: beginner
+    seed: false
+    requires: []
+    extends: []
+    recommends: []
+
+  - name: algorithms.fundamentals
+    domain: computer-science
+    complexity: intermediate
+    seed: false
+    requires: []
+    extends: []
+    recommends: []
+
+  - name: security.fundamentals
+    domain: security
+    complexity: intermediate
+    seed: false
+    requires: []
+    extends: []
+    recommends: []
+
+  - name: debugging.techniques
+    domain: methodology
+    complexity: intermediate
+    seed: false
+    requires: []
+    extends: []
+    recommends: []
+
+  - name: design_patterns.overview
+    domain: software-engineering
+    complexity: intermediate
+    seed: false
+    requires: []
+    extends: []
+    recommends: [algorithms.fundamentals]
+
+  # ---- Languages built on foundations --------------------------------------
+  - name: bash.scripting
+    domain: shell
+    complexity: beginner
+    seed: false
+    requires: [linux.os]
+    extends: []
+    recommends: []
+
+  - name: cpp.language
+    domain: language
+    complexity: intermediate
+    seed: true
+    requires: [c.language]
+    extends: []
+    recommends: [design_patterns.overview]
+
+  - name: kotlin.language
+    domain: language
+    complexity: intermediate
+    seed: true
+    requires: [java.language]
+    extends: []
+    recommends: []
+
+  - name: typescript.language
+    domain: language
+    complexity: intermediate
+    seed: false
+    requires: [javascript.language]
+    extends: []
+    recommends: []
+
+  # ---- Build tools ----------------------------------------------------------
+  - name: make.build_system
+    domain: build
+    complexity: beginner
+    seed: true
+    requires: [c.language]
+    extends: []
+    recommends: []
+
+  - name: gcc.toolchain
+    domain: build
+    complexity: intermediate
+    seed: false
+    requires: [c.language]
+    extends: []
+    recommends: [make.build_system]
+
+  - name: cmake.build_system
+    domain: build
+    complexity: intermediate
+    seed: true
+    requires: [make.build_system, cpp.language]
+    extends: []
+    recommends: []
+
+  - name: bazel.build_system
+    domain: build
+    complexity: advanced
+    seed: false
+    requires: [python.language]
+    extends: [make.build_system]
+    recommends: [cpp.language]
+
+  - name: maven.build_system
+    domain: build
+    complexity: intermediate
+    seed: false
+    requires: [java.language]
+    extends: []
+    recommends: []
+
+  - name: gradle.build_system
+    domain: build
+    complexity: intermediate
+    seed: false
+    requires: [java.language]
+    extends: [maven.build_system]
+    recommends: [kotlin.language]
+
+  # ---- Data ------------------------------------------------------------------
+  - name: postgres.database
+    domain: database
+    complexity: intermediate
+    seed: false
+    requires: []
+    extends: []
+    recommends: [linux.os]
+
+  # ---- Protocols / transport --------------------------------------------------
+  - name: http.protocol
+    domain: protocols
+    complexity: beginner
+    seed: false
+    requires: [protocols.overview]
+    extends: []
+    recommends: []
+
+  - name: quic.protocol
+    domain: protocols
+    complexity: advanced
+    seed: false
+    requires: [protocols.overview]
+    extends: []
+    recommends: []
+
+  - name: http3.protocol
+    domain: protocols
+    complexity: advanced
+    seed: false
+    requires: [http.protocol, quic.protocol]
+    extends: []
+    recommends: []
+
+  - name: brotli.compression
+    domain: protocols
+    complexity: intermediate
+    seed: false
+    requires: [http.protocol]
+    extends: []
+    recommends: []
+
+  # ---- Go ecosystem -----------------------------------------------------------
+  - name: go.gin_gonic.web_framework
+    domain: web
+    complexity: intermediate
+    seed: false
+    requires: [go.language, http.protocol]
+    extends: []
+    recommends: []
+
+  # ---- Android / embedded -------------------------------------------------------
+  - name: android.overview
+    domain: android
+    complexity: beginner
+    seed: true
+    requires: [java.language, kotlin.language]
+    extends: []
+    recommends: []
+
+  - name: android.aosp.build_system
+    domain: android
+    complexity: advanced
+    seed: true
+    requires: [linux.os, python.language, make.build_system]
+    extends: [android.overview]
+    recommends: [bazel.build_system]
+
+  - name: android.aosp.rockchip_bsp
+    domain: android
+    complexity: advanced
+    seed: false
+    requires: [android.aosp.build_system]
+    extends: []
+    recommends: [c.language]
+
+  - name: orange_pi.sbc
+    domain: embedded
+    complexity: intermediate
+    seed: false
+    requires: [linux.os]
+    extends: []
+    recommends: [bash.scripting]
+
+  # ---- Representative mobile / web / desktop frameworks -------------------------
+  - name: flutter.framework
+    domain: mobile
+    complexity: intermediate
+    seed: false
+    requires: []
+    extends: []
+    recommends: [android.overview]
+
+  - name: react.framework
+    domain: web
+    complexity: intermediate
+    seed: false
+    requires: [javascript.language]
+    extends: []
+    recommends: []
+
+  - name: angular.framework
+    domain: web
+    complexity: intermediate
+    seed: false
+    requires: [typescript.language]
+    extends: []
+    recommends: []
+
+  - name: vue.framework
+    domain: web
+    complexity: intermediate
+    seed: false
+    requires: [javascript.language]
+    extends: []
+    recommends: []
+
+  - name: react_native.framework
+    domain: mobile
+    complexity: intermediate
+    seed: false
+    requires: [react.framework]
+    extends: []
+    recommends: [android.overview]
+
+  - name: spring_boot.framework
+    domain: web
+    complexity: intermediate
+    seed: false
+    requires: [java.language]
+    extends: []
+    recommends: [maven.build_system]
+
+  - name: django.framework
+    domain: web
+    complexity: intermediate
+    seed: false
+    requires: [python.language]
+    extends: []
+    recommends: []
+
+  - name: electron.framework
+    domain: desktop
+    complexity: intermediate
+    seed: false
+    requires: [javascript.language]
+    extends: []
+    recommends: [react.framework, macos.os]
+
+  - name: qt.framework
+    domain: desktop
+    complexity: advanced
+    seed: false
+    requires: [cpp.language]
+    extends: []
+    recommends: [cmake.build_system]
+
+  # ---- Quality / security tooling --------------------------------------------
+  - name: snyk.tool
+    domain: security
+    complexity: intermediate
+    seed: false
+    requires: [security.fundamentals]
+    extends: []
+    recommends: []
+
+  - name: sonarqube.tool
+    domain: quality
+    complexity: intermediate
+    seed: false
+    requires: [security.fundamentals]
+    extends: []
+    recommends: [design_patterns.overview]

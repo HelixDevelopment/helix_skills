@@ -1,0 +1,60 @@
+[skill]
+name = "java.language"
+version = "0.1.0"
+title = "Java Programming Language"
+description = "Reference for Java: the JVM/bytecode model, language and GC evolution, LTS release cadence, and its role as a hard prerequisite for Android and Kotlin."
+content = """
+# Java
+
+## Overview
+Java is a class-based, object-oriented, garbage-collected language and
+runtime (the JVM) created by Sun Microsystems (now Oracle) in 1995, built on
+a "write once, run anywhere" bytecode-portability model. It is the original
+language of the Android application framework (compiled to DEX/ART rather
+than a desktop JVM) and remains one of the most widely deployed enterprise
+server languages.
+
+## Key facts
+- Compiles to platform-neutral bytecode (`.class` files) executed by a JVM;
+  Android instead uses the ART runtime with its own bytecode/toolchain, but
+  source-level Java and most of the standard library are shared.
+- Strong static typing with single inheritance of classes and multiple
+  interface implementation; since Java 8, interfaces support default
+  methods, and lambdas/streams enable functional-style collection
+  processing.
+- Automatic garbage collection (G1, ZGC, Shenandoah collectors) removes
+  manual memory management, trading it for GC-tuning as an operational
+  concern.
+- Release cadence: a feature release every six months since Java 9, with
+  designated Long-Term Support (LTS) releases (8, 11, 17, 21) that most
+  production and Android toolchains target.
+- Build ecosystem: Maven (declarative POM, convention-over-configuration)
+  and Gradle (Groovy/Kotlin DSL, incremental and parallel builds) are the
+  two dominant build tools; Gradle is Android's official build system.
+
+## Why it matters here
+Java is a hard prerequisite for `android.overview` and is one of the six
+technologies named in the R6 canonical wizard example. Kotlin, Android's
+preferred modern language, interoperates directly with Java classes and
+shares the same JVM/Android runtime semantics.
+"""
+
+[skill.metadata]
+tags = ["java", "jvm", "language", "gradle", "maven"]
+domain = "language"
+complexity = "beginner"
+
+[skill.dependencies]
+requires = []
+extends = []
+recommends = ["design_patterns.overview"]
+
+[[skill.resources]]
+url = "https://docs.oracle.com/en/java/javase/21/docs/api/index.html"
+title = "Java SE 21 API Specification"
+resource_type = "official-doc"
+
+[[skill.resources]]
+url = "https://docs.oracle.com/javase/specs/jls/se21/html/index.html"
+title = "The Java Language Specification, SE 21"
+resource_type = "official-doc"

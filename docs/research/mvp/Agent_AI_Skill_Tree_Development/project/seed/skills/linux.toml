@@ -1,0 +1,59 @@
+[skill]
+name = "linux.os"
+version = "0.1.0"
+title = "Linux Operating System Fundamentals"
+description = "Core reference for the Linux kernel, distributions, filesystem layout, process model, and tooling that underpins nearly every other skill in this corpus."
+content = """
+# Linux
+
+## Overview
+Linux is a Unix-like, POSIX-influenced kernel created by Linus Torvalds in 1991.
+Combined with GNU userspace tools it forms the base of countless distributions
+(Debian, Ubuntu, Fedora, Arch), Android (via a modified kernel and different
+userspace/ART runtime), embedded firmware, and the large majority of public
+cloud infrastructure and container hosts.
+
+## Key facts
+- Monolithic kernel with loadable kernel modules (LKMs); source hosted at
+  kernel.org, developed under GPLv2.
+- Filesystem Hierarchy Standard (FHS): `/etc` for config, `/proc` and `/sys`
+  virtual filesystems for kernel/process introspection, `/dev` device nodes.
+- Process model: fork/exec, cgroups v2 for resource control, and namespaces
+  for isolation — the foundation containers (Docker, Podman) build on.
+- Package ecosystems vary by distro family: dpkg/apt (Debian/Ubuntu),
+  rpm/dnf (Fedora/RHEL), pacman (Arch).
+- systemd is the dominant init system/service manager on modern distros;
+  unit files live under `/etc/systemd/system`.
+- Permissions: classic rwx owner/group/other bits, POSIX ACLs, and fine
+  grained capabilities (e.g. `CAP_NET_BIND_SERVICE`) instead of all-or-nothing root.
+- Networking exposes netlink, iptables/nftables, and eBPF for programmable
+  packet processing and observability.
+- Kernel versioning follows mainline, stable, and long-term-support (LTS)
+  branches; distributions backport security patches independently.
+
+## Why it matters here
+Linux is the substrate for the AOSP build system, the Docker/Podman
+deployment of this skill-graph service itself, and most embedded targets in
+the R13 corpus (Rockchip SoCs, Orange Pi SBCs). Bash scripting and the
+gcc/make/cmake toolchains all assume a Linux (or Linux-compatible) host.
+"""
+
+[skill.metadata]
+tags = ["linux", "kernel", "os", "posix", "systemd"]
+domain = "os"
+complexity = "beginner"
+
+[skill.dependencies]
+requires = []
+extends = []
+recommends = []
+
+[[skill.resources]]
+url = "https://www.kernel.org/doc/html/latest/"
+title = "The Linux Kernel Documentation"
+resource_type = "official-doc"
+
+[[skill.resources]]
+url = "https://man7.org/linux/man-pages/"
+title = "Linux man-pages Project"
+resource_type = "official-doc"

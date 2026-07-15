@@ -1,0 +1,60 @@
+[skill]
+name = "make.build_system"
+version = "0.1.0"
+title = "GNU Make Build Automation"
+description = "Reference for GNU Make: Makefile syntax, automatic variables, pattern rules, and its role as the base layer under CMake, Autotools, and legacy AOSP builds."
+content = """
+# GNU Make
+
+## Overview
+Make is a build-automation tool that determines which pieces of a program
+need recompiling and issues the commands to do so, based on a declarative
+Makefile of targets, prerequisites, and recipes. GNU Make is the de facto
+standard implementation on Linux/Unix and ships with almost every native
+toolchain.
+
+## Key facts
+- Core unit: `target: prerequisites` followed by a tab-indented recipe; Make
+  rebuilds a target only if it is older than any prerequisite (mtime-based
+  staleness check).
+- Automatic variables (`$@` target, `$<` first prerequisite, `$^` all
+  prerequisites) and pattern rules (`%.o: %.c`) remove duplication across
+  many similar build rules.
+- Phony targets (`.PHONY: clean`) mark recipes that don't correspond to real
+  output files, avoiding false "up to date" skips.
+- Recursive vs. non-recursive Make: large C/C++ projects historically nest a
+  Makefile per directory; non-recursive single-Makefile designs avoid the
+  well-known "recursive make considered harmful" pitfalls (repeated
+  re-parsing, broken parallel dependency tracking).
+- Parallel builds via `make -j<N>`; correctness depends entirely on
+  accurately declared prerequisites, since Make assumes anything not listed
+  can run concurrently.
+- Make underlies the GNU Autotools flow (`./configure && make && make
+  install`) and is one of the generator backends CMake can target
+  ("Unix Makefiles" generator).
+
+## Why it matters here
+Make is a named prerequisite for the AOSP build system in the SPEC.md worked
+example (`make.basics`), and is the base layer that CMake, Kati (AOSP's
+Make-to-Ninja converter), and Bazel either generate output for or replace.
+"""
+
+[skill.metadata]
+tags = ["make", "makefile", "build", "gnu", "posix"]
+domain = "build"
+complexity = "beginner"
+
+[skill.dependencies]
+requires = ["c.language"]
+extends = []
+recommends = []
+
+[[skill.resources]]
+url = "https://www.gnu.org/software/make/manual/make.html"
+title = "GNU Make Manual"
+resource_type = "official-doc"
+
+[[skill.resources]]
+url = "https://www.gnu.org/software/make/"
+title = "GNU Make — Official Project Page"
+resource_type = "official-doc"

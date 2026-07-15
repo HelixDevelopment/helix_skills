@@ -1,0 +1,59 @@
+[skill]
+name = "kotlin.language"
+version = "0.1.0"
+title = "Kotlin Programming Language"
+description = "Reference for Kotlin: null safety, coroutines, Java interop, and its status as Android's preferred language since 2019."
+content = """
+# Kotlin
+
+## Overview
+Kotlin is a statically-typed, JVM-first language (also compiling to native
+code and JavaScript) created by JetBrains and open-sourced in 2012. Google
+announced first-class support for Android development in 2017, and Kotlin
+became Android's preferred language in 2019, fully interoperable with
+existing Java code and libraries.
+
+## Key facts
+- Null safety is built into the type system: types are non-nullable by
+  default; nullable types are marked explicitly (`String?`), eliminating a
+  large class of `NullPointerException`s at compile time.
+- Concise syntax: type inference, data classes (auto-generated
+  `equals`/`hashCode`/`toString`/`copy`), extension functions, and
+  default/named arguments substantially reduce boilerplate versus Java.
+- Coroutines (`kotlinx.coroutines`) provide structured concurrency and
+  `suspend` functions as the idiomatic alternative to callback- or
+  `Future`-based async code, and are the standard approach for asynchronous
+  work on Android.
+- 100% Java interoperability: Kotlin classes can extend Java classes and
+  vice versa within the same project; both compile to JVM bytecode (or DEX
+  bytecode via D8/R8 on Android).
+- Kotlin Multiplatform (KMP) allows sharing business logic across JVM,
+  Android, iOS (via Kotlin/Native), and web targets from one codebase.
+- Official build support via Gradle's Kotlin DSL (`build.gradle.kts`) and
+  the `kotlin-android` / `kotlin-multiplatform` Gradle plugins.
+
+## Why it matters here
+Kotlin requires Java knowledge (shared JVM semantics and interop) and is one
+of the six technologies named in the R6 canonical wizard use case alongside
+Android, Java, C++, and CMake.
+"""
+
+[skill.metadata]
+tags = ["kotlin", "jvm", "language", "coroutines", "android"]
+domain = "language"
+complexity = "intermediate"
+
+[skill.dependencies]
+requires = ["java.language"]
+extends = []
+recommends = []
+
+[[skill.resources]]
+url = "https://kotlinlang.org/docs/home.html"
+title = "Kotlin Documentation"
+resource_type = "official-doc"
+
+[[skill.resources]]
+url = "https://kotlinlang.org/spec/introduction.html"
+title = "Kotlin Language Specification"
+resource_type = "official-doc"
