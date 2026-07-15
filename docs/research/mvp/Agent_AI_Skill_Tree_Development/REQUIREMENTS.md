@@ -194,6 +194,25 @@ Each stage lands only with captured build/test evidence; SDD dispatches per task
   requires, extends, prerequisite, related_to, alternative_to) usable as building
   blocks for whole stacks. Research + data-model design **Stream A dispatched**
   (research/skill_granularity_and_composition.md).
+- **R17 — exhaustive gaps/risks remediation + total test coverage:** ALL gaps, weak
+  spots, inconsistencies, danger zones, and potential/existing issues MUST be
+  in-depth researched, documented, and given a proper tackle-decision; every covered
+  point MUST be heavily covered with all supported test types + Challenges + HelixQA
+  test banks and fully validated/verified/confirmed as complete success — no false or
+  faulty results, no bluff of any kind, anywhere. **Deliverable landed:**
+  GAPS_AND_RISKS_REGISTER.md (27 findings G01–G27, 4 CRITICAL) +
+  research/testing_infrastructure_plan.md (per-gap coverage matrix, all 13 test types).
+  P0.5 remediation spine in progress (G01 CLOSED, Fable-xhigh GO).
+- **R18 — full documentation delivery, always in sync:** the whole project MUST ship
+  with complete documentation — API docs (static AND interactive), user manuals,
+  guides, tutorials, FAQs — plus ALL diagrams / schemes / graphs with stunning
+  OpenDesign illustrations (R12 / §11.4.162 / §11.4.190), and all SQL definitions,
+  templates, and other materials. Everything MUST be exported to every mandatory
+  file type per constitution (§11.4.65) and be ALWAYS up to date and in sync, wired
+  through the required hooks + the Docs Chain submodule (R10 / §11.4.106) so nothing
+  ever drifts. Composes R10 + R12 + §11.4.12/.44/.45/.53/.56/.57/.59/.60/.65/.106/
+  .168/.170/.190. Architecture design **stream dispatched**
+  (research/r18_documentation_delivery_design.md).
 - **Security:** sync_submodules.sh hardened (fail-closed validation; paired attack
   proof) — committed c473d01.
 - **Seed corpus:** R13 validation corpus + 8 real seed skills committed 0e0bc3b
