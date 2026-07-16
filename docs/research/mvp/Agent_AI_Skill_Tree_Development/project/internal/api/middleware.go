@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -56,16 +57,24 @@ var (
 type BrotliWriter struct {
 	gin.ResponseWriter
 	writer *brotli.Writer
+	// writeErr records the first error returned by the underlying compressor so
+	// a mid-stream compression failure is surfaced by the middleware rather than
+	// silently swallowed (§G22).
+	writeErr error
 }
 
 // Write implements http.ResponseWriter.
 func (w *BrotliWriter) Write(data []byte) (int, error) {
-	return w.writer.Write(data)
+	n, err := w.writer.Write(data)
+	if err != nil && w.writeErr == nil {
+		w.writeErr = err
+	}
+	return n, err
 }
 
 // WriteString implements gin.ResponseWriter.
 func (w *BrotliWriter) WriteString(s string) (int, error) {
-	return w.writer.Write([]byte(s))
+	return w.Write([]byte(s))
 }
 
 // BrotliMiddleware adds Brotli compression for responses when the client
@@ -102,9 +111,32 @@ func BrotliMiddleware() gin.HandlerFunc {
 		c.Writer = bw
 
 		defer func() {
-			// Ensure proper flush and close
-			bw.writer.Flush()
-			bw.writer.Close()
+			// A Brotli compression error (a failed streamed write, flush, or
+			// close) MUST NOT be discarded: a swallowed error yields a 200 over a
+			// silently truncated/corrupt body (§G22). Capture every failure,
+			// surface it on the request (c.Error + an error log), and — when the
+			// response has not yet been committed — abort with 500 instead of a
+			// misleading success. Once bytes have already been flushed the status
+			// line is on the wire and cannot be rewritten; there the error is
+			// still recorded and logged so the corruption is never silent
+			// (§11.4.6 honest boundary).
+			err := bw.writeErr
+			if flushErr := bw.writer.Flush(); flushErr != nil && err == nil {
+				err = flushErr
+			}
+			if closeErr := bw.writer.Close(); closeErr != nil && err == nil {
+				err = closeErr
+			}
+			if err != nil {
+				_ = c.Error(err)
+				zap.L().Error("brotli response compression failed",
+					zap.String("request_id", requestIDFromContext(c)),
+					zap.Error(err),
+				)
+				if !c.Writer.Written() {
+					c.Writer.WriteHeader(http.StatusInternalServerError)
+				}
+			}
 		}()
 
 		c.Next()
@@ -493,12 +525,76 @@ func (w *bodyLogWriter) WriteString(s string) (int, error) {
 	return w.ResponseWriter.WriteString(s)
 }
 
-// MaxBodySize limits the request body size and returns 413 if exceeded.
+// DefaultMaxBodyBytes is the request-body cap applied on the live router when
+// the operator does not configure one (§G22). 100 MiB matches the value the
+// import path was designed around.
+const DefaultMaxBodyBytes int64 = 100 * 1024 * 1024
+
+// MaxBodySize limits the request body size and returns 413 (Request Entity Too
+// Large) when it is exceeded (§G22). It enforces the cap in three cases so the
+// rejection is handler-INDEPENDENT (a handler that never reads the body cannot
+// let an oversized request through):
+//
+//   - A DECLARED Content-Length above the cap is refused up-front, before the
+//     body is read at all.
+//   - A CHUNKED / unknown-length body (Content-Length < 0) is drained through a
+//     bounded reader that stops at cap+1 bytes: if it exceeds the cap the request
+//     is refused 413, otherwise the already-read bytes are handed back to the
+//     handler. The read is bounded to cap+1 regardless of how large — or
+//     unbounded — the incoming stream is, so a chunked flood cannot exhaust
+//     memory (no OOM), while an under-cap body is delivered intact (W2).
+//   - A declared-length body within the cap is wrapped in http.MaxBytesReader so
+//     a body that lies about its length (sends more than it declared) is still
+//     truncated at the cap when a handler reads it.
+//
+// A maxBytes <= 0 disables the cap.
 func MaxBodySize(maxBytes int64) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if maxBytes <= 0 {
+			c.Next()
+			return
+		}
+		// Declared length over the cap: refuse before reading a single byte.
+		if c.Request.ContentLength > maxBytes {
+			rejectTooLarge(c, maxBytes)
+			return
+		}
+		if c.Request.Body == nil {
+			c.Next()
+			return
+		}
+		// Unknown/chunked length: the up-front check cannot see the size, so
+		// enforce the cap by reading at most cap+1 bytes into a bounded buffer.
+		// This never reads the whole (possibly unbounded) stream, so it cannot be
+		// used to exhaust memory.
+		if c.Request.ContentLength < 0 {
+			buf, err := io.ReadAll(io.LimitReader(c.Request.Body, maxBytes+1))
+			if err != nil {
+				RespondErrorWithCode(c, http.StatusBadRequest, "invalid_body",
+					"The request body could not be read.")
+				c.Abort()
+				return
+			}
+			if int64(len(buf)) > maxBytes {
+				rejectTooLarge(c, maxBytes)
+				return
+			}
+			// Hand the buffered body back so downstream handlers read it normally.
+			c.Request.Body = io.NopCloser(bytes.NewReader(buf))
+			c.Request.ContentLength = int64(len(buf))
+			c.Next()
+			return
+		}
 		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBytes)
 		c.Next()
 	}
+}
+
+// rejectTooLarge aborts the request with a 413 body-cap error.
+func rejectTooLarge(c *gin.Context, maxBytes int64) {
+	RespondErrorWithCode(c, http.StatusRequestEntityTooLarge, "request_too_large",
+		fmt.Sprintf("Request body exceeds the %d-byte limit.", maxBytes))
+	c.Abort()
 }
 
 // DetectContentType automatically detects whether request body is JSON or TOML

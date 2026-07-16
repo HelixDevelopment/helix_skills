@@ -156,12 +156,48 @@ func buildRouter(cfg *config.Config, pool *db.Pool, store *skill.Store, reg *reg
 	}
 
 	router := gin.New()
+	// Trust NO forwarding proxy (F1). In the R15 no-proxy single-node topology
+	// the app is reached directly, so c.ClientIP() MUST resolve to the real TCP
+	// socket peer and NEVER to a client-supplied X-Forwarded-For / X-Real-IP. Gin
+	// otherwise trusts all proxies by default, which would let an unauthenticated
+	// caller spoof its rate-limit identity by rotating a forwarding header.
+	// ForwardedByClientIP=false short-circuits header parsing; SetTrustedProxies(nil)
+	// additionally empties the trusted set (belt-and-suspenders).
+	router.ForwardedByClientIP = false
+	if err := router.SetTrustedProxies(nil); err != nil {
+		logger.Error("failed to clear trusted proxies (rate-limit identity hardening)", zap.Error(err))
+	}
 	router.Use(gin.Recovery())
 	router.Use(apiLoggingMiddleware(logger))
 	// Hardened, config-driven CORS allowlist (internal/api.CORS): an empty
 	// allowlist is fail-closed and no wildcard "*" origin is ever emitted with
 	// credentials. This replaces the previous wildcard corsMiddleware().
 	router.Use(api.CORS(cfg.Server.AllowedOrigins))
+
+	// Per-client token-bucket rate limiting (§G22), installed BEFORE auth so a
+	// flood is throttled with 429 ahead of any credential work. Keyed ONLY on the
+	// real socket peer (never an attacker-controlled header, F1) with a map that
+	// is hard-bounded by MaxClients (F2), so one client cannot starve another and
+	// a distinct-IP flood cannot grow the tracking map without bound. Off only
+	// when explicitly disabled in config.
+	if cfg.Server.RateLimit.Enabled {
+		limiter := api.NewRateLimiter(api.RateLimitConfig{
+			RequestsPerSecond: cfg.Server.RateLimit.RequestsPerSecond,
+			Burst:             cfg.Server.RateLimit.Burst,
+			TTL:               cfg.Server.RateLimit.TTL,
+			MaxClients:        cfg.Server.RateLimit.MaxClients,
+		})
+		router.Use(limiter.Middleware())
+	}
+
+	// Request-body cap (§G22): reject an oversized body with 413 BEFORE auth so
+	// an unauthenticated flood of huge bodies cannot exhaust memory. A
+	// non-positive config value falls back to the 100 MiB default.
+	maxBody := cfg.Server.MaxRequestBodyBytes
+	if maxBody <= 0 {
+		maxBody = api.DefaultMaxBodyBytes
+	}
+	router.Use(api.MaxBodySize(maxBody))
 
 	// Resolve the fail-closed auth middleware ONCE and share the SAME instance
 	// across BOTH the /api/v1 data routes and the mounted MCP /mcp/v1 routes so

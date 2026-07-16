@@ -71,6 +71,42 @@ type ServerConfig struct {
 	// set deliberately and is logged loudly at startup. Absent keys without
 	// this flag is a fail-closed error, never a silent open server.
 	AuthDisabled bool `toml:"auth_disabled"`
+	// RateLimit configures the per-client token-bucket limiter applied on the
+	// live router BEFORE authentication (§G22 DoS hardening). Disabled leaves
+	// the limiter off entirely.
+	RateLimit RateLimitConfig `toml:"rate_limit"`
+	// MaxRequestBodyBytes caps the accepted request body (§G22). A body whose
+	// declared Content-Length exceeds this is rejected with 413 before it is
+	// read, and streamed bodies are truncated at the cap. A value <= 0 falls
+	// back to the 100 MiB default (api.DefaultMaxBodyBytes) in the router.
+	MaxRequestBodyBytes int64 `toml:"max_request_body_bytes"`
+}
+
+// RateLimitConfig controls the per-client token-bucket rate limiter (§G22).
+//
+// Calibration note (§11.4.6 / register G22-a): RequestsPerSecond and Burst are
+// SENSIBLE DEFAULTS, not calibrated production thresholds — the concrete numbers
+// for the R15 single-node deploy MUST be tuned against a real load profile, not
+// hardcoded from literature. The 429/isolation BEHAVIOUR is what is guaranteed
+// here; the exact rate is operator-tunable via config.
+type RateLimitConfig struct {
+	// Enabled installs the limiter on the live router. Off leaves the surface
+	// unthrottled (only appropriate behind a trusted upstream limiter).
+	Enabled bool `toml:"enabled"`
+	// RequestsPerSecond is the steady-state token refill rate per client key.
+	RequestsPerSecond float64 `toml:"requests_per_second"`
+	// Burst is the maximum instantaneous number of requests a single client key
+	// may make before being throttled (the token-bucket depth).
+	Burst int `toml:"burst"`
+	// TTL is the idle window after which an unused per-client limiter entry is
+	// reaped (housekeeping that releases long-idle keys).
+	TTL time.Duration `toml:"ttl"`
+	// MaxClients is the HARD upper bound on the number of distinct client keys
+	// tracked at once. It — not the TTL reap — is what makes the tracking map
+	// genuinely bounded: when the cap is reached the least-recently-used entry
+	// is evicted, so a distinct-IP flood cannot grow the map without bound (F2).
+	// A non-positive value falls back to a safe default in the limiter.
+	MaxClients int `toml:"max_clients"`
 }
 
 // DatabaseConfig controls the PostgreSQL connection pool.
@@ -184,6 +220,14 @@ func defaultConfig() Config {
 			HTTP3Port:    8443,
 			EnableHTTP3:  false,
 			EnableBrotli: true,
+			RateLimit: RateLimitConfig{
+				Enabled:           true,
+				RequestsPerSecond: 50,
+				Burst:             100,
+				TTL:               10 * time.Minute,
+				MaxClients:        100000,
+			},
+			MaxRequestBodyBytes: 100 * 1024 * 1024, // 100 MiB (matches §G22 design)
 		},
 		Database: DatabaseConfig{
 			Host:           "localhost",
