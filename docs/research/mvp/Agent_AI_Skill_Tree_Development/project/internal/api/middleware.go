@@ -17,6 +17,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.uber.org/zap"
+
+	"github.com/helixdevelopment/skill-system/internal/toon"
 )
 
 // Prometheus metrics for API monitoring.
@@ -153,20 +155,30 @@ func ContentNegotiation() gin.HandlerFunc {
 		format := FormatJSON
 
 		if accept != "" {
-			// Check for TOML preference
-			if strings.Contains(accept, "application/toml") {
+			// TOON is the primary wire format (register G08); check it first, then
+			// TOML, then JSON. The media-type strings are all distinct, so order
+			// only decides which wins if a client lists several — TOON wins.
+			switch {
+			case strings.Contains(accept, toon.MediaType):
+				format = FormatTOON
+			case strings.Contains(accept, toon.AltMediaType):
+				format = FormatTOON
+			case strings.Contains(accept, "application/toml"):
 				format = FormatTOML
-			} else if strings.Contains(accept, "text/x-toml") {
+			case strings.Contains(accept, "text/x-toml"):
 				format = FormatTOML
-			} else if strings.Contains(accept, "application/json") {
+			case strings.Contains(accept, "application/json"):
 				format = FormatJSON
 			}
-			// */* or missing Accept defaults to JSON
+			// An unknown Accept (or */*, or missing) falls back to JSON — the
+			// safety net (§11.4.6); never an error, never a silent TOON.
 		}
 
 		// Check for format query parameter override
 		if qf := c.Query("format"); qf != "" {
 			switch strings.ToLower(qf) {
+			case "toon":
+				format = FormatTOON
 			case "toml":
 				format = FormatTOML
 			case "json":
@@ -607,6 +619,10 @@ func DetectContentType() gin.HandlerFunc {
 		switch {
 		case strings.Contains(contentType, "application/json"):
 			c.Set("body_format", "json")
+		case strings.Contains(contentType, toon.MediaType):
+			c.Set("body_format", "toon")
+		case strings.Contains(contentType, toon.AltMediaType):
+			c.Set("body_format", "toon")
 		case strings.Contains(contentType, "application/toml"):
 			c.Set("body_format", "toml")
 		case strings.Contains(contentType, "text/x-toml"):

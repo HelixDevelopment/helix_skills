@@ -7,16 +7,22 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/pelletier/go-toml/v2"
+
+	"github.com/helixdevelopment/skill-system/internal/toon"
 )
 
 // ResponseFormat indicates the serialization format for API responses.
 type ResponseFormat string
 
 const (
-	// FormatJSON is the default wire format.
+	// FormatJSON is the fallback wire format (safety net — a client that cannot
+	// speak TOON still works, §11.4.6).
 	FormatJSON ResponseFormat = "json"
 	// FormatTOML is supported via Accept: application/toml header.
 	FormatTOML ResponseFormat = "toml"
+	// FormatTOON is the primary token-oriented wire format (register G08),
+	// selected via Accept: application/toon (or text/x-toon) or ?format=toon.
+	FormatTOON ResponseFormat = "toon"
 )
 
 // contextKey is an unexported type for type-safe context keys.
@@ -68,47 +74,65 @@ func RespondTOML(c *gin.Context, status int, data interface{}) {
 	}
 }
 
-// RespondError writes a structured error response in the negotiated format.
-func RespondError(c *gin.Context, status int, message string) {
-	resp := ErrorResponse{
-		Error: message,
-		Code:  http.StatusText(status),
-	}
-	if format := GetResponseFormat(c); format == FormatTOML {
-		RespondTOML(c, status, resp)
+// RespondTOON writes a TOON response with the given HTTP status code. On encode
+// failure it emits a JSON error envelope instead — never a silent, truncated,
+// or empty body (§11.4.6 honest boundary; the silent-fallback bluff G08 forbids).
+func RespondTOON(c *gin.Context, status int, data interface{}) {
+	b, err := toon.Marshal(data)
+	if err != nil {
+		c.Header("Content-Type", "application/json; charset=utf-8")
+		c.JSON(http.StatusInternalServerError, ErrorResponse{
+			Error: "failed to encode TOON response",
+			Code:  "encoding_error",
+		})
 		return
 	}
-	RespondJSON(c, status, resp)
+	c.Header("Content-Type", toon.MediaType+"; charset=utf-8")
+	c.Status(status)
+	_, _ = c.Writer.Write(b)
+}
+
+// respondNegotiated routes a payload to the codec for the negotiated format.
+// TOON is primary; JSON is the fallback (§11.4.6).
+func respondNegotiated(c *gin.Context, status int, data interface{}) {
+	switch GetResponseFormat(c) {
+	case FormatTOON:
+		RespondTOON(c, status, data)
+	case FormatTOML:
+		RespondTOML(c, status, data)
+	default:
+		RespondJSON(c, status, data)
+	}
+}
+
+// RespondError writes a structured error response in the negotiated format.
+func RespondError(c *gin.Context, status int, message string) {
+	respondNegotiated(c, status, ErrorResponse{
+		Error: message,
+		Code:  http.StatusText(status),
+	})
 }
 
 // RespondErrorWithCode writes a structured error response with a custom error code.
 func RespondErrorWithCode(c *gin.Context, status int, code, message string) {
-	resp := ErrorResponse{
+	respondNegotiated(c, status, ErrorResponse{
 		Error: message,
 		Code:  code,
-	}
-	if format := GetResponseFormat(c); format == FormatTOML {
-		RespondTOML(c, status, resp)
-		return
-	}
-	RespondJSON(c, status, resp)
+	})
 }
 
-// NegotiateResponse serializes the response in JSON or TOML based on content negotiation.
+// NegotiateResponse serializes the response in the negotiated wire format
+// (TOON primary, TOML, or JSON fallback) based on content negotiation.
 func NegotiateResponse(c *gin.Context, status int, data interface{}) {
-	if format := GetResponseFormat(c); format == FormatTOML {
-		RespondTOML(c, status, data)
-		return
-	}
-	RespondJSON(c, status, data)
+	respondNegotiated(c, status, data)
 }
 
 // PaginatedResponse wraps a list response with pagination metadata.
 type PaginatedResponse[T any] struct {
-	Data   []T    `json:"data" toml:"data"`
-	Total  int    `json:"total" toml:"total"`
-	Limit  int    `json:"limit" toml:"limit"`
-	Offset int    `json:"offset" toml:"offset"`
+	Data   []T `json:"data" toml:"data"`
+	Total  int `json:"total" toml:"total"`
+	Limit  int `json:"limit" toml:"limit"`
+	Offset int `json:"offset" toml:"offset"`
 }
 
 // RespondPaginated writes a paginated response in the negotiated format.

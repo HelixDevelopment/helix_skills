@@ -19,6 +19,7 @@ require (
 	github.com/quic-go/quic-go v0.54.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/spf13/cobra v1.8.1
+	github.com/toon-format/toon-go v0.0.0-20251202084852-7ca0e27c4e8c
 	go.uber.org/zap v1.27.0
 	golang.org/x/sync v0.19.0
 	golang.org/x/time v0.14.0

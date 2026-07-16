@@ -15,6 +15,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/helixdevelopment/skill-system/internal/models"
+	"github.com/helixdevelopment/skill-system/internal/toon"
 	"github.com/helixdevelopment/skill-system/internal/validation"
 )
 
@@ -388,6 +389,27 @@ func (s *Server) handleImportSkills(c *gin.Context) {
 	bodyStr := string(bodyBytes)
 	bodyFormat := c.GetString("body_format")
 
+	// A TOON body (register G08) is transcoded to JSON up front so the JSON
+	// import path below handles it uniformly. A malformed TOON body fails loudly
+	// here with a 400 parse_error — never a silent fallback (§11.4.6).
+	if bodyFormat == "toon" {
+		decoded, terr := toon.Decode(bodyBytes)
+		if terr != nil {
+			RespondErrorWithCode(c, http.StatusBadRequest, "parse_error",
+				fmt.Sprintf("Failed to parse TOON import body: %s", terr.Error()))
+			return
+		}
+		jsonBytes, terr := json.Marshal(decoded)
+		if terr != nil {
+			RespondErrorWithCode(c, http.StatusBadRequest, "parse_error",
+				fmt.Sprintf("Failed to re-encode TOON import body: %s", terr.Error()))
+			return
+		}
+		bodyBytes = jsonBytes
+		bodyStr = string(jsonBytes)
+		bodyFormat = "json"
+	}
+
 	switch bodyFormat {
 	case "toml":
 		var wrapper models.TOMLSkillWrapper
@@ -497,6 +519,8 @@ func parseRequestBody(c *gin.Context, dst interface{}) error {
 	c.Request.Body = io.NopCloser(strings.NewReader(string(bodyBytes)))
 
 	switch {
+	case strings.Contains(contentType, "application/toon") || strings.Contains(contentType, "text/x-toon"):
+		return toon.Unmarshal(bodyBytes, dst)
 	case strings.Contains(contentType, "application/toml") || strings.Contains(contentType, "text/x-toml"):
 		return toml.Unmarshal(bodyBytes, dst)
 	default:
