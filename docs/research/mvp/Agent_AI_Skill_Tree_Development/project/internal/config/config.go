@@ -161,8 +161,16 @@ type AutoExpandConfig struct {
 	Enabled            bool   `toml:"enabled"`
 	MaxDepth           int    `toml:"max_depth"`
 	MaxNewSkillsPerRun int    `toml:"max_new_skills_per_run"`
-	LLMProvider        string `toml:"llm_provider"`
+	LLMProvider        string `toml:"llm_provider"` // "openai" | "anthropic" | "local" | "helixllm"
 	LLMModel           string `toml:"llm_model"`
+	// LLMAPIKey is resolved from the environment via ${VAR} interpolation
+	// (e.g. "${ANTHROPIC_API_KEY}") -- NEVER a literal secret in tracked
+	// config (§11.4.10). Empty is permitted; the provider client is still
+	// constructed and the first real request surfaces the auth failure.
+	LLMAPIKey string `toml:"llm_api_key"`
+	// LLMBaseURL is REQUIRED for the "local"/"helixllm" providers (an
+	// OpenAI-compatible chat-completions base URL) and ignored otherwise.
+	LLMBaseURL string `toml:"llm_base_url"`
 }
 
 // CodeAnalysisConfig controls the repository-learning subsystem.
@@ -387,6 +395,8 @@ func substituteEnv(cfg *Config) error {
 	// AutoExpand
 	cfg.AutoExpand.LLMProvider = sub(cfg.AutoExpand.LLMProvider)
 	cfg.AutoExpand.LLMModel = sub(cfg.AutoExpand.LLMModel)
+	cfg.AutoExpand.LLMAPIKey = sub(cfg.AutoExpand.LLMAPIKey)
+	cfg.AutoExpand.LLMBaseURL = sub(cfg.AutoExpand.LLMBaseURL)
 
 	// CodeAnalysis
 	cfg.CodeAnalysis.AllowedRoot = sub(cfg.CodeAnalysis.AllowedRoot)

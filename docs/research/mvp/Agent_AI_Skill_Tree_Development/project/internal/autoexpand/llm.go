@@ -9,10 +9,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/helixdevelopment/skill-system/internal/config"
 	"github.com/helixdevelopment/skill-system/internal/models"
 	"go.uber.org/zap"
 	"golang.org/x/sync/semaphore"
@@ -28,6 +30,42 @@ type LLMClient interface {
 	Generate(ctx context.Context, prompt string, maxTokens int) (string, error)
 }
 
+// NewLLMClientFromConfig builds an LLMClient from the auto-expand
+// configuration, dispatching on the configured provider. It mirrors the
+// embedder factory (db.NewEmbedderFromConfig) in shape and fails closed on an
+// unrecognized provider string rather than silently defaulting to one.
+//
+// Supported providers:
+//   - "openai"             -> OpenAILLM against the OpenAI API
+//   - "anthropic"          -> AnthropicLLM against the Anthropic Messages API
+//   - "local" / "helixllm" -> OpenAILLM against an OpenAI-compatible base URL
+//     (HelixAgent / HelixLLM are OpenAI-compatible chat-completions endpoints
+//     reached by a base-URL swap).
+func NewLLMClientFromConfig(cfg config.AutoExpandConfig, logger *zap.Logger) (LLMClient, error) {
+	switch cfg.LLMProvider {
+	case "openai":
+		if cfg.LLMAPIKey == "" {
+			logger.Warn("openai LLM client created without API key; requests will fail")
+		}
+		return NewOpenAILLM(cfg.LLMAPIKey, cfg.LLMModel, logger), nil
+	case "anthropic":
+		if cfg.LLMAPIKey == "" {
+			logger.Warn("anthropic LLM client created without API key; requests will fail")
+		}
+		return NewAnthropicLLM(cfg.LLMAPIKey, cfg.LLMModel, logger), nil
+	case "local", "helixllm":
+		if cfg.LLMBaseURL == "" {
+			return nil, fmt.Errorf("llm_provider %q requires llm_base_url", cfg.LLMProvider)
+		}
+		client := NewOpenAILLM(cfg.LLMAPIKey, cfg.LLMModel, logger)
+		client.SetBaseURL(cfg.LLMBaseURL)
+		return client, nil
+	default:
+		return nil, fmt.Errorf("unsupported llm_provider: %q (expected "+
+			"\"openai\", \"anthropic\", \"local\", or \"helixllm\")", cfg.LLMProvider)
+	}
+}
+
 // ---------------------------------------------------------------------------
 // OpenAI LLM implementation
 // ---------------------------------------------------------------------------
@@ -41,10 +79,10 @@ type OpenAILLM struct {
 	logger     *zap.Logger
 
 	// Rate limiting
-	sem       *semaphore.Weighted
-	lastCall  time.Time
-	rateMu    sync.Mutex
-	rpm       int // requests per minute
+	sem      *semaphore.Weighted
+	lastCall time.Time
+	rateMu   sync.Mutex
+	rpm      int // requests per minute
 }
 
 // NewOpenAILLM creates a new OpenAI LLM client.
@@ -365,4 +403,176 @@ type openAIChatResponse struct {
 		CompletionTokens int `json:"completion_tokens"`
 		TotalTokens      int `json:"total_tokens"`
 	} `json:"usage"`
+}
+
+// ---------------------------------------------------------------------------
+// Anthropic LLM implementation
+// ---------------------------------------------------------------------------
+
+// anthropicAPIVersion is the stable Anthropic Messages API version string sent
+// in the anthropic-version header.
+const anthropicAPIVersion = "2023-06-01"
+
+// AnthropicLLM implements LLMClient using the Anthropic Messages API
+// (POST {baseURL}/v1/messages). It is a thin net/http client matching the
+// house style of OpenAILLM.
+//
+// It deliberately omits temperature/top_p/top_k: current Claude models reject
+// non-default sampling parameters with HTTP 400, so -- unlike the OpenAI client
+// -- no sampling parameter is ever marshaled into the request body.
+type AnthropicLLM struct {
+	apiKey     string
+	model      string
+	baseURL    string
+	httpClient *http.Client
+	logger     *zap.Logger
+}
+
+// NewAnthropicLLM creates a new Anthropic Messages API client. An empty model
+// defaults to the current general-purpose Claude model; it is
+// operator-overridable and never a hardcoded mandate.
+func NewAnthropicLLM(apiKey, model string, logger *zap.Logger) *AnthropicLLM {
+	if model == "" {
+		model = "claude-opus-4-8"
+	}
+	return &AnthropicLLM{
+		apiKey:     apiKey,
+		model:      model,
+		baseURL:    "https://api.anthropic.com",
+		httpClient: &http.Client{Timeout: 120 * time.Second},
+		logger:     logger,
+	}
+}
+
+// SetBaseURL allows overriding the API base URL (for tests or proxies).
+func (c *AnthropicLLM) SetBaseURL(url string) {
+	c.baseURL = url
+}
+
+// SetHTTPClient replaces the default HTTP client.
+func (c *AnthropicLLM) SetHTTPClient(client *http.Client) {
+	c.httpClient = client
+}
+
+// Generate calls the Anthropic Messages API. On ANY failure to produce genuine
+// text -- HTTP error, malformed response, or a policy refusal -- it returns
+// ("", non-nil error), never ("", nil). A refusal is HTTP 200 with no usable
+// content: the exact "empty-but-successful" shape the auto-growth pipeline
+// forbids, so this client fails closed at the provider layer rather than
+// trusting every future caller to re-check it.
+func (c *AnthropicLLM) Generate(ctx context.Context, prompt string, maxTokens int) (string, error) {
+	reqBody := anthropicMessageRequest{
+		Model:     c.model,
+		MaxTokens: maxTokens,
+		Messages:  []anthropicMessage{{Role: "user", Content: prompt}},
+	}
+	bodyBytes, err := json.Marshal(reqBody)
+	if err != nil {
+		return "", fmt.Errorf("marshal anthropic request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
+		c.baseURL+"/v1/messages", bytes.NewReader(bodyBytes))
+	if err != nil {
+		return "", fmt.Errorf("create anthropic request: %w", err)
+	}
+	req.Header.Set("content-type", "application/json")
+	req.Header.Set("x-api-key", c.apiKey)
+	req.Header.Set("anthropic-version", anthropicAPIVersion)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("anthropic API request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 10<<20)) // 10 MiB cap
+	if err != nil {
+		return "", fmt.Errorf("read anthropic response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		var errEnv anthropicErrorResponse
+		if json.Unmarshal(respBody, &errEnv) == nil && errEnv.Error.Type != "" {
+			return "", fmt.Errorf("anthropic API returned %d [%s]: %s (request_id=%s)",
+				resp.StatusCode, errEnv.Error.Type, errEnv.Error.Message, resp.Header.Get("request-id"))
+		}
+		return "", fmt.Errorf("anthropic API returned %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	var result anthropicMessageResponse
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return "", fmt.Errorf("unmarshal anthropic response: %w", err)
+	}
+
+	// A "refusal" is HTTP 200 with no usable content -- fail closed here rather
+	// than return a silent empty success.
+	if result.StopReason == "refusal" {
+		category, explanation := "", ""
+		if result.StopDetails != nil {
+			category, explanation = result.StopDetails.Category, result.StopDetails.Explanation
+		}
+		return "", fmt.Errorf("anthropic refused the request (category=%q): %s", category, explanation)
+	}
+
+	var textParts []string
+	for _, block := range result.Content {
+		if block.Type == "text" {
+			textParts = append(textParts, block.Text)
+		}
+	}
+	if len(textParts) == 0 {
+		return "", fmt.Errorf("anthropic response contained no text content (stop_reason=%q)", result.StopReason)
+	}
+	return strings.Join(textParts, ""), nil
+}
+
+// ---------------------------------------------------------------------------
+// Anthropic API types
+// ---------------------------------------------------------------------------
+
+type anthropicMessage struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
+type anthropicMessageRequest struct {
+	Model     string             `json:"model"`
+	MaxTokens int                `json:"max_tokens"`
+	Messages  []anthropicMessage `json:"messages"`
+}
+
+type anthropicContentBlock struct {
+	Type string `json:"type"`
+	Text string `json:"text,omitempty"`
+}
+
+type anthropicStopDetails struct {
+	Type        string `json:"type"`
+	Category    string `json:"category"`
+	Explanation string `json:"explanation"`
+}
+
+type anthropicMessageResponse struct {
+	ID           string                  `json:"id"`
+	Type         string                  `json:"type"`
+	Role         string                  `json:"role"`
+	Content      []anthropicContentBlock `json:"content"`
+	Model        string                  `json:"model"`
+	StopReason   string                  `json:"stop_reason"`
+	StopSequence *string                 `json:"stop_sequence"`
+	StopDetails  *anthropicStopDetails   `json:"stop_details"`
+	Usage        struct {
+		InputTokens  int `json:"input_tokens"`
+		OutputTokens int `json:"output_tokens"`
+	} `json:"usage"`
+}
+
+type anthropicErrorResponse struct {
+	Type  string `json:"type"`
+	Error struct {
+		Type    string `json:"type"`
+		Message string `json:"message"`
+	} `json:"error"`
+	RequestID string `json:"request_id"`
 }
