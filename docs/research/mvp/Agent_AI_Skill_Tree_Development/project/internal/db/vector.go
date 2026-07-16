@@ -190,6 +190,36 @@ func StoreSkillEmbedding(
 	return nil
 }
 
+// ClearSkillEmbedding sets a skill's embedding column to NULL. This is the
+// honest-degrade counterpart to StoreSkillEmbedding, used by
+// internal/skill.Store's embedWriteThrough (§G59 F3, code-review remediation)
+// on ALL FOUR of its embed failure/skip paths -- empty embed text, an
+// Embed() error, Embed() returning an empty/unusable vector, and (F3 round-2
+// remediation) Embed() succeeding but the subsequent StoreSkillEmbedding call
+// itself failing (e.g. a dimension mismatch between the returned vector and
+// this table's `embedding vector(768)` column) -- so a re-embed attempted
+// during an ON CONFLICT (name) DO UPDATE never leaves a STALE vector -- one
+// computed from the skill's PREVIOUS content -- silently serving vector-KNN
+// matches against content that no longer exists. "A failed store means the
+// clear would fail too" does NOT generally hold: this UPDATE writes a literal
+// NULL, which has no dimension (or other content-shaped constraint) to
+// violate, so it succeeds independently of why the preceding store failed.
+// Called unconditionally on every one of those four paths regardless of
+// whether the skill was freshly inserted or updated: on a fresh insert the
+// column is already NULL by column default, so this is a harmless no-op
+// there.
+func ClearSkillEmbedding(
+	ctx context.Context,
+	pool *Pool,
+	skillID uuid.UUID,
+) error {
+	const query = `UPDATE skills SET embedding = NULL WHERE id = $1`
+	if _, err := pool.Exec(ctx, query, skillID); err != nil {
+		return fmt.Errorf("clear embedding for skill %s: %w", skillID, err)
+	}
+	return nil
+}
+
 // StoreEvidenceEmbedding updates the embedding vector for a specific evidence record.
 func StoreEvidenceEmbedding(
 	ctx context.Context,

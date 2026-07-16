@@ -18,7 +18,13 @@ import (
 // ---------------------------------------------------------------------------
 
 // ImportFromTOML parses a TOML skill definition and creates the skill along with
-// its dependencies and resources in a single transaction.
+// its dependencies and resources in a single transaction. When a query-side
+// embedder is configured (Store.WithEmbedder) it also write-through embeds the
+// new skill immediately after the transaction commits (§G59 F1) -- this is the
+// function the live MCP skill_create tool calls directly (internal/mcp/tools.go),
+// so it must carry the same embedding write-through as Store.Create/
+// CreateFromTOML or a skill created via the deployed MCP tool would be
+// invisible to vector-KNN.
 func (s *Store) ImportFromTOML(ctx context.Context, tomlData []byte) (*models.Skill, error) {
 	var wrapper models.TOMLSkillWrapper
 	// G07 strict-decode (research/g06_g07_skilltree_dag_design.md §2.2/§2.3(4)):
@@ -248,7 +254,7 @@ func (s *Store) ImportFromTOML(ctx context.Context, tomlData []byte) (*models.Sk
 	}
 
 	// Execute everything in a transaction
-	return skill, s.pool.WithTx(ctx, func(tx pgx.Tx) error {
+	if err := s.pool.WithTx(ctx, func(tx pgx.Tx) error {
 		// Insert skill
 		_, err := tx.Exec(ctx, `
 			INSERT INTO skills (id, name, version, title, description, content, metadata, status, kind, created_at, updated_at)
@@ -338,7 +344,31 @@ func (s *Store) ImportFromTOML(ctx context.Context, tomlData []byte) (*models.Sk
 		skill.Resources = resources
 
 		return nil
-	})
+	}); err != nil {
+		return nil, err
+	}
+
+	// §G59 F1 (code-review BLOCKING remediation): the LIVE, deployed MCP
+	// skill_create tool (internal/mcp/tools.go registerSkillCreate) calls
+	// ImportFromTOML DIRECTLY -- never Store.Create -- so without this call
+	// every skill created through the deployed MCP tool landed with a NULL
+	// embedding column regardless of whether a query-side embedder was
+	// configured, invisible to the vector-KNN leg of hybrid Search: the exact
+	// defect class §G59 exists to close, now proven closed for the path
+	// end-users actually exercise (see
+	// TestG59_ImportFromTOML_WritesEmbedding_RetrievableByVectorKNN).
+	// Called AFTER the transaction above has durably committed the skill row
+	// (mirrors Create's own post-commit embedWriteThrough call and its
+	// degrade-gracefully posture, see that method's doc comment in store.go):
+	// an embedding-provider outage degrades ONLY this one skill to
+	// trigram-only searchability rather than rolling back or blocking the
+	// import. A nil embedder (the default -- no query-side embedder
+	// configured) is a documented no-op, identical to Create.
+	if s.embedder != nil {
+		s.embedWriteThrough(ctx, skill)
+	}
+
+	return skill, nil
 }
 
 // ExportToTOML exports a skill and its dependencies and resources as TOML.

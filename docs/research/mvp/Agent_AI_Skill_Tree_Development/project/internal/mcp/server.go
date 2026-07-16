@@ -80,17 +80,32 @@ func NewMCPServer(pool *db.Pool, store *skill.Store, reg *registry.Registry, cfg
 		store.WithLogger(logger)
 		if emb, err := db.NewEmbedderFromConfig(cfg.Embedding); err == nil {
 			store.WithEmbedder(emb)
-			// NOTE (§11.4.6 honest wording, finding 2): no production
-			// ingestion path populates skills.embedding yet -- store.Create
-			// never sets the column, and embedding-population is a separate,
-			// tracked follow-up (register item pending). Until that lands,
-			// this wiring makes the vector leg of Search live, but semantic
-			// recall only actually surfaces a skill once SOME out-of-band
-			// process has populated ITS embedding column directly; every
-			// skill created through the normal write path keeps a NULL
-			// embedding and is retrievable via the trigram leg only. This log
-			// line must not overclaim full hybrid coverage.
-			logger.Info("hybrid skill search wired (§G29): semantic recall is active only for skills with a populated embedding; embedding ingestion is not yet wired and is tracked separately",
+			// NOTE (§11.4.6 honest wording; UPDATED §G59 F7, round-3
+			// Fable-xhigh re-review, LOW finding): this note previously read
+			// "no production ingestion path populates skills.embedding yet
+			// -- store.Create never sets the column, and embedding-
+			// population is a separate, tracked follow-up" and the log line
+			// below previously said "embedding ingestion is not yet wired
+			// and is tracked separately". Both statements were TRUE when
+			// originally written but are FALSE now: §G59 wired
+			// db.StoreSkillEmbedding into internal/skill.Store.Create's
+			// write-through path (embedWriteThrough, store.go). CreateFromTOML
+			// delegates to Store.Create (store.go), so its write-through
+			// embedding flows through Create's own embedWriteThrough call.
+			// ImportFromTOML does NOT delegate to Create -- it runs its own
+			// transactional insert and carries its own post-commit
+			// embedWriteThrough call (import_export.go), precisely because it
+			// never routes through Create. Either way, every skill created
+			// through the live write path -- including the deployed MCP
+			// skill_create tool, which calls ImportFromTOML directly
+			// (tools.go registerSkillCreate) -- now gets its embedding
+			// populated automatically the moment an embedding provider is
+			// configured, with no separate out-of-band backfill step
+			// required. Leaving the stale claim in place here would
+			// misinform an operator reading this log post-deploy (§11.4.120:
+			// reconcile a doc/log the fix invalidated rather than leave a
+			// stale claim standing).
+			logger.Info("hybrid skill search wired (§G29): semantic recall is active for every skill created through Create/CreateFromTOML/ImportFromTOML (§G59 write-through populates embedding automatically on create/update)",
 				zap.String("embedding_provider", cfg.Embedding.Provider))
 		} else {
 			logger.Debug("hybrid skill search: no embedding provider configured, using keyword-only search (§G29)", zap.Error(err))

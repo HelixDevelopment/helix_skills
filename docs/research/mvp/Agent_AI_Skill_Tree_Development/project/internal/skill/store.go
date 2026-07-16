@@ -76,6 +76,23 @@ type Store struct {
 	// query or going completely silent. Accessed only via the atomic type's
 	// own methods -- safe for the concurrent Search callers this Store serves.
 	lastEmbedWarnUnixNano atomic.Int64
+	// lastClearWarnUnixNano is the UnixNano timestamp of the most recent
+	// "failed to clear stale embedding" warning (§G59 F6, round-3 Fable-xhigh
+	// re-review, LOW finding), throttled via warnEmbeddingClearFailed.
+	// Deliberately a SEPARATE counter from lastEmbedWarnUnixNano: two of
+	// embedWriteThrough's failure branches call warnEmbeddingDegraded (the
+	// embed/store-failure warning) IMMEDIATELY before calling
+	// clearStaleEmbedding, so if a clear failure shared lastEmbedWarnUnixNano's
+	// throttle window it would ALWAYS lose the CompareAndSwap race against the
+	// warning that just fired nanoseconds earlier -- permanently suppressing
+	// every clear-failure warning and making the stale-vector-retained
+	// condition invisible in logs exactly when an operator needs it most
+	// (see warnEmbeddingClearFailed's doc comment for the full account). A
+	// distinct counter lets a clear failure log independently of whatever
+	// embed/store warning immediately preceded it, while still protecting
+	// against a flood of repeated clear failures during a sustained DB outage
+	// (throttled at the same embedDegradeWarnInterval cadence).
+	lastClearWarnUnixNano atomic.Int64
 	// logger is the injected sink for Store's own diagnostics (currently just
 	// warnEmbeddingDegraded). Re-review remediation (MAJOR finding, post-G29):
 	// warnEmbeddingDegraded originally called the package-level zap.L(), but
@@ -266,6 +283,41 @@ func (s *Store) warnEmbeddingDegraded(err error) {
 		return // another goroutine just logged; avoid a duplicate burst
 	}
 	s.logger.Warn("hybrid search: query embedding failed, degrading to keyword-only search (§G29)", zap.Error(err))
+}
+
+// warnEmbeddingClearFailed logs, at most once per embedDegradeWarnInterval,
+// that clearStaleEmbedding's own UPDATE failed to null out a stale embedding
+// vector -- meaning the stale vector from a skill's PREVIOUS content is still
+// stored and still vector-KNN-servable (§G59 F6, round-3 Fable-xhigh
+// re-review, LOW finding).
+//
+// Uses its OWN throttle counter (lastClearWarnUnixNano), deliberately never
+// lastEmbedWarnUnixNano/warnEmbeddingDegraded's: two of embedWriteThrough's
+// four failure branches (the Embed-error branch and the
+// db.StoreSkillEmbedding-failure branch) call warnEmbeddingDegraded
+// IMMEDIATELY before calling clearStaleEmbedding, so a clear failure
+// occurring nanoseconds later would -- against the SAME per-Store throttle
+// window -- ALWAYS lose the CompareAndSwap race in warnEmbeddingDegraded and
+// log NOTHING, permanently suppressing exactly the warning an operator needs
+// to see the stale-vector-retained condition. clearStaleEmbedding's doc
+// comment previously (pre-round-3) claimed a clear failure is "reported
+// through the same throttled warnEmbeddingDegraded sink, never silently
+// swallowed"; that claim was FALSE for the sequencing embedWriteThrough's
+// branches actually exercise. This method + clearStaleEmbedding's call site
+// make the claim true: a clear failure is now visible even immediately after
+// a preceding embed/store-failure warning, while a sustained run of repeated
+// clear failures (e.g. a full DB outage) is still throttled rather than
+// flooding the log.
+func (s *Store) warnEmbeddingClearFailed(err error) {
+	now := time.Now().UnixNano()
+	last := s.lastClearWarnUnixNano.Load()
+	if now-last < int64(embedDegradeWarnInterval) {
+		return
+	}
+	if !s.lastClearWarnUnixNano.CompareAndSwap(last, now) {
+		return // another goroutine just logged; avoid a duplicate burst
+	}
+	s.logger.Warn("hybrid search: failed to clear stale embedding after a write-through skip/failure (§G59 F6)", zap.Error(err))
 }
 
 // textSearch is the keyword-only leg of Search: a pg_trgm similarity/ILIKE match
@@ -710,10 +762,290 @@ func (s *Store) Create(ctx context.Context, skill *models.Skill) error {
 	}
 
 	skill.ID = returnedID
+
+	// §G59 write-through: db.StoreSkillEmbedding (internal/db/vector.go) had
+	// ZERO callers project-wide before this fix -- Create never wrote a
+	// skill's embedding column, so every newly created skill silently
+	// degraded to trigram-only search even when a query-side embedder was
+	// configured (the vector-KNN leg of Search, §G29, never had anything of
+	// its OWN to retrieve for a skill created after that fix landed; every
+	// populated embedding in the existing test suite is written by a raw SQL
+	// UPDATE in test setup, specifically because Create never did it). A nil
+	// embedder (the default: NewStore never sets one, mirroring Search's own
+	// `s.embedder == nil` early return) is a documented no-op -- every
+	// existing caller that never opts in via WithEmbedder keeps the exact
+	// pre-G59 behaviour, embedding column stays NULL, and no embedder method
+	// is ever invoked.
+	if s.embedder != nil {
+		s.embedWriteThrough(ctx, skill)
+	}
+
 	return nil
 }
 
+// embedWriteThrough computes and persists a skill's write-side embedding
+// immediately after Create has durably written its skill row (and, when
+// present, its dependency/registry rows above) -- the write-side counterpart
+// to Search's query-side embedding (§G59). Called only when s.embedder != nil
+// (see Create); safe to call at most once per Create invocation.
+//
+// TEXT REPRESENTATION: buildSkillEmbedText concatenates Name/Title/
+// Description/Content -- the richest available semantic representation of
+// the skill, extending the fields textSearch's own trigram formula already
+// concatenates (`s.name || ' ' || s.title || ' ' || COALESCE(s.description,
+// ”)`) with Content, which typically carries the skill's actual technical
+// substance. This is deliberately NOT the same string Search embeds for a
+// QUERY: Search embeds the caller's raw free-text query (e.g. "docker
+// container security"), and there is no equivalent "skill's own text" on the
+// query side to literally match character-for-character -- a document
+// embedding and a query embedding are, by construction, built from different
+// text. What DOES have to match -- and does -- is that both are produced by
+// the SAME embedder instance (same model, same Dimensions()): Search's query
+// embed and this write-side embed both go through the one s.embedder
+// configured on this Store, so the two vector spaces are directly comparable
+// via cosine similarity. That shared-embedder guarantee, not textual
+// identity, is what makes vector-KNN meaningful across the write and query
+// sides; embedding identical text on both ends is neither necessary nor how
+// any embedding-based (as opposed to lexical) retrieval system operates.
+//
+// FAILURE POSTURE (operator-specified; reviewer may adjudicate a different
+// choice -- documented here per that instruction): a failure in EITHER the
+// embedder call OR the subsequent database write NEVER fails the enclosing
+// Create call. This mirrors Search's existing posture toward a query-time
+// embedder outage (warnEmbeddingDegraded + continue on the trigram-only
+// result set) applied symmetrically to the write side: an embedding-provider
+// outage (or a transient failure persisting the vector) degrades this ONE
+// skill to trigram-only searchability -- exactly like every skill created
+// before an embedder was ever configured -- rather than blocking skill
+// creation outright. A skill that lands without an embedding (re-embeddable
+// later by a future backfill pass) is strictly more useful to callers than no
+// skill at all; and per the no-guessing mandate, a real failure is never
+// silently swallowed with zero telemetry -- it reuses the SAME throttled
+// warnEmbeddingDegraded sink Search already writes to (WithLogger-injected,
+// never the package-level zap.L() no-op default), so a sustained
+// embedding-provider outage remains observable during CREATEs, not only
+// during searches.
+//
+// STALE-VECTOR-ON-UPDATE (F3, code-review remediation): Create's upsert SET
+// list never touches `embedding` (see the SQL below), so on the
+// ON CONFLICT (name) DO UPDATE branch -- an existing skill re-Created with
+// changed content -- a failure/skip on THIS call leaves whatever vector a
+// PRIOR successful embed wrote still in place, now stale against the NEW
+// content. "Degrades to trigram-only (NULL)" is only accurate for a fresh
+// INSERT, where the column starts NULL; for an UPDATE it must be made true by
+// actively clearing the column, not merely by not-writing to it. ALL FOUR
+// failure/skip branches below therefore call clearStaleEmbedding -- (1) empty
+// buildSkillEmbedText text, (2) s.embedder.Embed itself returning an error,
+// (3) Embed returning no error but an empty/unusable vector, and (4) Embed
+// succeeding but the subsequent db.StoreSkillEmbedding write failing (F3
+// round-2 code-review remediation; e.g. the embedder returns a vector whose
+// dimension does not match the `embedding vector(768)` column) -- each call
+// a harmless no-op on a fresh insert (already NULL) and an honest degrade on
+// an update (clears the stale vector rather than silently serving it).
+//
+// NOT a single atomic SQL transaction: this call deliberately does NOT wrap
+// the skill-row/dependency/registry writes above and the embedding UPDATE in
+// one BEGIN/COMMIT block. An all-or-nothing transaction would roll back the
+// just-created skill row on any embedder hiccup -- the OPPOSITE of the
+// degrade-gracefully posture this method exists to implement. "Same
+// transaction as the skill row write" is satisfied in the sense that matters
+// here: this call happens synchronously, in the same Create() invocation,
+// immediately after the skill row is durably committed -- never a separate,
+// out-of-band, possibly-never-run backfill job -- so by the time Create
+// returns, the embedding write has already been attempted (and, on success,
+// persisted) for every caller with an embedder configured.
+//
+// CONCURRENT-SAME-NAME-CREATE BOUNDARY (W2, round-3 Fable-xhigh re-review,
+// documented honestly here, deliberately NOT guarded this round -- tracked
+// separately): precisely because this is NOT one atomic transaction (see
+// above) and neither Create nor embedWriteThrough take any lock serializing
+// two concurrent Create calls for the SAME skill name, two callers racing an
+// ON CONFLICT (name) DO UPDATE for that name can interleave their skill-row
+// upsert and their embedding write out of order -- e.g. caller A's upsert
+// commits, caller B's upsert commits (B's content now wins the row), then
+// A's embedWriteThrough finishes its (slower) embed and writes ITS
+// (A's, now-superseded) vector last. The result is a vector-KNN-servable
+// embedding computed from content that is NO LONGER what the row stores --
+// stale on an ALL-SUCCESS path, not merely on one of the failure/skip paths
+// clearStaleEmbedding actively guards above. This is a genuinely different
+// defect class from F3/F5 (which are failure/skip paths this method already
+// closes): it is inherent in the current non-transactional, unlocked
+// write-through design and requires either serializing same-name Creates or
+// fencing the embedding write against the row's updated_at (only apply the
+// write if updated_at still matches what THIS call's own upsert just wrote).
+// Implementing that fence is out of scope for this round; it is tracked as a
+// separate follow-up rather than silently left undocumented (§11.4.6).
+func (s *Store) embedWriteThrough(ctx context.Context, sk *models.Skill) {
+	// Defensive precondition re-check (code-review NIT): every current call
+	// site (Create, and ImportFromTOML via the same guard) already checks
+	// s.embedder != nil before calling this method, so this is unreachable
+	// today -- but documenting and enforcing the precondition here means a
+	// future call site that forgets the guard degrades cleanly (nil-safe
+	// no-op) instead of nil-pointer-panicking on s.embedder.Embed below.
+	if s.embedder == nil {
+		return
+	}
+
+	text := buildSkillEmbedText(sk)
+	if text == "" {
+		// Nothing meaningful to embed. On an ON CONFLICT (name) DO UPDATE
+		// call this must still CLEAR any embedding a PRIOR version of this
+		// skill wrote (F3) -- a no-op on a fresh insert, see clearStaleEmbedding.
+		s.clearStaleEmbedding(ctx, sk)
+		return
+	}
+
+	vecs, err := s.embedder.Embed(ctx, []string{text})
+	if err != nil {
+		s.warnEmbeddingDegraded(fmt.Errorf("create-time embed for skill %q: %w", sk.Name, err))
+		s.clearStaleEmbedding(ctx, sk)
+		return
+	}
+	if len(vecs) == 0 || len(vecs[0]) == 0 {
+		// The provider returned no error but also no usable vector: nothing to
+		// store, and (mirroring Search's own handling of this exact case) not
+		// itself a failure signal worth warning about. Still clear any stale
+		// vector from a prior successful embed (F3).
+		s.clearStaleEmbedding(ctx, sk)
+		return
+	}
+
+	if err := db.StoreSkillEmbedding(ctx, s.pool, sk.ID, pgvector.NewVector(vecs[0])); err != nil {
+		s.warnEmbeddingDegraded(fmt.Errorf("create-time store embedding for skill %q: %w", sk.Name, err))
+		// F3 round-2 (code-review MEDIUM finding): this branch -- Embed()
+		// SUCCEEDED but the subsequent database write did not (e.g. the
+		// embedder returned a vector whose dimension does not match the
+		// `embedding vector(768)` column) -- must clear a stale PRIOR vector
+		// exactly like the other three failure/skip branches above, per this
+		// method's own doc comment ("every failure/skip branch below
+		// therefore calls clearStaleEmbedding"). Before this fix it did not:
+		// on an ON CONFLICT (name) DO UPDATE call, a failed store here left
+		// whatever vector an EARLIER successful Create wrote in place, now
+		// stale against the skill's NEW content. "The clear would fail
+		// anyway" does NOT hold here -- ClearSkillEmbedding writes NULL,
+		// which has no dimension to violate, so it succeeds even though the
+		// store that just failed did not.
+		//
+		// F5 mechanism fix (round-3 Fable-xhigh re-review, MEDIUM, PROVEN
+		// LIVE): this call site used to be the ONLY one of the four
+		// clearStaleEmbedding call sites in this method that detached from
+		// ctx's cancellation (via context.WithoutCancel) before clearing --
+		// branches 1-3 above passed the raw, still-attached-to-the-caller ctx
+		// straight through. That asymmetry was proven exploitable: a caller
+		// whose ctx is canceled DURING the (slow) s.embedder.Embed call above
+		// (e.g. an HTTP client disconnect -- the realistic production
+		// trigger) makes Embed return ctx.Err(), which is handled by the
+		// Embed-error branch immediately above and calls clearStaleEmbedding
+		// with that SAME already-canceled ctx; the clear's own UPDATE then
+		// failed instantly on the dead context, leaving the PREVIOUS
+		// content's vector in place and still vector-KNN-servable -- exactly
+		// the stale-vector defect this method exists to prevent, and on the
+		// branch MOST likely to be hit in production (Embed is the slow,
+		// network-bound step most exposed to a mid-flight client disconnect).
+		// The detach-from-caller-cancellation + bounded-timeout logic now
+		// lives INSIDE clearStaleEmbedding itself (see its doc comment) so it
+		// applies uniformly to ALL FOUR call sites -- this call site
+		// therefore passes the plain ctx, exactly like the other three.
+		s.clearStaleEmbedding(ctx, sk)
+	}
+}
+
+// clearStaleEmbeddingTimeout bounds the clear-embedding write below (W1,
+// round-3 Fable-xhigh re-review) so a detached clear can never hang
+// indefinitely against an unreachable/stuck database. This codebase has no
+// existing PER-STATEMENT statement_timeout convention to draw the value
+// from -- internal/config's DatabaseConfig only sets ConnectTimeout, consumed
+// by DSNWithTimeout/postgres.go's New for the INITIAL pool dial, never for
+// individual queries -- so 5 seconds is not lifted from an existing
+// statement-timeout config. It mirrors this codebase's closest actual
+// precedent for bounding a single, small, indexed-primary-key DB statement:
+// Pool.Health (internal/db/postgres.go) wraps its own single-statement op (a
+// Ping) in context.WithTimeout(ctx, 5*time.Second). clearStaleEmbedding's
+// UPDATE is the same shape -- one row, one indexed primary-key predicate --
+// so the same budget is reused here rather than inventing an unrelated
+// number (§11.4.6: no silent magic constant).
+const clearStaleEmbeddingTimeout = 5 * time.Second
+
+// clearStaleEmbedding sets sk's embedding column to NULL (§G59 F3, code-review
+// remediation). Called from ALL FOUR embedWriteThrough failure/skip paths --
+// empty text, Embed error, empty vector, AND (F3 round-2 remediation) a
+// failing db.StoreSkillEmbedding write after a successful Embed -- so a
+// re-embed attempted during an ON CONFLICT (name) DO UPDATE never leaves the
+// PREVIOUS content's vector in place, now mismatched against the skill's NEW
+// content -- serving a stale, semantically-wrong vector-KNN match is worse
+// than honestly degrading to trigram-only. A no-op-equivalent on a fresh
+// insert (the column is already NULL by column default).
+//
+// DETACHED + BOUNDED (F5 mechanism fix, round-3 Fable-xhigh re-review,
+// MEDIUM, PROVEN LIVE): the incoming ctx is deliberately never used directly
+// for the clear write below. ctx is whichever of embedWriteThrough's four
+// call sites invoked this method, and for three of those four (the
+// empty-text, Embed-error, and empty-vector branches) it is the SAME ctx the
+// caller handed to the enclosing Create/embedWriteThrough call -- almost
+// certainly a per-request context (e.g. an HTTP handler's r.Context())
+// whose cancellation is entirely unrelated to whether it remains correct to
+// clear a stale vector on a skill row Create has ALREADY durably committed.
+// Detaching HERE, once, inside clearStaleEmbedding itself -- rather than at
+// each individual call site, as the pre-round-3 code did for only ONE of the
+// four -- closes this uniformly for all four; no embedWriteThrough call site
+// needs to know about or separately apply this treatment.
+// context.WithoutCancel (go.mod: go 1.25.5) preserves ctx's VALUES (e.g. any
+// request-scoped tracing) while stripping its Done()/Err(), so this clear
+// gets its own chance to complete independent of the caller's lifetime.
+//
+// A context.WithoutCancel-detached context by itself carries NO deadline at
+// all (W1, round-3 Fable-xhigh re-review): without an explicit bound, a
+// detached clear against a stuck/unreachable database would hang
+// indefinitely, trading one failure mode (a fast, honest failure on an
+// already-canceled ctx) for a worse one (an unbounded hang).
+// clearStaleEmbeddingTimeout (above) bounds this call to a short, explicit
+// budget instead.
+//
+// A failure to clear (including a timeout under clearStaleEmbeddingTimeout)
+// is reported via warnEmbeddingClearFailed -- a DISTINCT, separately
+// throttled sink from warnEmbeddingDegraded (F6, round-3 Fable-xhigh
+// re-review, LOW; see warnEmbeddingClearFailed's own doc comment for why
+// sharing the throttle counter would make this warning permanently
+// invisible) -- never silently swallowed.
+func (s *Store) clearStaleEmbedding(ctx context.Context, sk *models.Skill) {
+	clearCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), clearStaleEmbeddingTimeout)
+	defer cancel()
+	if err := db.ClearSkillEmbedding(clearCtx, s.pool, sk.ID); err != nil {
+		s.warnEmbeddingClearFailed(fmt.Errorf("clear stale embedding for skill %q: %w", sk.Name, err))
+	}
+}
+
+// buildSkillEmbedText assembles the write-side textual representation
+// embedded into a skill's vector column by embedWriteThrough (§G59). See that
+// method's doc comment for the full rationale (why these fields, and why this
+// need not -- and structurally cannot -- be textually identical to what
+// Search embeds for a query).
+func buildSkillEmbedText(sk *models.Skill) string {
+	parts := make([]string, 0, 4)
+	if sk.Name != "" {
+		parts = append(parts, sk.Name)
+	}
+	if sk.Title != "" {
+		parts = append(parts, sk.Title)
+	}
+	if sk.Description != "" {
+		parts = append(parts, sk.Description)
+	}
+	if sk.Content != "" {
+		parts = append(parts, sk.Content)
+	}
+	return strings.Join(parts, " ")
+}
+
 // CreateFromTOML creates a skill from a TOML skill wrapper.
+//
+// §G59: CreateFromTOML delegates to Create (below) for the actual skill-row
+// write, so it inherits Create's embedding write-through automatically -- no
+// separate embedWriteThrough call is needed here. There is likewise no
+// separate `Update` method on Store: Create's `ON CONFLICT (name) DO UPDATE`
+// clause IS this package's skill update path (an upsert keyed on the unique
+// `name` column), so wiring the embedding write into Create alone covers
+// create, update, and CreateFromTOML uniformly.
 func (s *Store) CreateFromTOML(ctx context.Context, wrapper *models.TOMLSkillWrapper) (*models.Skill, error) {
 	metadataJSON, _ := json.Marshal(wrapper.Skill.Metadata)
 
