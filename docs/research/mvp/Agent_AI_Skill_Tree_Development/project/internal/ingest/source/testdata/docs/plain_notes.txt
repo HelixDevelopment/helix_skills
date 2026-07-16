@@ -1,0 +1,6 @@
+plain text notes about retry backoff
+
+Use exponential backoff with jitter when retrying a flaky remote
+call. This fixture intentionally has NO leading Markdown heading so
+normalization tests can assert that a synthetic title heading is
+prepended deterministically from the file name.
