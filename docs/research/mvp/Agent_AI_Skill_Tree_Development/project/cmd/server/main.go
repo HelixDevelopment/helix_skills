@@ -22,6 +22,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io/fs"
 	"net/http"
 	"os"
 	"os/signal"
@@ -29,6 +30,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	skillsystem "github.com/helixdevelopment/skill-system"
 	"github.com/helixdevelopment/skill-system/internal/api"
 	"github.com/helixdevelopment/skill-system/internal/config"
 	"github.com/helixdevelopment/skill-system/internal/db"
@@ -83,12 +85,19 @@ func main() {
 		zap.String("database", cfg.Database.Database),
 	)
 
-	// 4. Run migrations
+	// 4. Run migrations from the EMBEDDED FS, FAIL-CLOSED before binding the
+	// port (§G23). Previously this passed a cwd-relative "./migrations" and only
+	// logged a Warn on failure, so a binary started from the wrong directory
+	// applied nothing, and a failed migration was swallowed — the server then
+	// bound the port and served every query against an un-migrated / partially
+	// migrated schema (a §11.4.108 "runs green but broken" hazard). The embedded
+	// FS makes discovery cwd-independent, and a non-nil error is now fatal:
+	// a server that cannot bring its schema to the required version is NOT
+	// serving-ready and MUST NOT pretend to be (mirrors the fatal-on-bind-failure
+	// discipline in setupAPI).
 	ctx := context.Background()
-	if err := db.Migrate(ctx, pool, "./migrations"); err != nil {
-		logger.Warn("Migration failed", zap.Error(err))
-	} else {
-		logger.Info("Migrations completed")
+	if err := migrateOnStartup(ctx, pool, startupMigrationsFS(), logger); err != nil {
+		logger.Fatal("Database migration failed; refusing to serve", zap.Error(err))
 	}
 
 	// 5. Initialize skill store and registry
@@ -142,6 +151,31 @@ func main() {
 		srv := setupAPI(cfg, pool, skillStore, skillRegistry, mcpServer, logger)
 		waitForShutdown(ctx, logger, mcpServer, srv)
 	}
+}
+
+// startupMigrationsFS is the migration source cmd/server applies at startup:
+// the EMBEDDED migrations FS (skillsystem.MigrationsFS), so migrations travel
+// with the binary and are discovered independently of the process working
+// directory (§G23). Exposed as a function (rather than inlining the reference in
+// main) so a test can assert startup wires the embedded source — a regression to
+// a cwd-relative os.DirFS("./migrations") here (or a call-site swap in main)
+// stops applying migrations when the binary runs from any other directory, which
+// the §G23 cwd-independence test catches.
+func startupMigrationsFS() fs.FS { return skillsystem.MigrationsFS }
+
+// migrateOnStartup applies the migrations in fsys and returns an error on ANY
+// failure so main() can FAIL-CLOSED (abort before binding the port, §G23). It
+// MUST NOT swallow a migration error (the pre-G23 warn-and-continue behaviour):
+// a returned nil means the schema is at the required version and the server is
+// safe to serve. Exposed as a package function so tests exercise the real
+// embed-FS apply + error-propagation path in-process without spawning the
+// binary.
+func migrateOnStartup(ctx context.Context, pool *db.Pool, fsys fs.FS, logger *zap.Logger) error {
+	if err := db.MigrateFS(ctx, pool, fsys); err != nil {
+		return fmt.Errorf("apply embedded migrations: %w", err)
+	}
+	logger.Info("Migrations completed")
+	return nil
 }
 
 // buildRouter assembles the SINGLE hardened Gin router used by every

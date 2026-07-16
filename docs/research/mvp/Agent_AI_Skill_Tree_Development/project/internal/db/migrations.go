@@ -3,8 +3,8 @@ package db
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"os"
-	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -22,8 +22,32 @@ import (
 // Migration files must be named as NNN_description.up.sql and
 // NNN_description.down.sql where NNN is a zero-padded version number.
 // Migrations are executed in version order inside transactions.
+//
+// Migrate is a thin wrapper over MigrateFS that reads the migrations from an
+// on-disk directory (os.DirFS). Production startup (cmd/server) uses MigrateFS
+// with the embedded migrations FS so migrations apply independently of the
+// process working directory (§G23); this string-path form is retained for the
+// test suites that drive a controlled on-disk migration subset.
 func Migrate(ctx context.Context, pool *Pool, migrationsDir string) error {
-	log := zap.L().With(zap.String("dir", migrationsDir))
+	return MigrateFS(ctx, pool, os.DirFS(migrationsDir))
+}
+
+// MigrateFS runs all pending "up" migrations discovered in fsys (an io/fs.FS).
+// Both an embed.FS (the compiled-in migrations, cwd-independent) and
+// os.DirFS(dir) (an on-disk directory) satisfy fs.FS, so the same discovery and
+// apply logic serves the production embedded path AND the on-disk test path.
+//
+// fsys MUST be rooted at the migrations directory itself, so its entries are
+// the bare NNN_description.{up,down}.sql filenames (skillsystem.MigrationsFS and
+// os.DirFS(dir) both satisfy this).
+//
+// It tracks applied versions in the schema_migrations table (created
+// automatically) and applies each pending migration in version order inside a
+// transaction. Any discovery, read, or apply failure is returned to the caller
+// UNMODIFIED-in-severity: it is a hard error, never swallowed — cmd/server
+// treats it as fatal and refuses to bind the port (§G23 fail-closed).
+func MigrateFS(ctx context.Context, pool *Pool, fsys fs.FS) error {
+	log := zap.L()
 
 	// Ensure the migrations tracking table exists.
 	if err := ensureMigrationsTable(ctx, pool); err != nil {
@@ -40,8 +64,8 @@ func Migrate(ctx context.Context, pool *Pool, migrationsDir string) error {
 		appliedSet[v] = struct{}{}
 	}
 
-	// Discover migration files on disk.
-	migrations, err := discoverMigrations(migrationsDir)
+	// Discover migration files in the FS (embedded or on-disk).
+	migrations, err := discoverMigrationsFS(fsys)
 	if err != nil {
 		return fmt.Errorf("discover migrations: %w", err)
 	}
@@ -57,7 +81,7 @@ func Migrate(ctx context.Context, pool *Pool, migrationsDir string) error {
 			zap.String("name", m.name),
 		)
 
-		sqlBytes, err := os.ReadFile(m.upPath)
+		sqlBytes, err := fs.ReadFile(fsys, m.upPath)
 		if err != nil {
 			return fmt.Errorf("read migration %d: %w", m.version, err)
 		}
@@ -81,8 +105,19 @@ func Migrate(ctx context.Context, pool *Pool, migrationsDir string) error {
 
 // MigrateDown rolls back the last n applied migrations. Use with caution;
 // in production prefer targeted down migrations during maintenance windows.
+//
+// Like Migrate, this is a thin wrapper over MigrateDownFS reading from an
+// on-disk directory (os.DirFS); the string-path form is retained for the test
+// suites.
 func MigrateDown(ctx context.Context, pool *Pool, migrationsDir string, n int) error {
-	log := zap.L().With(zap.String("dir", migrationsDir), zap.Int("steps", n))
+	return MigrateDownFS(ctx, pool, os.DirFS(migrationsDir), n)
+}
+
+// MigrateDownFS rolls back the last n applied migrations, reading the down
+// migrations from fsys (an io/fs.FS rooted at the migrations directory). See
+// MigrateFS for the FS-shape contract.
+func MigrateDownFS(ctx context.Context, pool *Pool, fsys fs.FS, n int) error {
+	log := zap.L().With(zap.Int("steps", n))
 
 	if n <= 0 {
 		return nil
@@ -104,7 +139,7 @@ func MigrateDown(ctx context.Context, pool *Pool, migrationsDir string, n int) e
 	}
 
 	// Build lookup of available down migrations.
-	available, err := discoverMigrations(migrationsDir)
+	available, err := discoverMigrationsFS(fsys)
 	if err != nil {
 		return fmt.Errorf("discover migrations: %w", err)
 	}
@@ -127,7 +162,7 @@ func MigrateDown(ctx context.Context, pool *Pool, migrationsDir string, n int) e
 			return fmt.Errorf("no down migration found for version %d", version)
 		}
 
-		sqlBytes, err := os.ReadFile(downPath)
+		sqlBytes, err := fs.ReadFile(fsys, downPath)
 		if err != nil {
 			return fmt.Errorf("read down migration %d: %w", version, err)
 		}
@@ -156,10 +191,14 @@ type migration struct {
 	downPath string
 }
 
-// discoverMigrations scans migrationsDir for .up.sql and .down.sql files
-// and returns them sorted by version number.
-func discoverMigrations(dir string) ([]migration, error) {
-	entries, err := os.ReadDir(dir)
+// discoverMigrationsFS scans fsys for .up.sql and .down.sql files at its root
+// (".") and returns them sorted by version number. fsys is any io/fs.FS —
+// embed.FS (compiled-in migrations, cwd-independent) or os.DirFS(dir) (an
+// on-disk directory) — so discovery never depends on the process working
+// directory. The returned migration paths (upPath/downPath) are FS-relative
+// base filenames suitable for fs.ReadFile(fsys, path).
+func discoverMigrationsFS(fsys fs.FS) ([]migration, error) {
+	entries, err := fs.ReadDir(fsys, ".")
 	if err != nil {
 		return nil, fmt.Errorf("read migrations directory: %w", err)
 	}
@@ -188,9 +227,9 @@ func discoverMigrations(dir string) ([]migration, error) {
 		}
 
 		if strings.HasSuffix(name, ".up.sql") {
-			ups[version] = filepath.Join(dir, name)
+			ups[version] = name
 		} else if strings.HasSuffix(name, ".down.sql") {
-			downs[version] = filepath.Join(dir, name)
+			downs[version] = name
 		}
 	}
 
@@ -203,15 +242,14 @@ func discoverMigrations(dir string) ([]migration, error) {
 
 	var result []migration
 	for _, v := range versions {
-		upPath := ups[v]
-		base := filepath.Base(upPath)
-		base = strings.TrimPrefix(base, fmt.Sprintf("%03d_", v))
+		upName := ups[v]
+		base := strings.TrimPrefix(upName, fmt.Sprintf("%03d_", v))
 		base = strings.TrimSuffix(base, ".up.sql")
 
 		result = append(result, migration{
 			version:  v,
 			name:     base,
-			upPath:   upPath,
+			upPath:   upName,
 			downPath: downs[v],
 		})
 	}
