@@ -39,11 +39,11 @@ func NewExpandCommand() *cobra.Command {
 
 	// expand status <job-id>
 	statusCmd := &cobra.Command{
-		Use:   "status <job-id>",
-		Short: "Check expansion job status",
-		Long:  `Get the current status and results of an expansion job.`,
+		Use:     "status <job-id>",
+		Short:   "Check expansion job status",
+		Long:    `Get the current status and results of an expansion job.`,
 		Example: `  skill-system expand status 550e8400-e29b-41d4-a716-446655440000`,
-		Args: cobra.ExactArgs(1),
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runExpandStatus(cmd, args[0])
 		},

@@ -22,25 +22,25 @@ type RegistryStats struct {
 
 // RegistryModel shows registry health status
 type RegistryModel struct {
-	client       *APIClient
-	entries      []SkillRegistryEntry
-	stats        *RegistryStats
-	loading      bool
-	err          error
-	width        int
-	height       int
-	activeView   int // 0=overview, 1=missing, 2=stale, 3=entries
-	focusIdx     int
+	client     *APIClient
+	entries    []SkillRegistryEntry
+	stats      *RegistryStats
+	loading    bool
+	err        error
+	width      int
+	height     int
+	activeView int // 0=overview, 1=missing, 2=stale, 3=entries
+	focusIdx   int
 }
 
 // SkillRegistryEntry is a local copy of the model to avoid import cycles
 type SkillRegistryEntry struct {
-	SkillName   string    `json:"skill_name"`
-	MissingDeps []string  `json:"missing_deps"`
-	Stale       bool      `json:"stale"`
+	SkillName   string     `json:"skill_name"`
+	MissingDeps []string   `json:"missing_deps"`
+	Stale       bool       `json:"stale"`
 	LastReview  *time.Time `json:"last_review"`
-	AutoExpand  bool      `json:"auto_expand"`
-	Coverage    float64   `json:"coverage"`
+	AutoExpand  bool       `json:"auto_expand"`
+	Coverage    float64    `json:"coverage"`
 }
 
 // registryMsg types

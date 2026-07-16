@@ -193,5 +193,3 @@ func (p *Pool) Query(ctx context.Context, sql string, args ...any) (pgx.Rows, er
 func (p *Pool) Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error) {
 	return p.inner.Exec(ctx, sql, args...)
 }
-
-

@@ -24,9 +24,9 @@ func NewRegistryCommand() *cobra.Command {
 
 	// registry status
 	statusCmd := &cobra.Command{
-		Use:   "status",
-		Short: "Show registry health status",
-		Long:  `Display overall registry health including skill counts, coverage, and issues.`,
+		Use:     "status",
+		Short:   "Show registry health status",
+		Long:    `Display overall registry health including skill counts, coverage, and issues.`,
 		Example: `  skill-system registry status`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runRegistryStatus(cmd)
@@ -35,9 +35,9 @@ func NewRegistryCommand() *cobra.Command {
 
 	// registry missing
 	missingCmd := &cobra.Command{
-		Use:   "missing",
-		Short: "List missing dependencies",
-		Long:  `Show all skills that have unresolved or missing dependencies.`,
+		Use:     "missing",
+		Short:   "List missing dependencies",
+		Long:    `Show all skills that have unresolved or missing dependencies.`,
 		Example: `  skill-system registry missing`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runRegistryMissing(cmd)
@@ -46,9 +46,9 @@ func NewRegistryCommand() *cobra.Command {
 
 	// registry stale
 	staleCmd := &cobra.Command{
-		Use:   "stale",
-		Short: "List stale skills",
-		Long:  `Show skills that haven't been reviewed recently and may need attention.`,
+		Use:     "stale",
+		Short:   "List stale skills",
+		Long:    `Show skills that haven't been reviewed recently and may need attention.`,
 		Example: `  skill-system registry stale`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runRegistryStale(cmd)
@@ -57,11 +57,11 @@ func NewRegistryCommand() *cobra.Command {
 
 	// registry review <name>
 	reviewCmd := &cobra.Command{
-		Use:   "review <name>",
-		Short: "Review a skill's registry entry",
-		Long:  `Show detailed registry information for a specific skill including coverage and issues.`,
+		Use:     "review <name>",
+		Short:   "Review a skill's registry entry",
+		Long:    `Show detailed registry information for a specific skill including coverage and issues.`,
 		Example: `  skill-system registry review go-concurrency`,
-		Args: cobra.ExactArgs(1),
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runRegistryReview(cmd, args[0])
 		},
@@ -96,15 +96,15 @@ func runRegistryStatus(cmd *cobra.Command) error {
 	defer resp.Body.Close()
 
 	var status struct {
-		TotalSkills    int                `json:"total_skills"`
-		TotalDeps      int                `json:"total_dependencies"`
-		MissingDeps    int                `json:"missing_dependencies"`
-		StaleSkills    int                `json:"stale_skills"`
-		Coverage       float64            `json:"average_coverage"`
-		ByStatus       map[string]int     `json:"by_status"`
-		ByDomain       map[string]int     `json:"by_domain"`
-		Health         string             `json:"health"`
-		LastScan       *time.Time         `json:"last_scan,omitempty"`
+		TotalSkills int            `json:"total_skills"`
+		TotalDeps   int            `json:"total_dependencies"`
+		MissingDeps int            `json:"missing_dependencies"`
+		StaleSkills int            `json:"stale_skills"`
+		Coverage    float64        `json:"average_coverage"`
+		ByStatus    map[string]int `json:"by_status"`
+		ByDomain    map[string]int `json:"by_domain"`
+		Health      string         `json:"health"`
+		LastScan    *time.Time     `json:"last_scan,omitempty"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&status); err != nil {
 		// Fallback: build status from entries
@@ -388,5 +388,3 @@ func getGlobalFormat(cmd *cobra.Command) string {
 	f, _ := cmd.Root().PersistentFlags().GetString("format")
 	return f
 }
-
-

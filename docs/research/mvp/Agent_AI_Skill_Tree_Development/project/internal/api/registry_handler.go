@@ -15,8 +15,8 @@ import (
 //	GET /api/v1/registry
 //
 // Query params:
-//	- limit:  max items (default 50, max 200)
-//	- offset: items to skip (default 0)
+//   - limit:  max items (default 50, max 200)
+//   - offset: items to skip (default 0)
 func (s *Server) handleGetRegistry(c *gin.Context) {
 	limit, offset := parsePagination(c, 50, 200)
 
@@ -67,8 +67,8 @@ func (s *Server) handleGetMissingDeps(c *gin.Context) {
 //	GET /api/v1/registry/stale
 //
 // Query params:
-//	- limit:  max items (default 50, max 200)
-//	- offset: items to skip (default 0)
+//   - limit:  max items (default 50, max 200)
+//   - offset: items to skip (default 0)
 func (s *Server) handleGetStaleSkills(c *gin.Context) {
 	limit, offset := parsePagination(c, 50, 200)
 

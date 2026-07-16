@@ -71,7 +71,7 @@ func (s *Server) shutdownHTTP3(ctx context.Context) error {
 	}
 
 	zap.L().Info("shutting down HTTP/3 server")
-	
+
 	shutdownCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 

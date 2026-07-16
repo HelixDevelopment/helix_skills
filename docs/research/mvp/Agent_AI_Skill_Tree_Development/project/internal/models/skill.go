@@ -77,10 +77,10 @@ type Skill struct {
 	UpdatedAt   time.Time       `json:"updated_at" db:"updated_at" toml:"-"`
 
 	// Runtime fields (not persisted directly)
-	Dependencies  []SkillDependency `json:"dependencies,omitempty" db:"-" toml:"-"`
-	Resources     []Resource        `json:"resources,omitempty" db:"-" toml:"-"`
-	Embedding     pgvector.Vector   `json:"-" db:"embedding" toml:"-"`
-	TreeDepth     int               `json:"tree_depth,omitempty" db:"-" toml:"-"`
+	Dependencies []SkillDependency `json:"dependencies,omitempty" db:"-" toml:"-"`
+	Resources    []Resource        `json:"resources,omitempty" db:"-" toml:"-"`
+	Embedding    pgvector.Vector   `json:"-" db:"embedding" toml:"-"`
+	TreeDepth    int               `json:"tree_depth,omitempty" db:"-" toml:"-"`
 }
 
 // NormalizeOrAtomic returns k, or SkillKindAtomic if k is empty. Use this
@@ -291,12 +291,12 @@ type ExpansionJob struct {
 
 // LearningJob tracks codebase analysis progress
 type LearningJob struct {
-	ID        uuid.UUID `json:"id" db:"id"`
-	ProjectPath string  `json:"project_path" db:"project_path"`
-	Status    string    `json:"status" db:"status"`
-	Languages []string  `json:"languages" db:"languages"`
-	FilesProcessed int  `json:"files_processed" db:"files_processed"`
-	PatternsFound  int  `json:"patterns_found" db:"patterns_found"`
-	CreatedAt time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+	ID             uuid.UUID `json:"id" db:"id"`
+	ProjectPath    string    `json:"project_path" db:"project_path"`
+	Status         string    `json:"status" db:"status"`
+	Languages      []string  `json:"languages" db:"languages"`
+	FilesProcessed int       `json:"files_processed" db:"files_processed"`
+	PatternsFound  int       `json:"patterns_found" db:"patterns_found"`
+	CreatedAt      time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at" db:"updated_at"`
 }

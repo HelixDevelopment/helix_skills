@@ -15,16 +15,16 @@ import (
 
 // BrowseModel shows a paginated list of skills with detail view
 type BrowseModel struct {
-	client      *APIClient
-	list        list.Model
-	skills      []models.Skill
-	selected    *models.Skill
-	detailView  bool
-	loading     bool
-	width       int
-	height      int
-	filterMode  bool
-	err         error
+	client     *APIClient
+	list       list.Model
+	skills     []models.Skill
+	selected   *models.Skill
+	detailView bool
+	loading    bool
+	width      int
+	height     int
+	filterMode bool
+	err        error
 }
 
 // SkillItem wraps a skill for the list component

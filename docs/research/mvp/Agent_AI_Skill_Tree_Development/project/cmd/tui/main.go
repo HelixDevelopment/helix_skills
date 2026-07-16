@@ -74,57 +74,57 @@ var (
 
 	// Semantic styles
 	styleTitle = lipgloss.NewStyle().
-		Bold(true).
-		Foreground(colorBlue).
-		MarginLeft(1)
+			Bold(true).
+			Foreground(colorBlue).
+			MarginLeft(1)
 
 	styleTab = lipgloss.NewStyle().
-		Padding(0, 2).
-		Foreground(colorGray)
+			Padding(0, 2).
+			Foreground(colorGray)
 
 	styleTabActive = lipgloss.NewStyle().
-		Padding(0, 2).
-		Bold(true).
-		Foreground(colorBlue).
-		Background(colorSurface).
-		Border(lipgloss.RoundedBorder(), false, false, true, false).
-		BorderForeground(colorBlue)
+			Padding(0, 2).
+			Bold(true).
+			Foreground(colorBlue).
+			Background(colorSurface).
+			Border(lipgloss.RoundedBorder(), false, false, true, false).
+			BorderForeground(colorBlue)
 
 	styleError = lipgloss.NewStyle().
-		Foreground(colorRed).
-		Bold(true)
+			Foreground(colorRed).
+			Bold(true)
 
 	styleSuccess = lipgloss.NewStyle().
-		Foreground(colorGreen)
+			Foreground(colorGreen)
 
 	styleWarning = lipgloss.NewStyle().
-		Foreground(colorYellow)
+			Foreground(colorYellow)
 
 	styleInfo = lipgloss.NewStyle().
-		Foreground(colorTeal)
+			Foreground(colorTeal)
 
 	styleHelp = lipgloss.NewStyle().
-		Foreground(colorGray).
-		Italic(true)
+			Foreground(colorGray).
+			Italic(true)
 
 	styleStatusBar = lipgloss.NewStyle().
-		Background(colorSurface).
-		Foreground(colorGray).
-		Padding(0, 1)
+			Background(colorSurface).
+			Foreground(colorGray).
+			Padding(0, 1)
 
 	styleHeader = lipgloss.NewStyle().
-		Bold(true).
-		Foreground(colorPurple)
+			Bold(true).
+			Foreground(colorPurple)
 
 	styleSelected = lipgloss.NewStyle().
-		Background(colorSurface).
-		Foreground(colorBlue).
-		Bold(true)
+			Background(colorSurface).
+			Foreground(colorBlue).
+			Bold(true)
 
 	styleNormal = lipgloss.NewStyle().
-		Foreground(colorFg)
+			Foreground(colorFg)
 
 	styleBorder = lipgloss.NewStyle().
-		BorderStyle(lipgloss.RoundedBorder()).
-		BorderForeground(colorOverlay)
+			BorderStyle(lipgloss.RoundedBorder()).
+			BorderForeground(colorOverlay)
 )

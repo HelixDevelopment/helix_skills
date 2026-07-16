@@ -126,12 +126,12 @@ func (r *Registry) GetStaleSkills(ctx context.Context, limit int) ([]StaleSkillI
 
 // StaleSkillInfo holds information about a stale skill.
 type StaleSkillInfo struct {
-	SkillID     string    `db:"skill_id"`
-	SkillName   string    `db:"skill_name"`
-	MissingDeps []string  `db:"missing_deps"`
-	Stale       bool      `db:"stale"`
+	SkillID     string     `db:"skill_id"`
+	SkillName   string     `db:"skill_name"`
+	MissingDeps []string   `db:"missing_deps"`
+	Stale       bool       `db:"stale"`
 	LastReview  *time.Time `db:"last_review"`
-	Coverage    float64   `db:"coverage"`
+	Coverage    float64    `db:"coverage"`
 }
 
 // GetCoverageReport returns a coverage report for the given domain. An empty

@@ -25,15 +25,15 @@ var tabHelp = []string{"F1", "F2", "F3", "F4"}
 
 // KeyMap defines the full set of keyboard shortcuts
 type KeyMap struct {
-	Quit       key.Binding
-	Help       key.Binding
-	NextTab    key.Binding
-	PrevTab    key.Binding
-	Tab1       key.Binding
-	Tab2       key.Binding
-	Tab3       key.Binding
-	Tab4       key.Binding
-	Reload     key.Binding
+	Quit    key.Binding
+	Help    key.Binding
+	NextTab key.Binding
+	PrevTab key.Binding
+	Tab1    key.Binding
+	Tab2    key.Binding
+	Tab3    key.Binding
+	Tab4    key.Binding
+	Reload  key.Binding
 }
 
 // DefaultKeyMap returns the default key bindings
@@ -87,10 +87,10 @@ type Model struct {
 	height    int
 
 	// Sub-models for each tab
-	browseModel    BrowseModel
-	searchModel    SearchModel
-	treeModel      TreeModel
-	registryModel  RegistryModel
+	browseModel   BrowseModel
+	searchModel   SearchModel
+	treeModel     TreeModel
+	registryModel RegistryModel
 
 	// Shared
 	apiClient   *APIClient
@@ -100,18 +100,18 @@ type Model struct {
 	msgType     string // "error" | "success" | "warning"
 
 	// Connection state
-	connected   bool
+	connected bool
 }
 
 // NewModel creates the initial TUI model
 func NewModel(client *APIClient, connected bool) Model {
 	m := Model{
-		tabs:       tabNames,
-		activeTab:  tabBrowse,
-		apiClient:  client,
-		keys:       DefaultKeyMap(),
-		connected:  connected,
-		helpOpen:   false,
+		tabs:      tabNames,
+		activeTab: tabBrowse,
+		apiClient: client,
+		keys:      DefaultKeyMap(),
+		connected: connected,
+		helpOpen:  false,
 	}
 
 	// Initialize sub-models

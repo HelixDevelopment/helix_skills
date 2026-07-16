@@ -29,9 +29,9 @@ type SimilarSkillsRequest struct {
 //	GET /api/v1/search
 //
 // Query params (for GET):
-//	- q:      search query text (required for keyword search)
-//	- limit:  max results (default 20, max 100)
-//	- vector: comma-separated vector values (optional, for vector search)
+//   - q:      search query text (required for keyword search)
+//   - limit:  max results (default 20, max 100)
+//   - vector: comma-separated vector values (optional, for vector search)
 func (s *Server) handleSearch(c *gin.Context) {
 	var query string
 	var vector []float32
@@ -98,10 +98,10 @@ func (s *Server) handleSearch(c *gin.Context) {
 //	POST /api/v1/search/similar
 //
 // Request body (JSON or TOML):
-//	- content:  text content to find similar skills for
-//	- skill_id: existing skill ID to find similar skills to
-//	- vector:   embedding vector (optional)
-//	- limit:    max results (default 20, max 100)
+//   - content:  text content to find similar skills for
+//   - skill_id: existing skill ID to find similar skills to
+//   - vector:   embedding vector (optional)
+//   - limit:    max results (default 20, max 100)
 func (s *Server) handleSimilarSkills(c *gin.Context) {
 	var req SimilarSkillsRequest
 	if err := parseRequestBody(c, &req); err != nil {
@@ -203,4 +203,3 @@ func parseVector(s string) []float32 {
 	}
 	return vec
 }
-

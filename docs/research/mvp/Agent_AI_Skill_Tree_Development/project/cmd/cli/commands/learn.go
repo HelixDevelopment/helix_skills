@@ -39,11 +39,11 @@ func NewLearnCommand() *cobra.Command {
 
 	// learn status <job-id>
 	statusCmd := &cobra.Command{
-		Use:   "status <job-id>",
-		Short: "Check learning job status",
-		Long:  `Get the current status and progress of a learning job.`,
+		Use:     "status <job-id>",
+		Short:   "Check learning job status",
+		Long:    `Get the current status and progress of a learning job.`,
 		Example: `  skill-system learn status 550e8400-e29b-41d4-a716-446655440000`,
-		Args: cobra.ExactArgs(1),
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runLearnStatus(cmd, args[0])
 		},
@@ -51,11 +51,11 @@ func NewLearnCommand() *cobra.Command {
 
 	// learn evidences <skill-name>
 	evidenceCmd := &cobra.Command{
-		Use:   "evidences <skill-name>",
-		Short: "Show evidences for a skill",
-		Long:  `Display real-world code evidences that support a specific skill.`,
+		Use:     "evidences <skill-name>",
+		Short:   "Show evidences for a skill",
+		Long:    `Display real-world code evidences that support a specific skill.`,
 		Example: `  skill-system learn evidences go-concurrency`,
-		Args: cobra.ExactArgs(1),
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runLearnEvidences(cmd, args[0])
 		},

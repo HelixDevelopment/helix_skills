@@ -20,8 +20,8 @@ type SubmitProjectRequest struct {
 //	POST /api/v1/learn/projects
 //
 // Request body:
-//	- project_path: absolute or relative path to the project directory (required)
-//	- languages:    list of languages to analyze (optional, auto-detected if empty)
+//   - project_path: absolute or relative path to the project directory (required)
+//   - languages:    list of languages to analyze (optional, auto-detected if empty)
 func (s *Server) handleSubmitProject(c *gin.Context) {
 	var req SubmitProjectRequest
 	if err := parseRequestBody(c, &req); err != nil {
@@ -102,8 +102,8 @@ func (s *Server) handleGetLearnStatus(c *gin.Context) {
 //	GET /api/v1/learn/evidences/:skill_id
 //
 // Query params:
-//	- limit:  max items (default 20, max 100)
-//	- offset: items to skip (default 0)
+//   - limit:  max items (default 20, max 100)
+//   - offset: items to skip (default 0)
 func (s *Server) handleGetEvidences(c *gin.Context) {
 	skillID := c.Param("skill_id")
 	if skillID == "" {

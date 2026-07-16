@@ -20,8 +20,8 @@ type TriggerExpandRequest struct {
 //	POST /api/v1/expand
 //
 // Request body:
-//	- skill_name: name of the skill to expand from (required)
-//	- depth:      expansion depth (default 3, max 5)
+//   - skill_name: name of the skill to expand from (required)
+//   - depth:      expansion depth (default 3, max 5)
 func (s *Server) handleTriggerExpand(c *gin.Context) {
 	var req TriggerExpandRequest
 	if err := parseRequestBody(c, &req); err != nil {

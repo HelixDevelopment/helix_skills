@@ -303,7 +303,7 @@ Missing dependency: %s
 
 > This skill needs review and enrichment before activation.
 `, gap.SuggestedTitle, gap.SkillName, gap.MissingDepName, gap.Reason),
-		Status: models.SkillStatusDraft,
+		Status:       models.SkillStatusDraft,
 		Dependencies: []models.SkillDependency{
 			// The drafted skill depends on the parent skill context
 		},

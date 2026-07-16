@@ -197,5 +197,3 @@ func initLogger(cfg config.LoggingConfig) (*zap.Logger, error) {
 
 	return logger, nil
 }
-
-
