@@ -380,10 +380,26 @@ func (s *Store) ExportToTOML(ctx context.Context, skillName string) ([]byte, err
 	for _, dep := range skill.Dependencies {
 		depName := dep.DependsOnName
 		if depName == "" {
-			// Resolve name from ID if not populated
+			// G33: resolve the name from the edge's target ID when the
+			// GetByName JOIN did not populate DependsOnName. The scan error
+			// MUST be propagated — the pre-G33 `_ = ...Scan(&name)` swallowed
+			// it, so a transient DB/context error (or an unresolvable target)
+			// silently left name empty and emitted a blank dependency name
+			// into the exported TOML.
 			var name string
-			_ = s.pool.QueryRow(ctx, `SELECT name FROM skills WHERE id = $1`, dep.DependsOn).Scan(&name)
+			if err := s.pool.QueryRow(ctx, `SELECT name FROM skills WHERE id = $1`, dep.DependsOn).Scan(&name); err != nil {
+				return nil, fmt.Errorf("resolve dependency name for target %s: %w", dep.DependsOn, err)
+			}
 			depName = name
+		}
+		// G33: never emit an empty dependency edge name. A blank name is
+		// export corruption regardless of how it arose (a swallowed scan
+		// error above, or a genuinely empty skills.name) — it produces a
+		// `requires = [""]`-class edge that re-imports wrong. Fail the export
+		// loudly instead (§11.4.6 / §11.4.201: assert the real condition,
+		// never write a bluffed empty edge).
+		if depName == "" {
+			return nil, fmt.Errorf("dependency target %s has no resolvable name; refusing to export an empty dependency edge", dep.DependsOn)
 		}
 
 		// G07: emit every canonical relation type (the six-type typed-edge set
