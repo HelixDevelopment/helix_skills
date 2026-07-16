@@ -21,7 +21,14 @@ func (s *MCPServer) registerSkillSearch() {
 		mcp_go.WithDescription(
 			"Search the skill graph using text or vector similarity. "+
 				"Returns skills matching the query with relevance scores. "+
-				"Use this to find relevant skills when answering questions or solving problems.",
+				"Use this to find relevant skills when answering questions or solving problems. "+
+				"Score scale note (§G29): when no embedding is populated for any matching "+
+				"skill, score is a pg_trgm text-similarity value in [0, 1]. Once semantic "+
+				"(vector) recall is active for a query, score instead becomes a fused "+
+				"Reciprocal Rank Fusion relevance value, typically in the much smaller "+
+				"~0.01-0.03 range -- always compare scores WITHIN one response's results "+
+				"(relative ranking), never against a fixed absolute threshold from a "+
+				"previous call.",
 		),
 		mcp_go.WithString("query",
 			mcp_go.Required(),

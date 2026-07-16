@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -66,10 +67,10 @@ type LLMValidator interface {
 // to ensure accuracy and prevent hallucinated content from entering the
 // knowledge graph. It executes no untrusted code (see the package doc).
 type Pipeline struct {
-	store      *skill.Store
-	cfg        config.ValidationConfig
-	logger     *zap.Logger
-	jury []JuryMember
+	store  *skill.Store
+	cfg    config.ValidationConfig
+	logger *zap.Logger
+	jury   []JuryMember
 	// executor is the opt-in Tier B IsolatedExecutor (default
 	// SkipIsolatedExecutor, always SKIP — see sandbox.go). It is intentionally
 	// NOT invoked by Validate(): Validate's fail-closed 4-stage contract
@@ -530,6 +531,20 @@ func (p *Pipeline) crossReferenceStage(ctx context.Context, s *models.Skill) (St
 // CrossReference checks consistency of a skill against existing skills in the
 // knowledge graph. It verifies that referenced dependencies exist and that there
 // are no naming contradictions. It executes no untrusted code.
+//
+// Both checks use an EXACT lookup (Store.GetByName), never the fuzzy hybrid
+// Store.Search (Fable code-review remediation, finding 1, BLOCKING): Search's
+// ranking is RRF-fused across a trigram leg and, once a query-side embedder is
+// wired (§G29), a vector leg -- and an exact trigram match tops out at
+// trigramRRFWeight/(rrfK+1) = 0.9/61 while ANY embedded row's rank-0 vector hit
+// scores vectorRRFWeight/(rrfK+1) = 1.0/61, so a small-limit Search (limit=1
+// for the dependency check, limit=5 for the conflict check) can rank an
+// unrelated EMBEDDED skill above the exact-name match and, at limit=1, drop the
+// exact match from the result set entirely. That would make CrossReference's
+// existence/conflict verdict depend on which OTHER, unrelated skills happen to
+// carry a populated embedding -- exactly the failure this fix closes.
+// GetByName's `WHERE name = $1` lookup is exact and embedding-state-independent:
+// its answer never changes based on what else in the graph has an embedding.
 func (p *Pipeline) CrossReference(ctx context.Context, s *models.Skill) error {
 	// Check that all dependencies exist.
 	for _, dep := range s.Dependencies {
@@ -537,31 +552,24 @@ func (p *Pipeline) CrossReference(ctx context.Context, s *models.Skill) error {
 			return fmt.Errorf("dependency has empty ID for skill %q", dep.DependsOnName)
 		}
 
-		results, err := p.store.Search(ctx, dep.DependsOnName, 1)
-		if err != nil {
-			return fmt.Errorf("search dependency %q: %w", dep.DependsOnName, err)
-		}
-		exists := false
-		for _, r := range results {
-			if r.Skill.Name == dep.DependsOnName {
-				exists = true
-				break
+		if _, err := p.store.GetByName(ctx, dep.DependsOnName); err != nil {
+			if errors.Is(err, skill.ErrSkillNotFound) {
+				return fmt.Errorf("dependency %q not found in knowledge graph", dep.DependsOnName)
 			}
-		}
-		if !exists {
-			return fmt.Errorf("dependency %q not found in knowledge graph", dep.DependsOnName)
+			return fmt.Errorf("lookup dependency %q: %w", dep.DependsOnName, err)
 		}
 	}
 
-	// Check for naming conflicts.
-	existing, err := p.store.Search(ctx, s.Name, 5)
+	// Check for naming conflicts: does ANOTHER skill already own this exact name?
+	existing, err := p.store.GetByName(ctx, s.Name)
 	if err != nil {
-		return fmt.Errorf("search for conflicts: %w", err)
-	}
-	for _, e := range existing {
-		if e.Skill.Name == s.Name && e.Skill.ID != s.ID {
-			return fmt.Errorf("naming conflict: skill %q already exists with different ID", s.Name)
+		if errors.Is(err, skill.ErrSkillNotFound) {
+			return nil // no existing skill carries this exact name: no conflict
 		}
+		return fmt.Errorf("lookup for naming conflict %q: %w", s.Name, err)
+	}
+	if existing.ID != s.ID {
+		return fmt.Errorf("naming conflict: skill %q already exists with different ID", s.Name)
 	}
 
 	return nil

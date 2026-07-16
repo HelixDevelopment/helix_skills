@@ -13,7 +13,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -21,6 +23,7 @@ import (
 	"github.com/helixdevelopment/skill-system/internal/models"
 	"github.com/jackc/pgx/v5"
 	"github.com/pgvector/pgvector-go"
+	"go.uber.org/zap"
 )
 
 // Sentinel errors returned by the skill store and graph operations. Callers
@@ -57,11 +60,97 @@ var (
 // Store provides data access for skills and related entities.
 type Store struct {
 	pool *db.Pool
+	// embedder is the OPTIONAL query-side embedder that upgrades Search from
+	// keyword-only to a genuine hybrid (vector KNN + trigram) search (§G29).
+	// It is nil by default (NewStore leaves it unset), so every construction
+	// path that does not opt in keeps the historical keyword-only behaviour
+	// and never makes an embedding call. It is wired in from configuration at
+	// MCP-server construction (internal/mcp/server.go) so the live skill_search,
+	// REST /search, and pipeline-dedup paths — all sharing this one Store —
+	// become hybrid the moment an embedding provider is configured.
+	embedder db.Embedder
+	// lastEmbedWarnUnixNano is the UnixNano timestamp of the most recent
+	// "query embedding failed" warning (§G29 finding 3), throttled via
+	// warnEmbeddingDegraded so a sustained embedding-provider outage logs a
+	// steady drumbeat of evidence instead of either flooding the log once per
+	// query or going completely silent. Accessed only via the atomic type's
+	// own methods -- safe for the concurrent Search callers this Store serves.
+	lastEmbedWarnUnixNano atomic.Int64
+	// logger is the injected sink for Store's own diagnostics (currently just
+	// warnEmbeddingDegraded). Re-review remediation (MAJOR finding, post-G29):
+	// warnEmbeddingDegraded originally called the package-level zap.L(), but
+	// this codebase's construction path (cmd/server/main.go builds a concrete
+	// *zap.Logger via newLogger and threads it explicitly into api.New /
+	// mcp.NewMCPServer / validation.NewPipeline -- see internal/api/server.go
+	// and internal/mcp/server.go) never calls zap.ReplaceGlobals, so
+	// zap.L() resolves to zap's built-in no-op default in every deployed
+	// binary. The warning was therefore emitted to a sink nothing reads --
+	// dead at the runtime layer despite a green test suite (the pre-fix test
+	// only observed the warning by installing its OWN process-global
+	// zap.ReplaceGlobals override, which production code never does).
+	// Defaults to zap.NewNop() (see NewStore) so every construction path that
+	// never calls WithLogger -- every existing test helper, cmd/worker's Store
+	// (which never calls Search) -- keeps emitting nothing and never nil-panics,
+	// exactly mirroring the historical behaviour for those paths. Wired to a
+	// real logger only by internal/mcp.NewMCPServer, mirroring the existing
+	// WithEmbedder fluent-option convention immediately below.
+	logger *zap.Logger
 }
 
-// NewStore creates a new skill store.
+// NewStore creates a new skill store. logger defaults to zap.NewNop() (see
+// WithLogger) so a Store used without WithLogger -- every existing test
+// helper and any future construction path that does not opt in -- behaves
+// exactly as before this field was added: Store's internal diagnostics are
+// silently discarded, never a nil-pointer panic.
 func NewStore(pool *db.Pool) *Store {
-	return &Store{pool: pool}
+	return &Store{pool: pool, logger: zap.NewNop()}
+}
+
+// WithEmbedder configures the query-side embedder that turns Search into a
+// genuine hybrid (vector KNN + trigram) search and returns the receiver for
+// fluent wiring (§G29). Passing a nil embedder resets Search to keyword-only.
+// This is an explicit opt-in: callers that never invoke it (every current test
+// helper, and any deployment with no embedding provider configured) keep the
+// keyword-only path and never issue an embedding request.
+//
+// Concurrency contract (Fable code-review remediation, finding 6b): WithEmbedder
+// is a plain, unsynchronized field write -- it is SAFE ONLY as a one-time
+// construction-time wire-up that happens-before any concurrent Search call, NOT
+// as a live runtime reconfiguration switch. The sole production caller,
+// internal/mcp.NewMCPServer, relies on exactly this: it calls WithEmbedder on
+// the shared *Store it was handed, synchronously, before returning the
+// *MCPServer to its caller -- and every transport (stdio/HTTP/ACP) that could
+// concurrently invoke Search is started strictly AFTER NewMCPServer returns
+// (cmd/server wires the Store, then NewMCPServer, then RegisterTools/
+// ListenAndServe/RunStdio/RunACP). There is a SINGLE construction call over the
+// Store's lifetime; calling WithEmbedder again after any transport has started
+// serving requests is a data race with concurrent Search readers of s.embedder
+// and is NOT supported.
+func (s *Store) WithEmbedder(e db.Embedder) *Store {
+	s.embedder = e
+	return s
+}
+
+// WithLogger wires the real application logger into Store so its own
+// diagnostics (currently just warnEmbeddingDegraded) reach a real sink at
+// runtime instead of the package-level zap.L() no-op default (re-review
+// remediation, MAJOR finding; see the logger field's doc comment). Mirrors
+// the WithEmbedder fluent-option convention above; returns the receiver for
+// fluent wiring. A nil logger is a no-op (the field keeps whatever it already
+// had -- the zap.NewNop() default from NewStore unless WithLogger was already
+// called) rather than falling back to zap.L(), which would silently
+// reintroduce the exact dead-sink class this method exists to close.
+//
+// Concurrency contract: identical to WithEmbedder -- a plain, unsynchronized
+// field write, safe ONLY as a one-time construction-time wire-up that
+// happens-before any concurrent Search call. internal/mcp.NewMCPServer calls
+// WithLogger synchronously, before returning the *MCPServer, alongside its
+// existing WithEmbedder call.
+func (s *Store) WithLogger(logger *zap.Logger) *Store {
+	if logger != nil {
+		s.logger = logger
+	}
+	return s
 }
 
 // Pool returns the underlying database pool for operations that need
@@ -70,14 +159,136 @@ func (s *Store) Pool() *db.Pool {
 	return s.pool
 }
 
-// Search performs a hybrid search combining vector similarity and text matching.
+// rrfK is the Reciprocal Rank Fusion smoothing constant (the field-standard
+// default). It damps how quickly a result's contribution decays with rank, so
+// no single high-ranked hit in one list can dominate the fused ordering.
+const rrfK = 60
+
+// Per-list RRF weights (§G29). Vector recall is weighted marginally above the
+// lexical list because the semantic path is the capability G29 restores (R2/R13
+// make semantic retrieval core) and this deterministically breaks a rank tie in
+// favour of a semantically-near match over an equal-rank purely-lexical one. A
+// skill that matches BOTH lexically AND semantically still dominates — it
+// accrues both weighted contributions — so exact-name lookups (which land at
+// the top of both lists) are unaffected by the slight tilt.
+const (
+	vectorRRFWeight  = 1.0
+	trigramRRFWeight = 0.9
+)
+
+// embedDegradeWarnInterval throttles the "query embedding failed, degrading to
+// keyword-only" warning (§G29 finding 3) to at most once per this interval per
+// Store. A failing embedding provider can degrade EVERY hybrid-search query in
+// a hot path; logging every single occurrence would flood the log at exactly
+// the moment an operator most needs a readable signal, while suppressing it
+// entirely (the pre-fix behaviour) makes an ongoing outage invisible. Once per
+// interval keeps a sustained failure OBSERVABLE without spamming.
+const embedDegradeWarnInterval = 30 * time.Second
+
+// Search performs a hybrid search over the skill graph.
+//
+// When a query-side embedder is configured (WithEmbedder) it runs two candidate
+// retrievals — a pgvector cosine-KNN over skills.embedding (semantic recall,
+// via VectorSearch) and a pg_trgm/ILIKE keyword match (lexical precision) — and
+// fuses them with weighted Reciprocal Rank Fusion. Because the fusion is by RANK
+// (not by raw score) the incomparable score scales of the two paths cannot
+// distort each other, and a semantically-near skill whose text does NOT contain
+// the query as a substring can both surface and outrank a purely-lexical match —
+// the recall the keyword-only path structurally cannot deliver.
+//
+// When no embedder is configured, OR the query embedding fails (e.g. an
+// embedding provider is temporarily unreachable), Search transparently degrades
+// to the keyword-only path rather than returning an error, so keyword search
+// keeps working everywhere. A genuine failure of the vector KNN query itself is
+// NOT masked — it is returned — because that signals a real misconfiguration
+// (e.g. an embedding/column dimension mismatch) that must surface (§11.4.6).
+//
+// The returned SearchResult.Score is the pg_trgm similarity for the keyword-only
+// path, and the fused RRF relevance score for the hybrid path.
 func (s *Store) Search(ctx context.Context, query string, limit int) ([]models.SearchResult, error) {
-	// For now, use text-based search. In production, this would generate
-	// embeddings and use vector similarity + full-text search.
+	trigram, err := s.textSearch(ctx, query, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	// No embedder wired ⇒ historical keyword-only behaviour, byte-for-byte.
+	if s.embedder == nil {
+		return trigram, nil
+	}
+
+	vecs, embErr := s.embedder.Embed(ctx, []string{query})
+	if embErr != nil {
+		// The embedding provider is unavailable for this query: keep search
+		// working on the lexical path instead of failing the request -- but,
+		// unlike before (§G29 finding 3), make the degradation OBSERVABLE
+		// rather than silently swallowing it with zero telemetry.
+		s.warnEmbeddingDegraded(embErr)
+		return trigram, nil
+	}
+	if len(vecs) == 0 || len(vecs[0]) == 0 {
+		// The provider returned no error but also no usable vector (e.g. an
+		// empty batch): degrade quietly, this is not a failure signal worth
+		// warning about.
+		return trigram, nil
+	}
+
+	vector, err := s.VectorSearch(ctx, vecs[0], limit)
+	if err != nil {
+		// A KNN query error is a real internal fault (e.g. dimension mismatch),
+		// not an expected degradation — surface it rather than silently hide it.
+		return nil, fmt.Errorf("hybrid search vector leg: %w", err)
+	}
+
+	return fuseSearchResults(vector, trigram, limit), nil
+}
+
+// warnEmbeddingDegraded logs, at most once per embedDegradeWarnInterval, that
+// a query-side embedding call failed and Search degraded to keyword-only
+// (§G29 finding 3). Pre-fix, this failure was swallowed with zero telemetry --
+// an operator watching logs during a real embedding-provider outage would see
+// nothing but degraded search relevance, with no signal pointing at the cause.
+// Throttling (rather than logging every occurrence) keeps a sustained outage
+// visible without flooding the log once per search request.
+//
+// Logs via s.logger (injected by WithLogger), NOT the package-level zap.L()
+// (re-review remediation, MAJOR finding): this codebase never calls
+// zap.ReplaceGlobals, so zap.L() is zap's no-op default in every deployed
+// binary -- the pre-fix version of this call was dead at the runtime layer.
+// s.logger defaults to zap.NewNop() (see NewStore/WithLogger) so a Store never
+// wired with a real logger keeps the historical zero-output behaviour.
+func (s *Store) warnEmbeddingDegraded(err error) {
+	now := time.Now().UnixNano()
+	last := s.lastEmbedWarnUnixNano.Load()
+	if now-last < int64(embedDegradeWarnInterval) {
+		return
+	}
+	if !s.lastEmbedWarnUnixNano.CompareAndSwap(last, now) {
+		return // another goroutine just logged; avoid a duplicate burst
+	}
+	s.logger.Warn("hybrid search: query embedding failed, degrading to keyword-only search (§G29)", zap.Error(err))
+}
+
+// textSearch is the keyword-only leg of Search: a pg_trgm similarity/ILIKE match
+// with a broaden-on-empty ILIKE fallback. Its behaviour is identical to the
+// pre-§G29 Search so every keyword-only caller is unchanged.
+func (s *Store) textSearch(ctx context.Context, query string, limit int) ([]models.SearchResult, error) {
+	// COALESCE(s.description, '') inside the similarity() concatenation
+	// (finding 7, extended beyond the reviewer's literal fix text after live
+	// testing surfaced the FULL defect, §11.4.194): PostgreSQL's `||` yields
+	// NULL when EITHER operand is NULL, so with a nullable description
+	// (migrations/001_initial.up.sql) a NULL-description row's ENTIRE
+	// concatenation -- and therefore its similarity()/score -- becomes NULL,
+	// independent of whatever the raw `s.description` SELECT column scans as.
+	// Scanning that NULL score into the non-nullable float64 Score field
+	// panics/errors "cannot scan NULL into *float64" BEFORE the description
+	// column is ever reached -- proven against a real NULL-description row
+	// (§11.4.199 exact reproduction), which is why the NullString fix on
+	// Description ALONE (below) does not by itself prevent this query from
+	// erroring on such a row.
 	sql := `
 		SELECT s.id, s.name, s.version, s.title, s.description, s.content,
 		       s.metadata, s.status, s.kind, s.created_at, s.updated_at,
-		       similarity(s.name || ' ' || s.title || ' ' || s.description, $1) as score
+		       similarity(s.name || ' ' || s.title || ' ' || COALESCE(s.description, ''), $1) as score
 		FROM skills s
 		WHERE s.name % $1 OR s.title % $1 OR s.description ILIKE '%' || $1 || '%'
 		ORDER BY score DESC, s.name
@@ -93,17 +304,41 @@ func (s *Store) Search(ctx context.Context, query string, limit int) ([]models.S
 	for rows.Next() {
 		var r models.SearchResult
 		var metadata []byte
+		// F2-precedent NullString scan (Fable code-review remediation, finding
+		// 7): description is a nullable TEXT column (migrations/001_initial.up.sql)
+		// that Store.Create's INSERT always sets to a Go zero-value "" (never
+		// SQL NULL) -- but a row written by direct SQL (bypassing Create;
+		// e.g. a test fixture, a migration seed, or a future bulk-loader) can
+		// leave it genuinely NULL, and scanning a NULL directly into
+		// models.Skill's plain (non-nullable) Description string then panics
+		// with "cannot scan NULL into *string", exactly as GetByName's
+		// fetched_hash/content_cached fix (store.go's GetByName) already
+		// established for resources. Scanning through sql.NullString and
+		// defaulting to "" on NULL matches that same precedent here.
+		var description dbsql.NullString
 		err := rows.Scan(
 			&r.Skill.ID, &r.Skill.Name, &r.Skill.Version, &r.Skill.Title,
-			&r.Skill.Description, &r.Skill.Content, &metadata,
+			&description, &r.Skill.Content, &metadata,
 			&r.Skill.Status, &r.Skill.Kind, &r.Skill.CreatedAt, &r.Skill.UpdatedAt,
 			&r.Score,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("scan search result: %w", err)
 		}
+		r.Skill.Description = description.String
 		r.Skill.Metadata = metadata
 		results = append(results, r)
+	}
+	// F4 (Fable code-review remediation, finding 4): rows.Next() returning
+	// false means EITHER the result set is exhausted OR row iteration was cut
+	// short by a driver/connection-level error -- the two are indistinguishable
+	// from the loop alone. Without checking rows.Err(), a mid-stream failure
+	// silently truncates `results` to whatever was scanned so far and this
+	// function returns that partial slice with a nil error, masking the
+	// failure as "these are all the matches" instead of surfacing it. Mirrors
+	// the sibling package's own convention (internal/db/vector.go).
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("search skills rows: %w", err)
 	}
 
 	if len(results) == 0 {
@@ -124,20 +359,75 @@ func (s *Store) Search(ctx context.Context, query string, limit int) ([]models.S
 		for rows.Next() {
 			var r models.SearchResult
 			var metadata []byte
+			var description dbsql.NullString // F2/finding 7 precedent, see above
 			if err := rows.Scan(
 				&r.Skill.ID, &r.Skill.Name, &r.Skill.Version, &r.Skill.Title,
-				&r.Skill.Description, &r.Skill.Content, &metadata,
+				&description, &r.Skill.Content, &metadata,
 				&r.Skill.Status, &r.Skill.Kind, &r.Skill.CreatedAt, &r.Skill.UpdatedAt,
 				&r.Score,
 			); err != nil {
 				return nil, fmt.Errorf("scan fallback result: %w", err)
 			}
+			r.Skill.Description = description.String
 			r.Skill.Metadata = metadata
 			results = append(results, r)
+		}
+		// F4/finding 4, fallback leg: see the primary leg's rows.Err() note above.
+		if err := rows.Err(); err != nil {
+			return nil, fmt.Errorf("fallback search rows: %w", err)
 		}
 	}
 
 	return results, nil
+}
+
+// fuseSearchResults merges the vector-KNN and keyword candidate lists into one
+// ranked list with weighted Reciprocal Rank Fusion (§G29). Each list is assumed
+// to already be in descending-relevance order (index 0 = best). A skill present
+// in both lists accrues both weighted 1/(rrfK+rank+1) contributions; ties are
+// broken deterministically by skill name so the ordering is stable across runs.
+// The fused relevance replaces each result's per-leg Score. limit ≤ 0 means no
+// cap.
+func fuseSearchResults(vector, trigram []models.SearchResult, limit int) []models.SearchResult {
+	type agg struct {
+		res   models.SearchResult
+		score float64
+	}
+	byID := make(map[uuid.UUID]*agg)
+	order := make([]uuid.UUID, 0, len(vector)+len(trigram))
+
+	accumulate := func(list []models.SearchResult, weight float64) {
+		for rank, r := range list {
+			a, ok := byID[r.Skill.ID]
+			if !ok {
+				cp := r
+				a = &agg{res: cp}
+				byID[r.Skill.ID] = a
+				order = append(order, r.Skill.ID)
+			}
+			a.score += weight / float64(rrfK+rank+1)
+		}
+	}
+	accumulate(vector, vectorRRFWeight)
+	accumulate(trigram, trigramRRFWeight)
+
+	merged := make([]models.SearchResult, 0, len(order))
+	for _, id := range order {
+		a := byID[id]
+		a.res.Score = a.score
+		merged = append(merged, a.res)
+	}
+	sort.SliceStable(merged, func(i, j int) bool {
+		if merged[i].Score != merged[j].Score {
+			return merged[i].Score > merged[j].Score
+		}
+		return merged[i].Skill.Name < merged[j].Skill.Name
+	})
+
+	if limit > 0 && len(merged) > limit {
+		merged = merged[:limit]
+	}
+	return merged
 }
 
 // GetByName retrieves a complete skill by its unique name.
@@ -664,11 +954,24 @@ func (s *Store) SubmitLearningJob(ctx context.Context, projectPath string, langu
 // VectorSearch performs vector similarity search using pgvector.
 func (s *Store) VectorSearch(ctx context.Context, embedding []float32, limit int) ([]models.SearchResult, error) {
 	vec := pgvector.NewVector(embedding)
+	// WHERE s.embedding IS NOT NULL (F2, code-review BLOCKING; aligned with the
+	// reference sibling internal/db/vector.go's VectorSearch): skills.embedding is
+	// a nullable column (migrations/001_initial.up.sql) that store.Create never
+	// sets, so it is NULL in the ordinary partially-/un-populated state. On the
+	// HNSW index-scan plan NULLs are skipped, but the cost-based planner CAN pick a
+	// seqscan/top-N plan (small table, or no usable index) where `ORDER BY
+	// s.embedding <=> $1 LIMIT $2` sorts NULL distances LAST and, once LIMIT
+	// exceeds the non-NULL row count, RETURNS a NULL-embedding row with a NULL
+	// score -- pgx v5 then errors "cannot scan NULL into *float64". Because
+	// Store.Search deliberately does not mask a vector-leg error, that single NULL
+	// row hard-fails EVERY hybrid Search and discards the trigram results. Filtering
+	// NULLs in the vector leg makes correctness independent of the query plan.
 	sql := `
 		SELECT s.id, s.name, s.version, s.title, s.description, s.content,
 		       s.metadata, s.status, s.kind, s.created_at, s.updated_at,
 		       1 - (s.embedding <=> $1) as score
 		FROM skills s
+		WHERE s.embedding IS NOT NULL
 		ORDER BY s.embedding <=> $1
 		LIMIT $2
 	`
@@ -682,16 +985,23 @@ func (s *Store) VectorSearch(ctx context.Context, embedding []float32, limit int
 	for rows.Next() {
 		var r models.SearchResult
 		var metadata []byte
+		var description dbsql.NullString // F2/finding 7 precedent, see textSearch.
 		if err := rows.Scan(
 			&r.Skill.ID, &r.Skill.Name, &r.Skill.Version, &r.Skill.Title,
-			&r.Skill.Description, &r.Skill.Content, &metadata,
+			&description, &r.Skill.Content, &metadata,
 			&r.Skill.Status, &r.Skill.Kind, &r.Skill.CreatedAt, &r.Skill.UpdatedAt,
 			&r.Score,
 		); err != nil {
 			return nil, fmt.Errorf("scan vector result: %w", err)
 		}
+		r.Skill.Description = description.String
 		r.Skill.Metadata = metadata
 		results = append(results, r)
+	}
+	// F4/finding 4: see textSearch's rows.Err() note above -- same mid-stream
+	// truncation risk applies to this KNN query's row iteration.
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("vector search rows: %w", err)
 	}
 
 	return results, nil

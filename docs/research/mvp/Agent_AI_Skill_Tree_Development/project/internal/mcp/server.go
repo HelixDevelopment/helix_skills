@@ -54,6 +54,49 @@ func NewMCPServer(pool *db.Pool, store *skill.Store, reg *registry.Registry, cfg
 		server.WithResourceCapabilities(true, true),
 	)
 
+	// §G29: wire the query-side embedder onto the shared skill Store so its
+	// Search becomes a genuine hybrid (vector KNN + trigram) search. This single
+	// Store instance backs the MCP skill_search tool, the REST /search route, and
+	// the validation pipeline's dedup lookup, so all three semantic-search paths
+	// light up together the moment an embedding provider is configured — and stay
+	// keyword-only (no wasted embedding calls) when it is not.
+	//
+	// "Is the provider configured" is derived SOLELY from
+	// db.NewEmbedderFromConfig's own error return (Fable code-review
+	// remediation, finding 6a) -- there is no second, hand-maintained
+	// per-provider check here that could silently drift from the factory's
+	// policy. db.NewEmbedderFromConfig is itself fail-closed (errors on a
+	// missing openai api_key / local local_endpoint) rather than construct an
+	// embedder guaranteed to fail its first real request.
+	if store != nil {
+		// Re-review remediation (MAJOR finding, post-G29): wire the real
+		// application logger into the Store so its own diagnostics (currently
+		// just warnEmbeddingDegraded) reach a real sink at runtime instead of
+		// the package-level zap.L() no-op default -- mirrors the WithEmbedder
+		// call immediately below and is unconditional (unlike the embedder,
+		// which only wires when a provider is configured) because the logger
+		// is always available here and Search's degrade-to-keyword-only path
+		// can fire regardless of whether an embedder ends up configured.
+		store.WithLogger(logger)
+		if emb, err := db.NewEmbedderFromConfig(cfg.Embedding); err == nil {
+			store.WithEmbedder(emb)
+			// NOTE (§11.4.6 honest wording, finding 2): no production
+			// ingestion path populates skills.embedding yet -- store.Create
+			// never sets the column, and embedding-population is a separate,
+			// tracked follow-up (register item pending). Until that lands,
+			// this wiring makes the vector leg of Search live, but semantic
+			// recall only actually surfaces a skill once SOME out-of-band
+			// process has populated ITS embedding column directly; every
+			// skill created through the normal write path keeps a NULL
+			// embedding and is retrievable via the trigram leg only. This log
+			// line must not overclaim full hybrid coverage.
+			logger.Info("hybrid skill search wired (§G29): semantic recall is active only for skills with a populated embedding; embedding ingestion is not yet wired and is tracked separately",
+				zap.String("embedding_provider", cfg.Embedding.Provider))
+		} else {
+			logger.Debug("hybrid skill search: no embedding provider configured, using keyword-only search (§G29)", zap.Error(err))
+		}
+	}
+
 	return &MCPServer{
 		server:            mcpServer,
 		skillStore:        store,

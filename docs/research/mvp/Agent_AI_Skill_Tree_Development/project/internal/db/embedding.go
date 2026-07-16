@@ -290,11 +290,34 @@ type localEmbedResponse struct {
 // Supported providers:
 //   - "openai"  -> OpenAIEmbedder
 //   - "local"   -> LocalEmbedder
+//
+// NewEmbedderFromConfig is fail-closed on an incompletely-specified provider:
+// it errors rather than construct an Embedder that is guaranteed to fail its
+// first real request. This is the SINGLE source of truth for "is this
+// provider fully configured" -- callers (e.g. internal/mcp.NewMCPServer's
+// §G29 hybrid-search wiring) determine whether to attach an embedder solely
+// from this function's error return, never by re-deriving the same
+// per-provider policy a second time (Fable code-review remediation, finding
+// 6a: a duplicated "is it configured" check is a second source of truth that
+// can silently drift from this one).
 func NewEmbedderFromConfig(cfg config.EmbeddingConfig) (Embedder, error) {
 	switch cfg.Provider {
 	case "openai":
 		if cfg.APIKey == "" {
-			zap.L().Warn("OpenAI embedder created without API key; requests will fail")
+			// Previously this case only WARNED and still returned a
+			// constructed (but unusable) OpenAIEmbedder -- every caller that
+			// used the constructed embedder's success (err == nil) as its
+			// "configured" signal would then wire in an embedder whose FIRST
+			// real query issues an actual HTTP request to OpenAI with an
+			// empty Bearer token, gets a 401, and only THEN degrades to
+			// keyword-only (Store.Search's embErr handling) -- a wasted
+			// failing network round-trip on every single search instead of a
+			// zero-cost skip. Erroring here (matching the "local" case's
+			// existing fail-closed missing-endpoint check immediately below)
+			// makes the missing-credential case detectable BEFORE any
+			// request is attempted, for every caller, not just one that
+			// happens to reimplement the same check.
+			return nil, fmt.Errorf("openai embedder requires api_key configuration")
 		}
 		return NewOpenAIEmbedder(cfg), nil
 	case "local":
@@ -346,9 +369,9 @@ func EmbedBatch(
 
 // AsyncEmbedResult holds the result of a single async embedding job.
 type AsyncEmbedResult struct {
-	Index   int
-	Vector  []float32
-	Error   error
+	Index  int
+	Vector []float32
+	Error  error
 }
 
 // EmbedAsync embeds each text in a separate goroutine (up to maxConcurrency

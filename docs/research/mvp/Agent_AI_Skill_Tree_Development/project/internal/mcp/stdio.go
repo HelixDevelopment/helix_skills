@@ -293,8 +293,11 @@ func (t *StdioTransport) handleInitialized(id interface{}, params json.RawMessag
 func (t *StdioTransport) handleToolsList(id interface{}, params json.RawMessage) error {
 	toolDefs := []ToolInfo{
 		{
-			Name:        "skill_search",
-			Description: "Search the skill graph using text or vector similarity. Returns skills matching the query with relevance scores.",
+			Name: "skill_search",
+			Description: "Search the skill graph using text or vector similarity. Returns skills matching the query with relevance scores. " +
+				"Score scale note (§G29): pg_trgm similarity in [0, 1] when no matching skill has an embedding; a much smaller fused " +
+				"Reciprocal Rank Fusion value (typically ~0.01-0.03) once semantic recall is active for the query. Compare scores only " +
+				"within one response, never against a fixed absolute threshold.",
 			InputSchema: json.RawMessage(`{
 				"type": "object",
 				"properties": {
