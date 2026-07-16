@@ -207,12 +207,49 @@ func (c *OpenAILLM) Generate(ctx context.Context, prompt string, maxTokens int) 
 // GenerateSkillDraft creates a complete skill draft using the LLM.
 // It generates a skill definition with title, description, content,
 // metadata, and suggested resources.
+//
+// This delegates to generateSkillDraft (below), the provider-agnostic
+// drafting path that works against the LLMClient interface rather than
+// this concrete type -- see that function's doc comment (F1/G20) for why
+// DraftSkill (pipeline.go) calls generateSkillDraft directly instead of
+// this method.
 func (c *OpenAILLM) GenerateSkillDraft(ctx context.Context, skillName, existingContext string) (*models.Skill, []models.Resource, error) {
-	prompt := GeneratePrompt(skillName, existingContext)
-
 	c.logger.Debug("generating skill draft", zap.String("skill", skillName))
 
-	response, err := c.Generate(ctx, prompt, 4000)
+	draft, resources, err := generateSkillDraft(ctx, c, skillName, existingContext)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	c.logger.Info("skill draft generated",
+		zap.String("skill", draft.Name),
+		zap.String("title", draft.Title),
+		zap.Int("resources", len(resources)),
+	)
+
+	return draft, resources, nil
+}
+
+// generateSkillDraft drafts a skill via ANY LLMClient implementation: it
+// builds the prompt (GeneratePrompt), invokes Generate through the
+// LLMClient interface (never a concrete type), and parses the JSON
+// response (parseSkillDraft).
+//
+// F1 (G03 fix-round-2 -- lands G20's type-assertion half, "Auto-expand ...
+// couples to concrete `*OpenAILLM`", GAPS_AND_RISKS_REGISTER.md): this is
+// the single provider-agnostic drafting path Pipeline.DraftSkill
+// (pipeline.go) calls. DraftSkill previously type-asserted
+// p.llm.(*OpenAILLM) directly and returned "unsupported LLM client type"
+// for every OTHER LLMClient (*AnthropicLLM, and any future
+// implementation) -- even though NewLLMClientFromConfig (above) already
+// constructs those correctly for the "anthropic"/"local"/"helixllm"
+// provider strings, so a validly-configured non-OpenAI worker could never
+// draft a skill through the LLM branch at all. Routing through the
+// interface here means every configured provider drafts successfully.
+func generateSkillDraft(ctx context.Context, llm LLMClient, skillName, existingContext string) (*models.Skill, []models.Resource, error) {
+	prompt := GeneratePrompt(skillName, existingContext)
+
+	response, err := llm.Generate(ctx, prompt, 4000)
 	if err != nil {
 		return nil, nil, fmt.Errorf("LLM generation: %w", err)
 	}
@@ -222,12 +259,6 @@ func (c *OpenAILLM) GenerateSkillDraft(ctx context.Context, skillName, existingC
 	if err != nil {
 		return nil, nil, fmt.Errorf("parse draft: %w", err)
 	}
-
-	c.logger.Info("skill draft generated",
-		zap.String("skill", draft.Name),
-		zap.String("title", draft.Title),
-		zap.Int("resources", len(resources)),
-	)
 
 	return draft, resources, nil
 }

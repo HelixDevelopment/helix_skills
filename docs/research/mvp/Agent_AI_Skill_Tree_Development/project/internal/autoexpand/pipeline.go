@@ -207,17 +207,29 @@ func (p *Pipeline) DraftSkill(ctx context.Context, gap Gap) (*models.Skill, []mo
 
 	// Use LLM to generate skill draft
 	if p.llm == nil {
-		// Fallback: create a minimal skill without LLM
+		// Fallback: create a minimal skill without LLM. CURRENT behavior;
+		// the minimal-draft fallback is slated for removal per G20
+		// (never-persist-a-placeholder -- GAPS_AND_RISKS_REGISTER.md:
+		// "Never persist a placeholder as a real skill ... Alternatives
+		// rejected: keeping the minimal-draft fallback for 'graceful
+		// degradation' -- degrades into bluff data"). This ticket lands
+		// only G20's OTHER half (the *OpenAILLM type-assertion removed
+		// below) -- the fallback itself is untouched, tracked separately
+		// under G20.
 		draft := p.createMinimalDraft(gap)
 		return draft, nil, nil
 	}
 
-	openaiLLM, ok := p.llm.(*OpenAILLM)
-	if !ok {
-		return nil, nil, fmt.Errorf("unsupported LLM client type")
-	}
-
-	draft, resources, err := openaiLLM.GenerateSkillDraft(ctx, gap.MissingDepName, context)
+	// F1 (G03 fix-round-2 -- lands G20's type-assertion half): draft
+	// through the LLMClient interface (generateSkillDraft, llm.go), never
+	// a concrete-type assertion. This used to assert p.llm.(*OpenAILLM)
+	// directly and error out ("unsupported LLM client type") for every
+	// OTHER LLMClient (*AnthropicLLM, and any future implementation) --
+	// even though NewLLMClientFromConfig already builds those correctly
+	// for the "anthropic"/"local"/"helixllm" providers, so a
+	// validly-configured "anthropic" worker failed every draft. Any
+	// configured LLMClient now drafts successfully here.
+	draft, resources, err := generateSkillDraft(ctx, p.llm, gap.MissingDepName, context)
 	if err != nil {
 		p.logger.Warn("LLM skill drafting failed, using fallback",
 			zap.Error(err),
@@ -311,6 +323,61 @@ Missing dependency: %s
 }
 
 // ---------------------------------------------------------------------------
+// Persist + cross-reference (worker-loop wiring, G03)
+// ---------------------------------------------------------------------------
+
+// draftPersistAndCrossReference drafts a skill for gap (via the LLM, or the
+// no-LLM minimal fallback per DraftSkill), persists it, and cross-references
+// it into the tree by adding a `requires` edge from the gap's parent skill
+// (gap.SkillName) to the newly drafted skill -- so the sub-skill this run
+// just created is reachable from the tree that reported the gap, instead of
+// floating unlinked in the skills table.
+//
+// The parent is resolved via the EXACT Store.GetByName lookup, never the
+// fuzzy hybrid Store.Search -- the identical rationale
+// validation.Pipeline.CrossReference documents (§G29/§G60): Search's ranking
+// is RRF-fused across a trigram leg and (once a query-side embedder is
+// wired) a vector leg, so a small-limit fuzzy search can rank an unrelated
+// embedded skill above the exact-name match, or drop it from the result set
+// entirely. That would make "which skill is the parent of this newly
+// created child" depend on which OTHER, unrelated skills happen to carry a
+// populated embedding -- exactly the failure GetByName's exact `WHERE name
+// = $1` lookup avoids, being embedding-state-independent.
+//
+// A cross-reference failure (parent lookup error, or AddDependency error) is
+// recorded into result.Errors but does NOT undo the skill's creation or fail
+// the caller -- the drafted skill still exists as a genuine, reviewable
+// draft; only its automatic linkage into the parent's dependency edge did
+// not complete this run.
+func (p *Pipeline) draftPersistAndCrossReference(ctx context.Context, gap Gap, result *ExpansionResult) (*models.Skill, error) {
+	draft, resources, err := p.DraftSkill(ctx, gap)
+	if err != nil {
+		return nil, fmt.Errorf("draft skill %s: %w", gap.MissingDepName, err)
+	}
+
+	if err := p.store.Create(ctx, draft); err != nil {
+		return nil, fmt.Errorf("create skill %s: %w", draft.Name, err)
+	}
+
+	// Add resources if any (persistence of the resources themselves is a
+	// separate, pre-existing follow-up -- see the SkillID-stamping loop this
+	// replaces; unchanged behaviour, carried over verbatim).
+	for i := range resources {
+		resources[i].SkillID = draft.ID
+	}
+
+	if parent, perr := p.store.GetByName(ctx, gap.SkillName); perr != nil {
+		result.Errors = append(result.Errors, fmt.Sprintf(
+			"cross-reference %s into %s: resolve parent: %v", draft.Name, gap.SkillName, perr))
+	} else if aerr := p.store.AddDependency(ctx, parent.ID, draft.ID, models.DepTypeRequires); aerr != nil {
+		result.Errors = append(result.Errors, fmt.Sprintf(
+			"cross-reference %s into %s: %v", draft.Name, gap.SkillName, aerr))
+	}
+
+	return draft, nil
+}
+
+// ---------------------------------------------------------------------------
 // Full expansion pipeline
 // ---------------------------------------------------------------------------
 
@@ -382,25 +449,16 @@ func (p *Pipeline) Run(ctx context.Context, skillName string, maxDepth int) (*Ex
 					return result, nil
 				}
 
-				// Draft the new skill
-				draft, resources, err := p.DraftSkill(ctx, gap)
+				// Draft, persist, and cross-reference the new skill (G03 worker
+				// wiring: see draftPersistAndCrossReference below for why the
+				// cross-reference step exists and how it resolves the parent).
+				draft, err := p.draftPersistAndCrossReference(ctx, gap, result)
 				if err != nil {
-					result.Errors = append(result.Errors, fmt.Sprintf("draft skill %s: %v", gap.MissingDepName, err))
-					continue
-				}
-
-				// Store the draft skill
-				if err := p.store.Create(ctx, draft); err != nil {
-					result.Errors = append(result.Errors, fmt.Sprintf("create skill %s: %v", draft.Name, err))
+					result.Errors = append(result.Errors, err.Error())
 					continue
 				}
 
 				result.SkillsCreated++
-
-				// Add resources if any
-				for i := range resources {
-					resources[i].SkillID = draft.ID
-				}
 
 				p.logger.Info("skill created",
 					zap.String("skill", draft.Name),

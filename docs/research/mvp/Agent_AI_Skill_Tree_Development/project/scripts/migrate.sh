@@ -177,9 +177,20 @@ migrate_down() {
         exec_sql "DELETE FROM schema_migrations WHERE version = ${current_version};"
         log_success "Rolled back migration ${current_version}"
     else
-        log_warn "No down migration found for version ${current_version}"
-        exec_sql "DELETE FROM schema_migrations WHERE version = ${current_version};"
-        log_warn "Removed version record without applying down migration"
+        # G64 (§11.4.201/§11.4.6 fail-closed, never guess-delete): a missing
+        # down file used to fall through to deleting the schema_migrations
+        # row anyway - that DESYNCS tracked state from reality, because the
+        # up-migration's schema changes are still physically applied to the
+        # database while schema_migrations now reports the version as
+        # "not applied". A subsequent `migrate.sh up` would then try to
+        # re-apply that up-migration against objects that already exist
+        # (duplicate-table/column errors, or worse, a silent no-op that hides
+        # the fact the rollback never actually happened). There is no safe
+        # action to take without the down script, so refuse and fail closed
+        # instead of mutating the tracking table.
+        log_error "No down migration found for version ${current_version} (expected: ${MIGRATIONS_DIR}/${current_version}_*.down.sql)."
+        log_error "Refusing to delete the schema_migrations row without a down script - the up-migration's schema changes are still applied and doing so would desync tracked state from reality. Add the missing down file, or resolve manually, then retry."
+        exit 1
     fi
 }
 

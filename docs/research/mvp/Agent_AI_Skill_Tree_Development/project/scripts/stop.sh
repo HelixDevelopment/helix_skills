@@ -8,10 +8,19 @@
 #   helix-skills.service) as well as the manual entry point.
 #
 # Usage:
-#   scripts/stop.sh [--quiet] [-h|--help]
+#   scripts/stop.sh [--compose] [--quiet] [-h|--help]
 #
 # Inputs:
 #   deploy/docker-compose.yml (required), deploy/.env (optional).
+#
+# --compose:
+#   Explicit compose-teardown-mode selector, accepted for caller-intent
+#   clarity (restore.sh invokes `stop.sh --compose` before a restore, per
+#   G65 in GAPS_AND_RISKS_REGISTER.md). stop.sh has exactly one teardown
+#   mechanism today (compose down via _lib.sh's hx_compose) - the flag is a
+#   documented no-op that selects that (only) path rather than being
+#   rejected as an unknown argument. If a second teardown mechanism is ever
+#   added, --compose becomes the selector that pins this one.
 #
 # Outputs:
 #   Containers stopped and removed (named volumes are preserved - data
@@ -36,13 +45,17 @@ source "${SCRIPT_DIR}/_lib.sh"
 
 usage() {
     cat <<'EOF'
-Usage: stop.sh [--quiet] [-h|--help]
+Usage: stop.sh [--compose] [--quiet] [-h|--help]
 
 Bring the HelixKnowledge Skill Graph datastore (Postgres + pgvector) down via
 docker compose / podman compose / podman-compose. Named volumes (the
 Postgres data directory) are preserved.
 
 Options:
+  --compose    Explicit compose-teardown-mode selector (no-op today - this
+               is the script's only teardown path; accepted so callers like
+               restore.sh that pass it explicitly do not hit "unknown
+               argument").
   --quiet, -q  Suppress informational (non-error) output.
   -h, --help   Show this help and exit.
 EOF
@@ -50,6 +63,13 @@ EOF
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
+        --compose)
+            # G65 (GAPS_AND_RISKS_REGISTER.md): recognized, documented no-op -
+            # stop.sh's only teardown mechanism already is `compose down`
+            # (below), so honoring this flag means accepting it rather than
+            # falling through to the "unknown argument" branch.
+            shift
+            ;;
         --quiet|-q)
             export HX_QUIET=1
             shift

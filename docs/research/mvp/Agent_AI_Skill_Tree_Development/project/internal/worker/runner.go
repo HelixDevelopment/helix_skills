@@ -8,10 +8,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"runtime/debug"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/helixdevelopment/skill-system/internal/autoexpand"
 	"github.com/helixdevelopment/skill-system/internal/config"
 	"github.com/helixdevelopment/skill-system/internal/db"
 	"github.com/helixdevelopment/skill-system/internal/models"
@@ -61,6 +63,34 @@ type registryReviewer interface {
 	RunReviewOnce(ctx context.Context) error
 }
 
+// autoExpander is the minimal seam the autoexpand job handler
+// (handleAutoExpand, below) needs: run the full expansion pipeline for a
+// skill (detect its gaps, draft new sub-skills via the LLM, persist them,
+// and cross-reference them into the tree) and report the outcome. It is
+// satisfied in production by *autoexpand.Pipeline (Pipeline.Run, wired in
+// NewRunner) and, in unit tests, by a spy that never touches a real
+// database or LLM provider (autoexpand_unit_test.go) -- mirrors
+// registryReviewer, immediately above, for the identical reason (§11.4.27:
+// mocks/spies are permitted ONLY in unit tests).
+//
+// G03 (research/... worker-loop wiring): prior to this seam, the
+// `autoexpand` job type was dispatched by executeJob's switch (runner.go)
+// to handleAutoExpand, but that handler only unmarshaled the payload and
+// logged -- it never called into internal/autoexpand at all (the package
+// had ZERO production callers anywhere in the codebase; confirmed by
+// inspection and an empirical throwaway-DB run showing autoexpand.Pipeline
+// was never constructed in cmd/worker/main.go or cmd/server/main.go). The
+// "Actual expansion is done by the autoExpandWorker polling loop" comment
+// the stub carried was aspirational, not true: runAutoExpandCycle (the
+// ticker loop's cycle function) also never called into the autoexpand
+// package. This interface + the Runner.autoexpand field close that gap for
+// the job-queue dispatch path (the "worker job loop"), the same way
+// `registry registryReviewer` already closes the analogous gap for the
+// registry-review ticker cycle.
+type autoExpander interface {
+	Run(ctx context.Context, skillName string, maxDepth int) (*autoexpand.ExpansionResult, error)
+}
+
 // Runner manages background job execution for the skill graph system.
 // It coordinates multiple worker goroutines, handles graceful shutdown,
 // and persists job state to the database for API status endpoints.
@@ -76,6 +106,13 @@ type Runner struct {
 	jobChan    chan Job
 	metrics    Metrics
 	registry   registryReviewer
+	// autoexpand is the seam handleAutoExpand dispatches through (G03,
+	// see autoExpander above). It is non-nil in production (wired in
+	// NewRunner via autoexpand.NewPipeline) even when no LLM provider is
+	// configured -- autoexpand.Pipeline degrades to its own no-LLM minimal
+	// draft fallback in that case (DraftSkill), it does not need a nil
+	// Runner-level seam to express "no LLM configured".
+	autoexpand autoExpander
 	// restartBackoffBase is the initial delay before a panicked worker
 	// goroutine is restarted by supervise (doubling up to a 30s cap). It is a
 	// field (not a const) purely so tests can shrink it for deterministic,
@@ -136,7 +173,43 @@ type JobResult struct {
 // p05_high_defect_fix_designs.md §4.3 step 1) -- a trivial, dependency-free
 // construction (registry.Registry{pool}) that introduces no second
 // goroutine and no second scheduling cadence.
+//
+// The autoexpand job-queue path (executeJob's JobTypeAutoExpand case,
+// handleAutoExpand) is wired here the same way (G03): a fresh
+// *autoexpand.Pipeline over the same store + the configured LLM provider.
+// "Is an LLM provider configured" is derived SOLELY from
+// autoexpand.NewLLMClientFromConfig's own error return (mirrors the
+// mcp.NewMCPServer embedder-wiring pattern in internal/mcp/server.go,
+// §G29) -- there is no second, hand-maintained provider check here that
+// could drift from the factory's fail-closed policy. This claim is now
+// actually true end-to-end (F1, G03 fix-round-2): DraftSkill
+// (autoexpand/pipeline.go) used to carry its OWN second check -- a
+// p.llm.(*OpenAILLM) type assertion -- that silently rejected every
+// provider this factory supports OTHER than "openai"/"local"/"helixllm"
+// (in particular "anthropic"), which WAS a second, drifted-from-the-factory
+// check; DraftSkill now routes through the LLMClient interface
+// (generateSkillDraft, llm.go) instead, so NewLLMClientFromConfig really is
+// the only provider-selection logic in this path. An unconfigured or
+// invalid provider (e.g. cfg.AutoExpand.LLMProvider == "", which
+// config.Validate does not itself reject) is NOT fatal to worker startup:
+// the Pipeline is still constructed, and DraftSkill's own no-LLM minimal
+// fallback (autoexpand/pipeline.go) takes over -- autoexpand jobs still run
+// end-to-end, they just draft a lower-fidelity skill until a provider is
+// configured. CURRENT behavior; the minimal-draft fallback is slated for
+// removal per G20 (never-persist-a-placeholder, GAPS_AND_RISKS_REGISTER.md)
+// -- this ticket lands only G20's type-assertion half, not the fallback
+// removal.
 func NewRunner(pool *db.Pool, store *skill.Store, cfg config.Config, logger *zap.Logger) *Runner {
+	var aeOpts []autoexpand.PipelineOption
+	if llmClient, err := autoexpand.NewLLMClientFromConfig(cfg.AutoExpand, logger); err == nil {
+		aeOpts = append(aeOpts, autoexpand.WithLLMClient(llmClient))
+		logger.Info("auto-expand: LLM provider configured for the worker job loop (§G03)",
+			zap.String("llm_provider", cfg.AutoExpand.LLMProvider))
+	} else {
+		logger.Warn("auto-expand: no usable LLM provider configured; autoexpand jobs will draft "+
+			"skills via the minimal no-LLM fallback until one is configured (§G03)", zap.Error(err))
+	}
+
 	return &Runner{
 		pool:               pool,
 		store:              store,
@@ -144,6 +217,7 @@ func NewRunner(pool *db.Pool, store *skill.Store, cfg config.Config, logger *zap
 		logger:             logger,
 		jobChan:            make(chan Job, 100),
 		registry:           registry.NewRegistry(pool),
+		autoexpand:         autoexpand.NewPipeline(store, nil, cfg.AutoExpand, logger, aeOpts...),
 		restartBackoffBase: time.Second,
 	}
 }
@@ -469,8 +543,13 @@ func (r *Runner) executeJob(ctx context.Context, job Job) JobResult {
 // Job handlers (stub implementations - real logic is in sub-packages)
 // ---------------------------------------------------------------------------
 
+// handleAutoExpand dequeues an autoexpand job and invokes the auto-growth
+// pipeline end-to-end (G03): detect gaps for the requested skill, draft new
+// sub-skills via the configured LLM provider (or the minimal no-LLM
+// fallback), persist them, and cross-reference them into the tree
+// (autoexpand.Pipeline.Run, dispatched through the autoExpander seam so this
+// handler stays unit-testable per the registryReviewer pattern above).
 func (r *Runner) handleAutoExpand(ctx context.Context, job Job) JobResult {
-	// Handled by autoexpand.Pipeline - imported and called via the autoexpand worker
 	var payload struct {
 		SkillName string `json:"skill_name"`
 		MaxDepth  int    `json:"max_depth"`
@@ -479,11 +558,32 @@ func (r *Runner) handleAutoExpand(ctx context.Context, job Job) JobResult {
 		return JobResult{Success: false, Error: fmt.Sprintf("unmarshal payload: %v", err)}
 	}
 
-	r.logger.Info("auto-expand job", zap.String("skill", payload.SkillName), zap.Int("depth", payload.MaxDepth))
+	if strings.TrimSpace(payload.SkillName) == "" {
+		return JobResult{Success: false, Error: "skill_name is required"}
+	}
 
-	// Actual expansion is done by the autoExpandWorker polling loop
-	// This queued job path is for on-demand expansion
-	return JobResult{Success: true, Data: json.RawMessage(fmt.Sprintf(`{"skill":"%s"}`, payload.SkillName))}
+	maxDepth := payload.MaxDepth
+	if maxDepth <= 0 {
+		maxDepth = r.cfg.AutoExpand.MaxDepth
+	}
+
+	r.logger.Info("auto-expand job", zap.String("skill", payload.SkillName), zap.Int("depth", maxDepth))
+
+	if r.autoexpand == nil {
+		return JobResult{Success: false, Error: "auto-expand pipeline not configured"}
+	}
+
+	expResult, err := r.autoexpand.Run(ctx, payload.SkillName, maxDepth)
+	if err != nil {
+		return JobResult{Success: false, Error: fmt.Sprintf("autoexpand run: %v", err)}
+	}
+
+	data, err := json.Marshal(expResult)
+	if err != nil {
+		return JobResult{Success: false, Error: fmt.Sprintf("marshal expansion result: %v", err)}
+	}
+
+	return JobResult{Success: true, Data: data}
 }
 
 func (r *Runner) handleValidate(ctx context.Context, job Job) JobResult {

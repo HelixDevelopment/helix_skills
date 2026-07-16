@@ -1,7 +1,7 @@
 # `scripts/migrate.sh` — database migration runner
 
-**Revision:** 5
-**Last modified:** 2026-07-16T00:00:00Z
+**Revision:** 7
+**Last modified:** 2026-07-16T13:34:09Z
 
 ## Overview
 
@@ -70,7 +70,9 @@ leading numeric prefix used both for ordering and as the primary key in
   count of applied migrations and the resulting current version.
 - `down`: applies the `<version>_*.down.sql` file matching the current
   highest applied version, then deletes that version's row from
-  `schema_migrations`.
+  `schema_migrations`. If no matching `.down.sql` file exists, the script
+  now (G64 fix) prints two `log_error` lines and **exits 1 without deleting
+  anything** — see Edge cases.
 - `status`: a table of `Version | Status | Description` for every
   discovered `*.up.sql` file.
 - `create <name>`: writes two new files under `project/migrations/`.
@@ -80,11 +82,22 @@ leading numeric prefix used both for ordering and as the primary key in
 
 Creates/modifies the `schema_migrations` table and application schema
 inside the target Postgres database; `create` writes two new files to
-disk; `down` can delete a version's tracking row even when no matching
-`.down.sql` file exists (see Edge cases).
+disk. `down` deletes a version's tracking row **only** after successfully
+applying that version's `.down.sql` file; since the G64 fix (see Edge
+cases) it no longer deletes the row when no matching `.down.sql` file
+exists — it fails closed instead.
 
 ## Edge cases
 
+- **Not executable in git — FIXED:** `scripts/migrate.sh` was tracked at
+  mode `100644` (not executable), so `make db-migrate-down`
+  (`Makefile:226`, `./scripts/migrate.sh down`) hit "Permission denied"
+  before any of this script's own fixes (G51/G64) could ever run — a
+  reachability defect independent of, and prior to, the script's internal
+  logic. Both `scripts/migrate.sh` and `scripts/restore.sh` are now staged
+  as `100755` (`git ls-files -s` shows the mode); verified by a round-trip
+  mutation (revert to `100644` via `git update-index --chmod=-x`, confirm
+  detected, then re-apply `--chmod=+x`).
 - **No compose command found:** `log_error` + `exit 1`, same pattern as
   `backup.sh`/`restore.sh`.
 - **`schema_migrations` table missing:** created automatically by
@@ -127,13 +140,26 @@ disk; `down` can delete a version's tracking row even when no matching
   which are independent of `ON_ERROR_STOP`.
 - **`down` with current version `0`:** logs a warning ("No migrations to
   rollback") and returns without error.
-- **`down` with no matching `.down.sql` file for the current version:**
-  logs a warning and still **removes the version's row from
-  `schema_migrations`** without running any rollback SQL — this makes the
-  schema_migrations bookkeeping inconsistent with the actual schema state
-  if the corresponding `.down.sql` file is genuinely missing (not merely
-  misnamed); this is the script's actual, as-written behavior, not a
-  hypothetical.
+- **`down` with no matching `.down.sql` file for the current version —
+  G64 FIXED (fail-closed, no longer deletes the tracking row):** the
+  script used to log a warning and still **remove the version's row from
+  `schema_migrations`** without running any rollback SQL, silently
+  desyncing the tracking table from reality — the up-migration's schema
+  changes were still physically applied to the database, but
+  `schema_migrations` would then report that version as not-applied,
+  setting up a subsequent `up` run to try to re-apply already-existing
+  schema objects (duplicate-table/column errors, or a silent no-op masking
+  the fact no rollback ever actually happened). This is now `log_error` +
+  `exit 1` with **no** `DELETE` issued — a missing `.down.sql` file (or a
+  filename mismatch) for the current version aborts the rollback rather
+  than fabricating a "rolled back" state that never happened. Add the
+  missing down file (or resolve the schema manually) and retry. This
+  closes **G64** (filed in `GAPS_AND_RISKS_REGISTER.md`, §11.4.201) —
+  composes with the adjacent G51 fix above (both are "don't touch
+  `schema_migrations` unless the corresponding SQL genuinely ran"), but is
+  a distinct code path: G51 guards the case where the `.down.sql` file
+  exists but its SQL errors; G64 guards the case where no `.down.sql` file
+  exists at all.
 - **`create` with no `<name>` argument:** `log_error` ("Migration name
   required") + `exit 1`.
 - **Migration filename parsing:** the numeric `<version>` is extracted via
@@ -157,8 +183,10 @@ disk; `down` can delete a version's tracking row even when no matching
    already-applied versions, applies + records each pending one via
    `psql ... < "$migration"` followed by an `INSERT INTO
    schema_migrations`.
-6. `migrate_down()` finds and applies the `.down.sql` file for the current
-   version, then deletes its `schema_migrations` row.
+6. `migrate_down()` finds the `.down.sql` file for the current version; if
+   found, applies it then deletes its `schema_migrations` row; if not
+   found, logs two errors and exits 1 without touching
+   `schema_migrations` (G64 fix — never delete-on-guess).
 7. `migrate_status()` prints the applied/pending table.
 8. `create_migration()` scaffolds a timestamp-versioned file pair.
 9. `main()` dispatches on the first positional argument (default `up`),
@@ -179,7 +207,15 @@ migration mechanism).
 
 ## Last verified
 
-2026-07-16, against `project/scripts/migrate.sh` (10727 bytes, last
-modified 2026-07-16) after the G51 fix (`-v ON_ERROR_STOP=1` + surfaced
-stderr on the `up`/`down` migration-apply `psql` calls) and the G13
-canonical-compose change (`-f deploy/docker-compose.yml exec -T postgres`).
+2026-07-16, against `project/scripts/migrate.sh` after the G64 fix
+(`migrate_down()`'s missing-`.down.sql`-file branch now fails closed with
+`log_error` + `exit 1` instead of deleting the `schema_migrations` row),
+the earlier G51 fix (`-v ON_ERROR_STOP=1` + surfaced stderr on the
+`up`/`down` migration-apply `psql` calls), and the G13 canonical-compose
+change (`-f deploy/docker-compose.yml exec -T postgres`). G64 was
+regression-tested with a RED (pre-fix)/GREEN (post-fix) shell harness that
+stubs `exec_sql`/`get_current_version` and drives the real `main down`
+dispatch against a fixture migrations directory containing an up-file with
+no matching down-file for the current version; the harness asserts both
+the exit code and that no `DELETE FROM schema_migrations` statement is
+ever issued.
