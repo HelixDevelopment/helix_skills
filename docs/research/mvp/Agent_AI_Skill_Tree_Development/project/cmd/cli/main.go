@@ -182,7 +182,13 @@ func newConfigCommand() *cobra.Command {
 			ctx, cancel := context.WithTimeout(cmd.Context(), 10*time.Second)
 			defer cancel()
 
-			resp, err := client.Request(ctx, http.MethodGet, "/api/v1/health", nil)
+			// Probe the server's OPEN health route at ROOT /health (see
+			// cmd/server/main.go buildRouter "Health check (open)" and
+			// docs/API.md → "Health & Info → GET /health"). There is no
+			// /api/v1/health route, so probing under /api/v1 would 404 and
+			// report a healthy server as unreachable (G52). Health is
+			// unauthenticated; SetAuthHeader is a no-op without a key.
+			resp, err := client.Request(ctx, http.MethodGet, "/health", nil)
 			if err != nil {
 				return fmt.Errorf("API connection failed: %w", err)
 			}

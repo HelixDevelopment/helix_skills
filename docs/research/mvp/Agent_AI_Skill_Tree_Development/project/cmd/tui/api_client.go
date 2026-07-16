@@ -43,9 +43,16 @@ func (c *APIClient) BaseURL() string {
 	return c.baseURL
 }
 
-// HealthCheck tests if the API is reachable
+// HealthCheck tests if the API is reachable.
+//
+// It probes the server's OPEN health route at ROOT /health (cmd/server/main.go
+// buildRouter registers "Health check (open)" at /health, and docs/API.md →
+// "Health & Info → GET /health" documents the same). There is NO /api/v1/health
+// route, so probing under /api/v1 would 404 and falsely report a healthy server
+// unreachable (G52). Health is unauthenticated, so this request carries no
+// X-API-Key and works whether or not a key is configured.
 func (c *APIClient) HealthCheck(ctx context.Context) bool {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/api/v1/health", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/health", nil)
 	if err != nil {
 		return false
 	}

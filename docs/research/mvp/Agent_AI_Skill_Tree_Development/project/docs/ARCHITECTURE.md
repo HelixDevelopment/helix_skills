@@ -401,8 +401,8 @@ GET    /api/v1/skills/search   # Semantic search
 POST   /api/v1/skills/:id/evidence  # Add evidence
 POST   /api/v1/skills/:id/validate  # Trigger validation
 GET    /api/v1/graph           # Graph export
-GET    /api/v1/health          # Health check
-GET    /api/v1/metrics         # Prometheus metrics
+GET    /health                 # Health check (open; served at root, NOT under /api/v1)
+GET    /metrics                # Prometheus metrics (served at root)
 ```
 
 ### MCP (Model Context Protocol)
