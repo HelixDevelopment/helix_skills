@@ -213,7 +213,11 @@ func (s *MCPServer) registerSkillTree() {
 
 		s.logger.Debug("skill_tree", zap.String("name", name), zap.Int("depth", depth))
 
-		tree, err := s.skillStore.GetTree(ctx, name, depth)
+		// G06: use the canonical recursive-CTE GetDependencyTree, which assembles
+		// the FULL N-level dependency tree cycle-guarded (see
+		// internal/skill/graph.go). serializeTreeNode recurses over node.Children,
+		// so the whole nested tree -- not just depth-1 -- reaches the MCP client.
+		tree, err := s.skillStore.GetDependencyTree(ctx, name, depth)
 		if err != nil {
 			s.logger.Error("skill_tree failed", zap.Error(err))
 			return s.newToolError(fmt.Sprintf("failed to get skill tree: %v", err)), nil

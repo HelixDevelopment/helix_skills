@@ -373,35 +373,72 @@ func (s *Store) GetDependencyTree(ctx context.Context, rootName string, maxDepth
 		Children: []models.SkillTreeNode{},
 	}
 
-	// For building the tree, we need parent-child relationships.
-	// The CTE gives us depth, but not parent. We re-query for parent relationships.
+	// For building the tree, we need parent->child relationships. The CTE gives
+	// us the closure (every reachable node, with depth) but not the edges, so we
+	// re-query the edges among the closure nodes and assemble the tree from them.
+	//
+	// G06 fix (register GAPS_AND_RISKS_REGISTER.md §G06): the previous assembly
+	// attached ONLY the root's direct children
+	// (`root.Children = childrenMap[rootSkill.ID]`) and never linked
+	// grandchildren, truncating the tree to depth-1. We instead build a
+	// parent->childIDs adjacency and walk it recursively FROM the root, so every
+	// reachable node is attached to its parent -- the full N-level tree.
 	if len(flatNodes) > 0 {
 		parentRows, err := s.pool.Query(ctx, `
 			SELECT skill_id, depends_on
 			FROM skill_dependencies
 			WHERE depends_on = ANY($1)
+			ORDER BY skill_id, sort_order NULLS LAST, depends_on
 		`, collectIDs(flatNodes))
 		if err != nil {
 			return nil, fmt.Errorf("query parent relationships: %w", err)
 		}
 		defer parentRows.Close()
 
-		childrenMap := make(map[uuid.UUID][]models.SkillTreeNode)
+		// parentID -> ordered child IDs, restricted to nodes in the closure.
+		childIDs := make(map[uuid.UUID][]uuid.UUID)
 		for parentRows.Next() {
 			var parentID, childID uuid.UUID
 			if err := parentRows.Scan(&parentID, &childID); err != nil {
-				continue
+				return nil, fmt.Errorf("scan parent relationship: %w", err)
 			}
-			if node, ok := nodeMap[childID]; ok {
-				childrenMap[parentID] = append(childrenMap[parentID], models.SkillTreeNode{
-					Skill: node.skill,
-					Depth: node.depth,
-				})
+			if _, ok := nodeMap[childID]; ok {
+				childIDs[parentID] = append(childIDs[parentID], childID)
 			}
 		}
+		if err := parentRows.Err(); err != nil {
+			return nil, fmt.Errorf("iterate parent relationships: %w", err)
+		}
 
-		// Attach direct children to root
-		root.Children = childrenMap[rootSkill.ID]
+		// Recursive, cycle-guarded assembly. `seen` is the load-bearing cycle
+		// guard: the skill graph permits ADVISORY cycles
+		// (recommends/related_to/alternative_to are exempt from hard-closure
+		// acyclicity -- see AddDependency), so the closure edge set may contain a
+		// cycle. Without `seen`, walking `childIDs` would recurse forever on such
+		// a cycle (stack overflow). With it, every reachable node is attached
+		// exactly once, under its first-resolved parent, and every cycle
+		// terminates at its closing edge (which is dropped).
+		seen := map[uuid.UUID]bool{rootSkill.ID: true}
+		var attach func(parent *models.SkillTreeNode, parentID uuid.UUID, depth int)
+		attach = func(parent *models.SkillTreeNode, parentID uuid.UUID, depth int) {
+			for _, childID := range childIDs[parentID] {
+				if seen[childID] {
+					continue
+				}
+				fn, ok := nodeMap[childID]
+				if !ok {
+					continue
+				}
+				seen[childID] = true
+				parent.Children = append(parent.Children, models.SkillTreeNode{
+					Skill:    fn.skill,
+					Depth:    depth,
+					Children: []models.SkillTreeNode{},
+				})
+				attach(&parent.Children[len(parent.Children)-1], childID, depth+1)
+			}
+		}
+		attach(root, rootSkill.ID, 1)
 	}
 
 	return root, nil
