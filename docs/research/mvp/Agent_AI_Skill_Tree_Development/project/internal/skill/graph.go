@@ -124,10 +124,22 @@ func (s *Store) AddDependency(ctx context.Context, skillID, dependsOn uuid.UUID,
 // RemoveDependency removes a directed edge between two skills.
 func (s *Store) RemoveDependency(ctx context.Context, skillID, dependsOn uuid.UUID) error {
 	return s.pool.WithTx(ctx, func(tx pgx.Tx) error {
-		// Get names for audit log
+		// Get names for the audit log. G25 fix
+		// (research/g18_g25_g26_correctness_bundle.md §2): capture each Scan
+		// error EXPLICITLY instead of discarding it via `_ =`. When an endpoint
+		// skill row is gone (the register's "a skill is already gone" case) the
+		// lookup fails, and buildRemovalAuditDetail records an explicit
+		// `from_lookup_error` / `to_lookup_error` marker rather than a bare
+		// `"from":""` / `"to":""` that an operator cannot tell apart from a
+		// skill whose name legitimately IS empty -- restoring the audit trail's
+		// evidentiary value (R11). The removal stays best-effort: an
+		// unavailable cosmetic name does NOT fail the transaction (the delete
+		// may still be valid and desired). The AddDependency path already
+		// propagates its Scan errors (graph.go:42/48); this brings
+		// RemoveDependency's audit path to the same standard.
 		var fromName, toName string
-		_ = tx.QueryRow(ctx, `SELECT name FROM skills WHERE id = $1`, skillID).Scan(&fromName)
-		_ = tx.QueryRow(ctx, `SELECT name FROM skills WHERE id = $1`, dependsOn).Scan(&toName)
+		fromErr := tx.QueryRow(ctx, `SELECT name FROM skills WHERE id = $1`, skillID).Scan(&fromName)
+		toErr := tx.QueryRow(ctx, `SELECT name FROM skills WHERE id = $1`, dependsOn).Scan(&toName)
 
 		cmdTag, err := tx.Exec(ctx, `
 			DELETE FROM skill_dependencies WHERE skill_id = $1 AND depends_on = $2
@@ -145,15 +157,38 @@ func (s *Store) RemoveDependency(ctx context.Context, skillID, dependsOn uuid.UU
 		}
 
 		// Audit log
-		if err := s.logAudit(ctx, tx, "dependency.removed", &skillID, map[string]interface{}{
-			"from": fromName,
-			"to":   toName,
-		}); err != nil {
+		if err := s.logAudit(ctx, tx, "dependency.removed", &skillID,
+			buildRemovalAuditDetail(fromName, fromErr, toName, toErr)); err != nil {
 			return fmt.Errorf("log audit: %w", err)
 		}
 
 		return nil
 	})
+}
+
+// buildRemovalAuditDetail assembles the audit-detail map for a
+// `dependency.removed` event from the best-effort endpoint name lookups. When a
+// lookup Scan failed (fromErr / toErr non-nil -- e.g. the skill row was already
+// gone), the corresponding endpoint is recorded as an explicit
+// `from_lookup_error` / `to_lookup_error` marker instead of a silently-empty
+// `"from"` / `"to"` string that an operator could not distinguish from a skill
+// whose name legitimately is empty. Pure + side-effect-free so the not-found
+// audit path is unit-testable without a live pgx.Tx (mirrors this package's
+// collectDepNames idiom in import_export.go). G25 fix, see
+// research/g18_g25_g26_correctness_bundle.md §2.
+func buildRemovalAuditDetail(fromName string, fromErr error, toName string, toErr error) map[string]interface{} {
+	detail := map[string]interface{}{}
+	if fromErr != nil {
+		detail["from_lookup_error"] = fromErr.Error()
+	} else {
+		detail["from"] = fromName
+	}
+	if toErr != nil {
+		detail["to_lookup_error"] = toErr.Error()
+	} else {
+		detail["to"] = toName
+	}
+	return detail
 }
 
 // recalcMissingDeps recalculates and updates the missing_deps array for a skill.
