@@ -36,6 +36,22 @@ var (
 	ErrDependencyNotFound = errors.New("dependency skill not found")
 	// ErrCycleDetected indicates an operation would introduce a dependency cycle.
 	ErrCycleDetected = errors.New("dependency cycle detected")
+	// ErrPartOfUnsupported indicates a TOML import declared a non-empty
+	// `part_of` alias, which is NOT yet wired. Unlike depends_on/prerequisite
+	// (a SAME-direction fold to `requires` on the skill being imported),
+	// part_of is the child declaring its parent — its documented semantics are
+	// an INVERTED, CROSS-SKILL edge (parent→child `composes`, per
+	// research/skill_granularity_and_composition.md §4.1 alias table). Wiring
+	// it correctly means mutating a DIFFERENT skill's edge set (the parent's)
+	// inside the child's import transaction and re-running the parent's cycle
+	// check — a materially different operation than every other alias, and one
+	// that is not yet designed/tested. Per §11.4.6/§11.4.124, rather than ship
+	// a half-inversion OR silently drop the edge (the exact class G07 exists to
+	// close, research/g06_g07_skilltree_dag_design.md §2.3(4)), ImportFromTOML
+	// HARD-ERRORS on a non-empty part_of. The full part_of→inverted-composes
+	// inversion is a tracked G07 follow-up (see the deferral note at the
+	// part_of guard in import_export.go).
+	ErrPartOfUnsupported = errors.New("part_of dependency alias not yet supported")
 )
 
 // Store provides data access for skills and related entities.
@@ -169,12 +185,21 @@ func (s *Store) GetByName(ctx context.Context, name string) (*models.Skill, erro
 	skill.Metadata = metadata
 
 	// Load dependencies
+	// G07 (research/g06_g07_skilltree_dag_design.md §4c): a DETERMINISTIC
+	// ORDER BY is required for a byte-stable ExportToTOML round-trip
+	// (§2.3(3)). Without it row order is query-plan-dependent, so two exports
+	// of the same skill (or two skills carrying the same edge set) could emit
+	// the typed-edge lists / [[skill.components]] entries in different orders.
+	// Order by relation_type, then sort_order (the umbrella→component ordering,
+	// NULLS LAST so unordered edges trail) then the target name as the stable
+	// final tiebreak.
 	depsSQL := `
 		SELECT sd.skill_id, sd.depends_on, sd.relation_type, sd.optional, sd.sort_order,
 		       ds.name as depends_on_name, ds.title as depends_on_title
 		FROM skill_dependencies sd
 		JOIN skills ds ON sd.depends_on = ds.id
 		WHERE sd.skill_id = $1
+		ORDER BY sd.relation_type, sd.sort_order NULLS LAST, ds.name
 	`
 	depRows, err := s.pool.Query(ctx, depsSQL, skill.ID)
 	if err != nil {
@@ -190,9 +215,20 @@ func (s *Store) GetByName(ctx context.Context, name string) (*models.Skill, erro
 	}
 
 	// Load resources
+	// G07 §4c: deterministic ordering for byte-stable export (see depsSQL note).
+	// url alone is NOT a total order — resources.url has no unique constraint
+	// (migrations/001_initial.up.sql), so two resources may share a url while
+	// differing in title/resource_type (the only other columns the export emits,
+	// see ExportToTOML "Map resources"). id is a v4-random UUID re-minted on every
+	// ImportFromTOML, so `ORDER BY url, id` reorders such same-url rows across an
+	// export→import→export, breaking the §2.3(3) byte-stability contract. Order by
+	// the STABLE emitted columns first (url, title, resource_type); the residual
+	// id tiebreak then only ever separates BYTE-IDENTICAL exported rows, so the
+	// ordering is a total order that is swap-invariant on the export.
 	resSQL := `
 		SELECT id, skill_id, url, title, resource_type, fetched_hash, content_cached, last_validated, created_at
 		FROM resources WHERE skill_id = $1
+		ORDER BY url, title, resource_type, id
 	`
 	resRows, err := s.pool.Query(ctx, resSQL, skill.ID)
 	if err != nil {
@@ -717,5 +753,3 @@ func (s *Store) logAudit(ctx context.Context, tx pgx.Tx, event string, skillID *
 
 	return err
 }
-
-

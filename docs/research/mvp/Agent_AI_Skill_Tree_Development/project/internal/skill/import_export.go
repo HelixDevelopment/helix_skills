@@ -21,8 +21,26 @@ import (
 // its dependencies and resources in a single transaction.
 func (s *Store) ImportFromTOML(ctx context.Context, tomlData []byte) (*models.Skill, error) {
 	var wrapper models.TOMLSkillWrapper
-	if err := toml.Unmarshal(tomlData, &wrapper); err != nil {
+	// G07 strict-decode (research/g06_g07_skilltree_dag_design.md §2.2/§2.3(4)):
+	// decode via toml.Decode (not toml.Unmarshal) so the MetaData is retained
+	// and the undecoded-key set can be inspected. A typo'd edge/resource key —
+	// e.g. `requiress = [...]` under [skill.dependencies], or an extra field on
+	// a [[skill.resources]] table — otherwise decodes into NOTHING and is
+	// SILENTLY DROPPED (the exact silent-loss class G07 exists to close),
+	// because BurntSushi never errors on an unmapped key. tomlUnmappedEdgeOrResourceKeys
+	// scopes the hard-error to the edge/resource/component containers ONLY
+	// (`skill.dependencies|resources|components.*`); other unmapped keys are
+	// intentionally left tolerated — notably a top-level `skill.status`, which
+	// is a DELIBERATELY-ignored key that keeps the live MCP skill_create path
+	// fail-closed to `draft` (regression-guarded by
+	// internal/mcp/skill_create_draft_test.go), and `skill.metadata.*`, a soft
+	// blob whose stray keys are not an edge/resource-loss vector.
+	md, err := toml.Decode(string(tomlData), &wrapper)
+	if err != nil {
 		return nil, fmt.Errorf("parse TOML: %w", err)
+	}
+	if dropped := tomlUnmappedEdgeOrResourceKeys(md); len(dropped) > 0 {
+		return nil, fmt.Errorf("%w: unmapped dependency/resource TOML keys would be silently dropped: %v (a typo'd edge/resource key must be a hard error, never a silent drop — design §2.2/§2.3(4))", ErrInvalidSkill, dropped)
 	}
 
 	// Validate required fields
@@ -34,6 +52,29 @@ func (s *Store) ImportFromTOML(ctx context.Context, tomlData []byte) (*models.Sk
 	}
 	if wrapper.Skill.Content == "" {
 		return nil, fmt.Errorf("%w: skill.content is required", ErrInvalidSkill)
+	}
+
+	// G07 part_of guard (F1; research/g06_g07_skilltree_dag_design.md §2.3(4) +
+	// models/skill.go TOMLDependencies.PartOf). part_of is the ONLY alias whose
+	// documented semantics are an INVERTED, CROSS-SKILL edge — the child
+	// declares its parent, meaning "parent composes child" (a parent→child
+	// edge on a DIFFERENT skill than the one being imported). It is not yet
+	// wired: the resolver below only ever creates edges FROM the imported skill.
+	// Silently ignoring a non-empty part_of would drop the edge with a
+	// "successful" import — precisely the silent-loss failure G07 closes — so
+	// per §11.4.6/§11.4.124 we HARD-ERROR here rather than ship a half-inversion
+	// or drop data.
+	//
+	// DEFERRAL (tracked G07 follow-up, for the conductor's durable state): the
+	// full part_of→inverted-composes inversion (resolve the parent, add a
+	// parent→child `composes` edge in this transaction, run the PARENT's cycle
+	// check, honour the no-partial-persist contract if the parent is absent)
+	// is NOT implemented in this change. It requires a cross-skill edge-write
+	// path that does not yet exist; landing it as a half-inversion would ship
+	// an untested data-mutation of a skill the caller never named. Until then,
+	// part_of is a hard error via ErrPartOfUnsupported (store.go).
+	if len(wrapper.Skill.Dependencies.PartOf) > 0 {
+		return nil, fmt.Errorf("%w: part_of=%v (the child→parent inverted-composes alias is a tracked G07 follow-up; declare the edge as `composes` on the parent skill instead)", ErrPartOfUnsupported, wrapper.Skill.Dependencies.PartOf)
 	}
 
 	// Check if skill already exists
@@ -68,8 +109,12 @@ func (s *Store) ImportFromTOML(ctx context.Context, tomlData []byte) (*models.Sk
 		Kind:        models.SkillKind(wrapper.Skill.Kind).NormalizeOrAtomic(),
 	}
 
-	// Resolve dependency names to IDs
-	depNames := collectDepNames(wrapper.Skill.Dependencies)
+	// Resolve dependency names to IDs. The batch lookup covers EVERY name any
+	// edge form references — the six canonical relation types, the
+	// same-direction aliases (depends_on/prerequisite → requires), and the
+	// [[skill.components]] ergonomic form — so a single query populates the
+	// resolution map for all of them (G07, research/g06_g07_skilltree_dag_design.md §2.2).
+	depNames := collectDepNames(wrapper.Skill.Dependencies, wrapper.Skill.Components)
 	depNameToID := make(map[string]uuid.UUID)
 
 	if len(depNames) > 0 {
@@ -92,47 +137,104 @@ func (s *Store) ImportFromTOML(ctx context.Context, tomlData []byte) (*models.Sk
 		rows.Close()
 	}
 
-	// Build dependency records
-	var depsToCreate []struct {
-		targetID     uuid.UUID
-		relationType models.DependencyType
-		name         string // for error reporting
+	// Build dependency records. addEdges resolves a list of target names for a
+	// single relation type: a hard-closure edge (requires/extends/composes)
+	// whose target is absent is a HARD error (no silent partial import,
+	// design §2.3(4)); an advisory edge (recommends/related_to/alternative_to)
+	// with an absent target is soft-skipped.
+	//
+	// F5(iii) — DIVERGENCE from design §2.3(4), documented rationale
+	// (§11.4.6): §2.3(4) reads "any edge ... that cannot be persisted ...
+	// aborts the import". This code aborts for HARD-closure edges but
+	// SOFT-SKIPS advisory ones. The rationale is deliberate: advisory edges
+	// (recommends/related_to/alternative_to) are "see also" hints that are, by
+	// design, NOT part of the hard closure and NOT acyclicity-enforced
+	// (models.IsHardClosure / skill_granularity_and_composition.md §4.1); a
+	// recommendation pointing at a skill that simply is not modelled yet is a
+	// normal, non-fatal state, and hard-erroring on it would make importing a
+	// well-formed skill fail on an advisory pointer to an as-yet-unwritten
+	// skill. This also preserves the pre-G07 `recommends` behaviour (which
+	// already soft-skipped a missing target), generalised to the full advisory
+	// set. The NO-SILENT-LOSS guarantee §2.3(4) protects is fully upheld for
+	// every edge that IS part of the required closure (requires/extends/
+	// composes) — those still hard-error. The residual boundary: an advisory
+	// edge to a missing target is dropped without error; that is intentional,
+	// not a silent hard-closure loss.
+	var depsToCreate []tomlDepEdge
+	addEdges := func(names []string, rel models.DependencyType) error {
+		hard := models.IsHardClosure(rel)
+		for _, name := range names {
+			id, ok := depNameToID[name]
+			if !ok {
+				if hard {
+					return fmt.Errorf("%w: %s dependency %q not found", ErrDependencyNotFound, rel, name)
+				}
+				continue // advisory: soft-skip a missing target
+			}
+			depsToCreate = append(depsToCreate, tomlDepEdge{targetID: id, relationType: rel, name: name})
+		}
+		return nil
 	}
 
-	for _, depName := range wrapper.Skill.Dependencies.Requires {
-		id, ok := depNameToID[depName]
-		if !ok {
-			return nil, fmt.Errorf("%w: required dependency %q not found", ErrDependencyNotFound, depName)
+	deps := wrapper.Skill.Dependencies
+	// requires + the same-direction aliases fold into `requires`
+	// (skill_granularity_and_composition.md §4.1 alias table).
+	for _, list := range [][]string{deps.Requires, deps.DependsOn, deps.Prerequisite} {
+		if err := addEdges(list, models.DepTypeRequires); err != nil {
+			return nil, err
 		}
-		depsToCreate = append(depsToCreate, struct {
-			targetID     uuid.UUID
-			relationType models.DependencyType
-			name         string
-		}{id, models.DepTypeRequires, depName})
 	}
-	for _, depName := range wrapper.Skill.Dependencies.Extends {
-		id, ok := depNameToID[depName]
+	if err := addEdges(deps.Extends, models.DepTypeExtends); err != nil {
+		return nil, err
+	}
+	if err := addEdges(deps.Recommends, models.DepTypeRecommends); err != nil {
+		return nil, err
+	}
+	if err := addEdges(deps.Composes, models.DepTypeComposes); err != nil {
+		return nil, err
+	}
+	if err := addEdges(deps.RelatedTo, models.DepTypeRelatedTo); err != nil {
+		return nil, err
+	}
+	if err := addEdges(deps.Alternative, models.DepTypeAlternative); err != nil {
+		return nil, err
+	}
+
+	// [[skill.components]] — the ergonomic umbrella→component authoring form —
+	// each materializes as one `composes` edge carrying its ordering/optionality
+	// (skill_granularity_and_composition.md §5.1; a component is hard-closure,
+	// so an absent target is a hard error).
+	for _, comp := range wrapper.Skill.Components {
+		id, ok := depNameToID[comp.Name]
 		if !ok {
-			return nil, fmt.Errorf("%w: extends dependency %q not found", ErrDependencyNotFound, depName)
+			return nil, fmt.Errorf("%w: composes component %q not found", ErrDependencyNotFound, comp.Name)
 		}
-		depsToCreate = append(depsToCreate, struct {
-			targetID     uuid.UUID
-			relationType models.DependencyType
-			name         string
-		}{id, models.DepTypeExtends, depName})
+		order := comp.Order
+		depsToCreate = append(depsToCreate, tomlDepEdge{
+			targetID:     id,
+			relationType: models.DepTypeComposes,
+			name:         comp.Name,
+			optional:     comp.Optional,
+			sortOrder:    &order,
+		})
 	}
-	for _, depName := range wrapper.Skill.Dependencies.Recommends {
-		id, ok := depNameToID[depName]
-		if !ok {
-			// For recommends, we allow missing deps (soft dependency)
-			continue
-		}
-		depsToCreate = append(depsToCreate, struct {
-			targetID     uuid.UUID
-			relationType models.DependencyType
-			name         string
-		}{id, models.DepTypeRecommends, depName})
-	}
+
+	// G07 idempotent edge fold (F2; research/g06_g07_skilltree_dag_design.md
+	// §2.3(3)): collapse duplicate (targetID, relationType) edges to a single
+	// edge BEFORE persisting. The stored PK is (skill_id, depends_on,
+	// relation_type) (migrations/002_granularity.up.sql:35-38), so a repeated
+	// target for one relation type — a repeated name in a single list, the same
+	// name via `requires` and its alias `depends_on`/`prerequisite` (all fold
+	// to `requires`), OR the same target named both in `composes = [...]` and a
+	// [[skill.components]] entry — would otherwise hit that PK and abort the
+	// whole import with a raw Postgres `duplicate key ... 23505`. The design
+	// mandates folding to ONE edge, not aborting. When a duplicate is found we
+	// keep the FIRST occurrence but PREFER the richer attribute carrier: a
+	// [[skill.components]] edge (non-nil sortOrder) supersedes a plain
+	// composes-list edge (nil sortOrder) for the same target, so its
+	// ordering/optionality is never lost to the fold regardless of authoring
+	// order.
+	depsToCreate = dedupDepEdges(depsToCreate)
 
 	// Build resource records
 	resources := make([]models.Resource, len(wrapper.Skill.Resources))
@@ -165,21 +267,27 @@ func (s *Store) ImportFromTOML(ctx context.Context, tomlData []byte) (*models.Sk
 			return fmt.Errorf("insert registry entry: %w", err)
 		}
 
-		// Insert dependencies (with cycle detection per edge)
+		// Insert dependencies. Cycle detection applies ONLY to hard-closure
+		// relations (requires/composes/extends); advisory relations
+		// (recommends/related_to/alternative_to) are exempt — they MAY cycle by
+		// nature and their symmetric back-edges must not be rejected as cycles
+		// (skill_granularity_and_composition.md §4.1; mirrors graph.go
+		// AddDependency's NEW-1 fix).
 		for _, dep := range depsToCreate {
-			// Cycle check: ensure adding skill -> dep.targetID doesn't create a cycle
-			cycle, err := hasCycle(ctx, tx, skill.ID, dep.targetID)
-			if err != nil {
-				return fmt.Errorf("cycle check for %s: %w", dep.name, err)
-			}
-			if cycle {
-				return fmt.Errorf("%w: adding dependency on %s would create cycle", ErrCycleDetected, dep.name)
+			if models.IsHardClosure(dep.relationType) {
+				cycle, err := hasCycle(ctx, tx, skill.ID, dep.targetID)
+				if err != nil {
+					return fmt.Errorf("cycle check for %s: %w", dep.name, err)
+				}
+				if cycle {
+					return fmt.Errorf("%w: adding dependency on %s would create cycle", ErrCycleDetected, dep.name)
+				}
 			}
 
 			_, err = tx.Exec(ctx, `
 				INSERT INTO skill_dependencies (skill_id, depends_on, relation_type, optional, sort_order)
 				VALUES ($1, $2, $3, $4, $5)
-			`, skill.ID, dep.targetID, dep.relationType, false, nil)
+			`, skill.ID, dep.targetID, dep.relationType, dep.optional, dep.sortOrder)
 			if err != nil {
 				return fmt.Errorf("insert dependency %s: %w", dep.name, err)
 			}
@@ -219,9 +327,12 @@ func (s *Store) ImportFromTOML(ctx context.Context, tomlData []byte) (*models.Sk
 		skill.Dependencies = make([]models.SkillDependency, 0, len(depsToCreate))
 		for _, dep := range depsToCreate {
 			skill.Dependencies = append(skill.Dependencies, models.SkillDependency{
-				SkillID:      skill.ID,
-				DependsOn:    dep.targetID,
-				RelationType: dep.relationType,
+				SkillID:       skill.ID,
+				DependsOn:     dep.targetID,
+				RelationType:  dep.relationType,
+				Optional:      dep.optional,
+				SortOrder:     dep.sortOrder,
+				DependsOnName: dep.name,
 			})
 		}
 		skill.Resources = resources
@@ -275,10 +386,11 @@ func (s *Store) ExportToTOML(ctx context.Context, skillName string) ([]byte, err
 			depName = name
 		}
 
-		// NEW-2 (§11.4.6): composes/related_to/alternative_to are not yet
-		// emitted on the export side; import-side handling of these is G07
-		// scope -- the export direction is tracked for G07 too. Do not
-		// silently claim full round-trip until then.
+		// G07: emit every canonical relation type (the six-type typed-edge set
+		// from the P1.T1 granularity model) so an export→import→export
+		// round-trip is edge-name-stable. Under the pre-G07 code only
+		// requires/extends/recommends were emitted, silently dropping
+		// composes/related_to/alternative_to on export.
 		switch dep.RelationType {
 		case models.DepTypeRequires:
 			wrapper.Skill.Dependencies.Requires = append(wrapper.Skill.Dependencies.Requires, depName)
@@ -286,6 +398,32 @@ func (s *Store) ExportToTOML(ctx context.Context, skillName string) ([]byte, err
 			wrapper.Skill.Dependencies.Extends = append(wrapper.Skill.Dependencies.Extends, depName)
 		case models.DepTypeRecommends:
 			wrapper.Skill.Dependencies.Recommends = append(wrapper.Skill.Dependencies.Recommends, depName)
+		case models.DepTypeComposes:
+			// G07 (F3; research/g06_g07_skilltree_dag_design.md §2.3(1)+(3)): a
+			// composes edge that carries ordering/optionality (imported via a
+			// [[skill.components]] entry) MUST export back through the SAME
+			// carrier, or the optional/sort_order attrs are silently lost on
+			// export and the round-trip is not attribute-stable. A plain
+			// composes edge (no attrs — e.g. added via Store.AddDependency)
+			// stays in the `composes = [...]` list. The discriminator matches
+			// the import shape: only [[skill.components]] can set these attrs.
+			if dep.SortOrder != nil || dep.Optional {
+				order := 0
+				if dep.SortOrder != nil {
+					order = *dep.SortOrder
+				}
+				wrapper.Skill.Components = append(wrapper.Skill.Components, models.TOMLComponent{
+					Name:     depName,
+					Order:    order,
+					Optional: dep.Optional,
+				})
+			} else {
+				wrapper.Skill.Dependencies.Composes = append(wrapper.Skill.Dependencies.Composes, depName)
+			}
+		case models.DepTypeRelatedTo:
+			wrapper.Skill.Dependencies.RelatedTo = append(wrapper.Skill.Dependencies.RelatedTo, depName)
+		case models.DepTypeAlternative:
+			wrapper.Skill.Dependencies.Alternative = append(wrapper.Skill.Dependencies.Alternative, depName)
 		}
 	}
 
@@ -312,29 +450,102 @@ func (s *Store) ExportToTOML(ctx context.Context, skillName string) ([]byte, err
 	return buf.Bytes(), nil
 }
 
-// collectDepNames gathers all dependency names from the TOML dependency block.
-func collectDepNames(deps models.TOMLDependencies) []string {
+// tomlDepEdge is one resolved dependency edge staged for insertion during a
+// TOML import (target skill ID + relation type + carried attributes). name is
+// retained for error reporting and for populating the returned skill's runtime
+// DependsOnName field.
+type tomlDepEdge struct {
+	targetID     uuid.UUID
+	relationType models.DependencyType
+	name         string
+	optional     bool
+	sortOrder    *int
+}
+
+// collectDepNames gathers every dependency target name referenced by a TOML
+// skill definition across ALL edge forms — the six canonical relation types,
+// the same-direction aliases (depends_on/prerequisite), and the
+// [[skill.components]] ergonomic form — de-duplicated, so the caller can
+// resolve them all in a single batch lookup (G07).
+func collectDepNames(deps models.TOMLDependencies, components []models.TOMLComponent) []string {
 	seen := make(map[string]bool)
 	var names []string
+	add := func(list []string) {
+		for _, n := range list {
+			if n != "" && !seen[n] {
+				seen[n] = true
+				names = append(names, n)
+			}
+		}
+	}
 
-	for _, n := range deps.Requires {
-		if !seen[n] {
-			seen[n] = true
-			names = append(names, n)
-		}
-	}
-	for _, n := range deps.Extends {
-		if !seen[n] {
-			seen[n] = true
-			names = append(names, n)
-		}
-	}
-	for _, n := range deps.Recommends {
-		if !seen[n] {
-			seen[n] = true
-			names = append(names, n)
-		}
+	add(deps.Requires)
+	add(deps.Extends)
+	add(deps.Recommends)
+	add(deps.Composes)
+	add(deps.RelatedTo)
+	add(deps.Alternative)
+	add(deps.DependsOn)
+	add(deps.Prerequisite)
+	for _, c := range components {
+		add([]string{c.Name})
 	}
 
 	return names
+}
+
+// tomlUnmappedEdgeOrResourceKeys returns the dotted string form of every
+// undecoded TOML key that lands under an EDGE/RESOURCE container —
+// `skill.dependencies.*`, `skill.resources.*`, or `skill.components.*` — i.e.
+// the containers whose silent drop is a G07 data-loss defect (a typo'd
+// dependency key decoding into zero edges; an unknown field on a resource/
+// component table). Undecoded keys OUTSIDE those containers are intentionally
+// tolerated: `skill.status` is a deliberately-ignored key (the MCP
+// skill_create fail-closed-to-draft contract,
+// internal/mcp/skill_create_draft_test.go) and `skill.metadata.*` is a soft
+// blob, neither an edge/resource-loss vector. The key segment names come from
+// BurntSushi/toml v1.6.0 MetaData.Undecoded() (captured: a typo'd dep key
+// reports ["skill" "dependencies" "<key>"], an extra resource field reports
+// ["skill" "resources" "<key>"]).
+func tomlUnmappedEdgeOrResourceKeys(md toml.MetaData) []string {
+	var dropped []string
+	for _, k := range md.Undecoded() {
+		if len(k) >= 2 && k[0] == "skill" {
+			switch k[1] {
+			case "dependencies", "resources", "components":
+				dropped = append(dropped, k.String())
+			}
+		}
+	}
+	return dropped
+}
+
+// dedupDepEdges folds duplicate (targetID, relationType) edges to a single
+// edge so a TOML import is idempotent instead of aborting on the
+// (skill_id, depends_on, relation_type) primary key (F2, see the call site).
+// First occurrence order is preserved; when a later duplicate carries edge
+// attributes (a non-nil sortOrder, i.e. a [[skill.components]] entry) and the
+// kept edge does not, the kept edge is upgraded with the richer
+// optional/sortOrder so component ordering/optionality survives the fold
+// regardless of authoring order.
+func dedupDepEdges(edges []tomlDepEdge) []tomlDepEdge {
+	type edgeKey struct {
+		target uuid.UUID
+		rel    models.DependencyType
+	}
+	seen := make(map[edgeKey]int, len(edges))
+	out := make([]tomlDepEdge, 0, len(edges))
+	for _, e := range edges {
+		k := edgeKey{target: e.targetID, rel: e.relationType}
+		if idx, ok := seen[k]; ok {
+			if e.sortOrder != nil && out[idx].sortOrder == nil {
+				out[idx].optional = e.optional
+				out[idx].sortOrder = e.sortOrder
+			}
+			continue
+		}
+		seen[k] = len(out)
+		out = append(out, e)
+	}
+	return out
 }

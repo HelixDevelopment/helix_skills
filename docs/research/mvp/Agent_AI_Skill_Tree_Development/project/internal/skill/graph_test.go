@@ -136,7 +136,7 @@ func TestCollectDepNames(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := collectDepNames(tt.deps)
+			got := collectDepNames(tt.deps, nil)
 			if !equalStringSlices(got, tt.want) {
 				t.Errorf("collectDepNames(%+v) = %v, want %v", tt.deps, got, tt.want)
 			}

@@ -20,15 +20,15 @@ import (
 
 // CreateSkillRequest is the request body for creating a new skill.
 type CreateSkillRequest struct {
-	Name        string               `json:"name" toml:"name" binding:"required"`
-	Version     string               `json:"version" toml:"version"`
-	Title       string               `json:"title" toml:"title" binding:"required"`
-	Description string               `json:"description" toml:"description"`
-	Content     string               `json:"content" toml:"content" binding:"required"`
-	Metadata    json.RawMessage      `json:"metadata" toml:"-"`
-	Status      models.SkillStatus   `json:"status" toml:"status"`
-	Deps        CreateDepsRequest    `json:"dependencies,omitempty" toml:"dependencies"`
-	Resources   []CreateResourceReq  `json:"resources,omitempty" toml:"resources"`
+	Name        string              `json:"name" toml:"name" binding:"required"`
+	Version     string              `json:"version" toml:"version"`
+	Title       string              `json:"title" toml:"title" binding:"required"`
+	Description string              `json:"description" toml:"description"`
+	Content     string              `json:"content" toml:"content" binding:"required"`
+	Metadata    json.RawMessage     `json:"metadata" toml:"-"`
+	Status      models.SkillStatus  `json:"status" toml:"status"`
+	Deps        CreateDepsRequest   `json:"dependencies,omitempty" toml:"dependencies"`
+	Resources   []CreateResourceReq `json:"resources,omitempty" toml:"resources"`
 }
 
 // CreateDepsRequest holds dependency definitions.
@@ -47,13 +47,13 @@ type CreateResourceReq struct {
 
 // UpdateSkillRequest is the request body for updating a skill.
 type UpdateSkillRequest struct {
-	Name        *string              `json:"name,omitempty" toml:"name"`
-	Version     *string              `json:"version,omitempty" toml:"version"`
-	Title       *string              `json:"title,omitempty" toml:"title"`
-	Description *string              `json:"description,omitempty" toml:"description"`
-	Content     *string              `json:"content,omitempty" toml:"content"`
-	Metadata    *json.RawMessage     `json:"metadata,omitempty" toml:"-"`
-	Status      *models.SkillStatus  `json:"status,omitempty" toml:"status"`
+	Name        *string             `json:"name,omitempty" toml:"name"`
+	Version     *string             `json:"version,omitempty" toml:"version"`
+	Title       *string             `json:"title,omitempty" toml:"title"`
+	Description *string             `json:"description,omitempty" toml:"description"`
+	Content     *string             `json:"content,omitempty" toml:"content"`
+	Metadata    *json.RawMessage    `json:"metadata,omitempty" toml:"-"`
+	Status      *models.SkillStatus `json:"status,omitempty" toml:"status"`
 }
 
 // ImportSkillsRequest wraps a batch of skills for import.
@@ -66,9 +66,9 @@ type ImportSkillsRequest struct {
 //	GET /api/v1/skills
 //
 // Query params:
-//	- limit:  max items to return (default 20, max 100)
-//	- offset: number of items to skip (default 0)
-//	- status: filter by status (draft, validated, active, deprecated)
+//   - limit:  max items to return (default 20, max 100)
+//   - offset: number of items to skip (default 0)
+//   - status: filter by status (draft, validated, active, deprecated)
 func (s *Server) handleListSkills(c *gin.Context) {
 	// Parse limit with default and max
 	limit, err := strconv.Atoi(c.DefaultQuery("limit", "20"))
@@ -178,8 +178,13 @@ func (s *Server) handleCreateSkill(c *gin.Context) {
 	}
 
 	// Carry submitted resources into the in-memory model so validation screens
-	// their URLs (SSRF guard, §G21). Persisting resource/dependency edges is a
-	// separate work-item; pool.CreateSkill does not persist them.
+	// their URLs (SSRF guard, §G21). Persisting resource/dependency edges on
+	// THIS path (G07 "defect C") is re-homed to G09: this hardened REST server
+	// is currently UNWIRED (api.New has zero non-test callers — see the package
+	// note at the end of this file), and pool.CreateSkill persists scalar
+	// fields only. The live, wired create path is MCP skill_create →
+	// internal/skill.Store.ImportFromTOML, which persists edges + resources in
+	// full (the complete G07 fix).
 	for _, r := range req.Resources {
 		if strings.TrimSpace(r.URL) == "" {
 			continue
@@ -209,8 +214,9 @@ func (s *Server) handleCreateSkill(c *gin.Context) {
 	}
 	skill.Status = validation.DecideCreateStatus(validationOn, requested, valResult)
 
-	// Resource/dependency persistence is a separate work-item; do not imply it
-	// here (pool.CreateSkill persists scalar fields only).
+	// Resource/dependency persistence on this REST path is re-homed to G09 (see
+	// the create-path comment above + the package note at end of file); do not
+	// imply it here (pool.CreateSkill persists scalar fields only).
 	skill.Resources = nil
 
 	// Create in database
@@ -334,7 +340,7 @@ func (s *Server) handleDeleteSkill(c *gin.Context) {
 //	GET /api/v1/skills/:id/tree
 //
 // Query params:
-//	- max_depth: maximum tree depth (default 5, max 10)
+//   - max_depth: maximum tree depth (default 5, max 10)
 func (s *Server) handleGetSkillTree(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -589,27 +595,44 @@ func convertTOMLWrapper(w models.TOMLSkillWrapper) models.Skill {
 		skill.Metadata = metaBytes
 	}
 
-	// Convert dependencies
-	// G07-wiring scope: dependency edges are resolved by name at wire time;
-	// emitting a nil-UUID edge here would FK-violate, so edges are
-	// intentionally deferred (§11.4.197).
-	for _, depName := range w.Skill.Dependencies.Requires {
-		skill.Dependencies = append(skill.Dependencies, models.SkillDependency{
-			RelationType: models.DepTypeRequires,
-		})
-		_ = depName // placeholder for resolution
+	// Convert dependencies. G07 (defect B, GAPS_AND_RISKS_REGISTER.md:112):
+	// carry the edge TARGET NAME (DependsOnName) for every relation type
+	// instead of the pre-G07 `_ = depName` discard that silently threw it away.
+	// DependsOn (the UUID) is left zero here on purpose — this is a pure
+	// TOML→model shaping helper with no store handle to resolve names→IDs;
+	// name→ID resolution + edge persistence is the store layer's job
+	// (internal/skill.Store.ImportFromTOML, which this shaping never routes
+	// through). Emitting the name (not a nil-UUID edge alone) is what makes
+	// the model faithful and unblocks a name-based resolver downstream.
+	appendDepNames := func(names []string, rel models.DependencyType) {
+		for _, depName := range names {
+			skill.Dependencies = append(skill.Dependencies, models.SkillDependency{
+				RelationType:  rel,
+				DependsOnName: depName,
+			})
+		}
 	}
-	for _, depName := range w.Skill.Dependencies.Extends {
+	appendDepNames(w.Skill.Dependencies.Requires, models.DepTypeRequires)
+	appendDepNames(w.Skill.Dependencies.Extends, models.DepTypeExtends)
+	appendDepNames(w.Skill.Dependencies.Recommends, models.DepTypeRecommends)
+	appendDepNames(w.Skill.Dependencies.Composes, models.DepTypeComposes)
+	appendDepNames(w.Skill.Dependencies.RelatedTo, models.DepTypeRelatedTo)
+	appendDepNames(w.Skill.Dependencies.Alternative, models.DepTypeAlternative)
+
+	// G07 (F3): [[skill.components]] entries materialize as composes edges
+	// carrying their ordering/optionality — mirroring both
+	// internal/skill.Store.ImportFromTOML and exportToTOMLWrapper above, so the
+	// convert↔export pair is round-trip-faithful for attribute-bearing composes
+	// edges (name→ID resolution + persistence is still the store layer's job;
+	// see the package note below).
+	for _, comp := range w.Skill.Components {
+		order := comp.Order
 		skill.Dependencies = append(skill.Dependencies, models.SkillDependency{
-			RelationType: models.DepTypeExtends,
+			RelationType:  models.DepTypeComposes,
+			DependsOnName: comp.Name,
+			Optional:      comp.Optional,
+			SortOrder:     &order,
 		})
-		_ = depName
-	}
-	for _, depName := range w.Skill.Dependencies.Recommends {
-		skill.Dependencies = append(skill.Dependencies, models.SkillDependency{
-			RelationType: models.DepTypeRecommends,
-		})
-		_ = depName
 	}
 
 	// Convert resources
@@ -659,7 +682,10 @@ func exportToTOMLWrapper(skill *models.Skill) models.TOMLSkillWrapper {
 		},
 	}
 
-	// Group dependencies by type
+	// Group dependencies by type. G07: emit every canonical relation type (the
+	// six-type typed-edge set) so the exported TOML model carries
+	// composes/related_to/alternative_to too, not just requires/extends/
+	// recommends — matching internal/skill.Store.ExportToTOML.
 	for _, dep := range skill.Dependencies {
 		switch dep.RelationType {
 		case models.DepTypeRequires:
@@ -668,6 +694,28 @@ func exportToTOMLWrapper(skill *models.Skill) models.TOMLSkillWrapper {
 			wrapper.Skill.Dependencies.Extends = append(wrapper.Skill.Dependencies.Extends, dep.DependsOnName)
 		case models.DepTypeRecommends:
 			wrapper.Skill.Dependencies.Recommends = append(wrapper.Skill.Dependencies.Recommends, dep.DependsOnName)
+		case models.DepTypeComposes:
+			// G07 (F3): mirror internal/skill.Store.ExportToTOML — a composes
+			// edge carrying ordering/optionality exports through the
+			// [[skill.components]] carrier so those attrs survive the
+			// round-trip; a plain composes edge stays in the composes list.
+			if dep.SortOrder != nil || dep.Optional {
+				order := 0
+				if dep.SortOrder != nil {
+					order = *dep.SortOrder
+				}
+				wrapper.Skill.Components = append(wrapper.Skill.Components, models.TOMLComponent{
+					Name:     dep.DependsOnName,
+					Order:    order,
+					Optional: dep.Optional,
+				})
+			} else {
+				wrapper.Skill.Dependencies.Composes = append(wrapper.Skill.Dependencies.Composes, dep.DependsOnName)
+			}
+		case models.DepTypeRelatedTo:
+			wrapper.Skill.Dependencies.RelatedTo = append(wrapper.Skill.Dependencies.RelatedTo, dep.DependsOnName)
+		case models.DepTypeAlternative:
+			wrapper.Skill.Dependencies.Alternative = append(wrapper.Skill.Dependencies.Alternative, dep.DependsOnName)
 		}
 	}
 
@@ -682,3 +730,33 @@ func exportToTOMLWrapper(skill *models.Skill) models.TOMLSkillWrapper {
 
 	return wrapper
 }
+
+// ---------------------------------------------------------------------------
+// Package note — the hardened internal/api REST server is currently UNWIRED,
+// and REST-path dependency/resource PERSISTENCE (G07 "defect C") is re-homed
+// to G09.
+//
+// PROVEN unwired (§11.4.6 — FACT, not guess, verified this session):
+//   - `api.New(` (server.go) has ZERO non-test callers across the repo; the
+//     only non-test importer of internal/api is cmd/server/main.go, which
+//     imports it solely for api.CORS + api.ResolveAPIKeyAuth and NEVER
+//     constructs the Server. So no routes registered by RegisterRoutes
+//     (server.go) — including POST /skills (handleCreateSkill) — are ever
+//     served: a live request to them would 404 because the router is never
+//     mounted. The live create path is the MCP skill_create tool
+//     (internal/mcp/tools.go → internal/skill.Store.ImportFromTOML), which
+//     IS fully wired and now carries the complete G07 fix.
+//
+// Consequence for G07: handleCreateSkill persists SCALAR fields only
+// (s.pool.CreateSkill), and convertTOMLWrapper/exportToTOMLWrapper are pure
+// TOML↔model SHAPING helpers with no store handle to resolve names→IDs or
+// write edges/resources. Making this dead REST path actually persist
+// dependency/resource edges (design §2.3 "defect C") requires first WIRING the
+// hardened server (route it through internal/skill.Store, not the scalar-only
+// pool.CreateSkill) — that is G09 scope (the same dead-second-server finding),
+// tracked as a G07→G09 follow-up in the conductor's durable state, NOT landed
+// here. The shaping helpers are kept faithful (they carry every typed edge
+// name + component attrs, mirroring the wired store path) so the eventual G09
+// wiring has a correct model to persist, and they are unit-covered
+// (toml_convert_test.go) — but they are NOT the live create path today.
+// ---------------------------------------------------------------------------
