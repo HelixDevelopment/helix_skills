@@ -287,8 +287,10 @@ func defaultConfig() Config {
 // substitution on all string fields, and returns the populated Config.
 //
 // Environment variables use the ${VAR} syntax. A default value can be
-// provided with ${VAR:-default}. If the variable is unset and no default
-// is given, the empty string is substituted.
+// provided with ${VAR:-default}: the default is used only when VAR is unset;
+// a variable explicitly set to the empty string is honored as an empty
+// override (never replaced by the default). If the variable is unset and no
+// default is given, the empty string is substituted.
 //
 // If path is empty, Load searches for config.toml in the current directory,
 // then config/config.toml, then /etc/helixskill/config.toml.
@@ -417,7 +419,11 @@ func interpolate(s string) (string, error) {
 			envKey = inner
 		}
 
-		if v := os.Getenv(envKey); v != "" {
+		// G26: os.LookupEnv distinguishes an unset variable (ok == false) from
+		// one explicitly set to the empty string (ok == true, v == ""). A
+		// present-but-empty variable is an intentional override and is honored
+		// as-is; only a genuinely unset variable falls back to the default.
+		if v, ok := os.LookupEnv(envKey); ok {
 			return v
 		}
 		if defaultVal != "" {

@@ -16,6 +16,9 @@ import (
 
 func TestInterpolate(t *testing.T) {
 	t.Setenv("HELIX_TEST_VAR", "actual-value")
+	// G26: a variable explicitly set to the empty string is distinct from an
+	// unset variable — os.Getenv cannot tell them apart, os.LookupEnv can.
+	t.Setenv("HELIX_TEST_VAR_EMPTY", "")
 
 	tests := []struct {
 		name  string
@@ -29,6 +32,14 @@ func TestInterpolate(t *testing.T) {
 		{"unset variable without default becomes empty", "${HELIX_TEST_VAR_UNSET}", ""},
 		{"variable embedded in larger string", "prefix-${HELIX_TEST_VAR}-suffix", "prefix-actual-value-suffix"},
 		{"multiple placeholders", "${HELIX_TEST_VAR}/${HELIX_TEST_VAR_UNSET:-def}", "actual-value/def"},
+		// G26 (the bug): a variable SET to the empty string with a default must
+		// honor the explicit empty override, NOT fall back to the default.
+		// Pre-fix (os.Getenv() != "") returns "fallback" -> RED.
+		{"set-empty variable with default honors empty override not default", "${HELIX_TEST_VAR_EMPTY:-fallback}", ""},
+		// G26 (regression floor, non-discriminating): set-empty without a default
+		// already resolves to "" under both implementations — asserted for
+		// completeness so the fix's negative space is proven, not assumed.
+		{"set-empty variable without default resolves to empty", "${HELIX_TEST_VAR_EMPTY}", ""},
 	}
 
 	for _, tt := range tests {
@@ -69,6 +80,27 @@ func TestSubstituteEnv_AppliesAcrossAllDocumentedFields(t *testing.T) {
 	}
 	if cfg.Embedding.APIKey != "" {
 		t.Errorf("Embedding.APIKey = %q, want empty string for unset var with no default", cfg.Embedding.APIKey)
+	}
+}
+
+// TestSubstituteEnv_ExplicitEmptyOverrideHonored proves the G26 fix propagates
+// through the whole struct-walking substituteEnv layer, not merely the raw
+// interpolate primitive: a config field whose value is ${VAR:-default} with VAR
+// SET to the empty string must resolve to "" (the honored explicit override),
+// never the default. Pre-fix (os.Getenv() != "") this field becomes
+// "localhost-fallback" -> RED; post-fix (os.LookupEnv) it becomes "".
+func TestSubstituteEnv_ExplicitEmptyOverrideHonored(t *testing.T) {
+	t.Setenv("HELIX_TEST_DB_HOST_EMPTY", "")
+
+	cfg := defaultConfig()
+	cfg.Database.Host = "${HELIX_TEST_DB_HOST_EMPTY:-localhost-fallback}"
+
+	if err := substituteEnv(&cfg); err != nil {
+		t.Fatalf("substituteEnv returned unexpected error: %v", err)
+	}
+
+	if cfg.Database.Host != "" {
+		t.Errorf("Database.Host = %q, want %q (explicit empty override must be honored, not the default)", cfg.Database.Host, "")
 	}
 }
 
