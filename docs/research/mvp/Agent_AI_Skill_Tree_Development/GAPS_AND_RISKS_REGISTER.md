@@ -1,5 +1,8 @@
 # GAPS_AND_RISKS_REGISTER — HelixKnowledge Skill Graph System
 
+**Revision:** 2
+**Last modified:** 2026-07-16T00:00:00Z
+
 > Adversarial audit satisfying operator mandate **R17**. Every row carries
 > concrete `file:line` evidence (positive-evidence-only, R11). Anything not
 > directly verified is labelled **UNCONFIRMED**. Audit date: 2026-07-15.
@@ -20,6 +23,14 @@
 | **MEDIUM** | 8 | G16, G17, G18, G19, G20, G21, G22, G23 |
 | **LOW** | 4 | G24, G25, G26, G27 |
 | **TOTAL** | **27** | |
+
+> **Note (2026-07-16):** Session-discovered items `G52`–`G124` live in the
+> "## Session-discovered + planned items (2026-07-16)" section (and the
+> `G39`–`G58` constitutional-compliance / additional-findings sections
+> above it) and are not yet folded into these severity counts — severity
+> assessment for the new items is a tracked follow-up (**G136**), not
+> performed in this edit (§11.4.6 — inventing severities without evidence
+> would itself be a guess).
 
 ### Headline: the running binary is not the audited/hardened codebase
 
@@ -61,6 +72,7 @@ flow from this.
 - **Why it matters:** "sandbox validation" that runs untrusted input on the host, unauthenticated (G01), is the worst-case security defect; the naming is itself an anti-bluff violation (R11).
 - **DECISION:** Before wiring P4, replace the process-fallback with a real isolation boundary (rootless Podman/gVisor per Constitution §11.4.161, or a true WASM runtime with `wasmtime`), and **fail-closed**: if no isolated runtime is available, `SKIP` with reason — never silently execute on the host. Do **not** execute arbitrary documentation code blocks; only execute snippets explicitly tagged as runnable POCs. Delete the `LD_PRELOAD` "network restriction" line. **Alternatives rejected:** (a) keep process fallback "for dev" — one config typo = host RCE; (b) drop code execution entirely — loses the P4.T3 sandbox gate the zero-bluff pipeline needs.
 - **Test coverage:** security (network-egress attempt from snippet is blocked; filesystem write outside sandbox blocked; `fork`/resource limits enforced), integration (no-runtime ⇒ SKIP not execute), fuzz (malicious snippet corpus), mutation (remove isolation flag → egress test fails), regression. **Challenges:** yes (escape-attempt bank). **HelixQA:** yes.
+- **STATUS (2026-07-16):** `Fixed (→ Fixed.md)` — `2befa77`. Mechanism: host code-execution DELETED BY CONSTRUCTION (no `os/exec`/`executeProcess`/`executeGoSnippet`/`WASMSandbox`/`LD_PRELOAD` remain; `StaticValidator` parses in-process only) — **not** that sandbox/WASM/Podman isolation was built. This closes G02 via a different mechanism than this item's own DECISION text (a real isolation boundary); the effect is equivalent-or-stronger for the stated host-RCE risk since host execution no longer exists at all.
 
 ### G03 — Flagship pipelines are dead code: `internal/validation` (jury) and `internal/autoexpand` (auto-growth) are never instantiated; worker handlers are stubs
 - **Category:** gap
@@ -93,9 +105,10 @@ flow from this.
 - **Why it matters:** contradicts the founding "LLM jury (≥2 approvals)" and R11. A fabricated skill would pass the jury stage unconditionally.
 - **DECISION:** Fail-closed — an empty jury when `validation.enabled` is a hard error (or forces `require_human_review`), never an auto-pass. Require `approval_threshold ≥ 2` real votes. **Alternatives rejected:** "auto-pass in dev" — same bluff class as G02's process fallback.
 - **Test coverage:** unit (empty jury ⇒ fail/blocked, not pass), integration (2-of-3 real approvals required), mutation (flip auto-pass back → test fails). **Challenges:** yes. **HelixQA:** yes.
+- **STATUS (2026-07-16):** `Fixed (→ Fixed.md)` — `2befa77`. LLM jury now fails CLOSED (empty jury BLOCKS, never auto-approves); two-factor consensus, both factors tested.
 
 ### G06 — `GetDependencyTree` returns only depth-1 children (recursive tree truncated)
-- **STATUS (2026-07-15):** DESIGN DONE → `research/g06_g07_skilltree_dag_design.md` (reconciles the LIVE tree path vs the rival `GetDependencyTree`). Go impl PENDING — DEPENDS ON the P1.T1 granularity schema migration (design DONE → `research/p1t1_granularity_schema_migration.md`), which must land FIRST (adds `kind` + widened relation_type + PK). Sequenced P1.T1 → G06 → G07 per §11.4.197.
+- **STATUS (2026-07-16):** `Fixed (→ Fixed.md)` — `186e047`. Recursive cycle-guarded `GetDependencyTree` + MCP wire-in landed (supersedes the 2026-07-15 DESIGN DONE/Go-impl-PENDING note; design doc `research/g06_g07_skilltree_dag_design.md` preserved for history).
 - **Category:** existing-bug
 - **Severity:** high — the core "recursive dependency DAG" feature is broken; REST `/skills/:id/tree` and MCP `skill_tree` both under-report.
 - **Evidence:** `internal/skill/graph.go:280-307` builds `childrenMap` for all depths but attaches **only** `root.Children = childrenMap[rootSkill.ID]` (`graph.go:306`); grandchildren `Children` are never populated. MCP's recursive serializer (`internal/mcp/tools.go:226-246`) therefore also emits a 1-level tree despite recursing. Contrast `GetAllDependencies` (`graph.go:347-371`) which is correct (flat closure).
@@ -104,7 +117,7 @@ flow from this.
 - **Test coverage:** unit (tree assembly), integration (seed android closure returns known N-level tree), property (tree node count == closure size), regression, mutation (revert to depth-1 → test fails). **Challenges:** yes.
 
 ### G07 — TOML/JSON dependency+resource round-trip is broken (edges silently dropped on import)
-- **STATUS (2026-07-15):** DESIGN DONE → `research/g06_g07_skilltree_dag_design.md` (+ a NEW captured BurntSushi TOML v1.6.0 dotted-tag decode bug that silently starves imports). Go impl PENDING — DEPENDS ON P1.T1 migration (design DONE → `research/p1t1_granularity_schema_migration.md`) for the widened relation-type set + `[[skill.components]]`; the P1.T1 doc flags L11 (TOML normalization/round-trip) as G07-owned to avoid double-ownership. Sequenced P1.T1 → G06 → G07.
+- **STATUS (2026-07-16):** `Fixed (→ Fixed.md)` — `073192f`. Full 6-type TOML dependency/resource round-trip landed, no-silent-loss + strict-decode (supersedes the 2026-07-15 DESIGN DONE/Go-impl-PENDING note; design doc `research/g06_g07_skilltree_dag_design.md` preserved for history).
 - **Category:** existing-bug
 - **Severity:** high — breaks R14 git-versionable round-trip and the R6 wizard's DAG mapping.
 - **Evidence:**
@@ -123,6 +136,7 @@ flow from this.
 - **Why it matters:** clients told to expect TOON will get TOML/JSON with no signal — the silent-fallback bluff the plan warns about.
 - **DECISION:** Implement/vendor a spec-conformant Go TOON codec (`github.com/toon-format/toon`) with its own golden test vectors before advertising `application/toon`; until it exists, the API MUST NOT claim TOON. Revise `openapi.yaml` content-negotiation in the same change (P7.T4). **Alternatives rejected:** "interpret TOON as TOML" — explicitly superseded (`REQUIREMENTS.md:38-40`).
 - **Test coverage:** unit (round-trip struct→TOON→struct), contract (golden TOON fixtures byte-for-byte), integration (`Accept: application/toon` returns TOON; unknown → JSON fallback with correct `Content-Type`), fuzz (malformed TOON rejected), mutation (swap codec to JSON → golden test fails). **Challenges:** yes.
+- **STATUS (2026-07-16):** `Implemented (→ Fixed.md)` — `2785e11`. TOON codec + `application/toon` content negotiation landed.
 
 ### G09 — Pervasive OpenAPI ↔ implementation drift; most documented endpoints are unimplemented or differently shaped
 - **Category:** spec-drift
@@ -152,7 +166,7 @@ flow from this.
 - **Test coverage:** unit (provider factory incl. helixllm; OpenAI length mismatch rejected), integration (startup fails on dim mismatch; correct dim inserts), contract (config schema), mutation (change column to 1536, keep config 768 → startup assertion fails). **Challenges:** yes.
 
 ### G11 — Worker does no real work and can panic the process (unchecked type assertions in a recover-less goroutine)
-- **STATUS (2026-07-15):** DESIGN DONE + source-claims independently verified against committed baseline (`255061b`) → `research/g11_worker_design.md` (Rev 1). Confirmed: `runner.go` unchecked `coverage["total_skills"].(int)` / `["coverage_percentage"].(string)` + **0** `recover()` in any worker goroutine. Decision = typed `GetCoverageStats` (no assertions) + `supervise()` recover-and-restart wrapper on every loop + per-job recover (§11.4.147) + real cycles composed with `autoexpand`/`validation` (G03). 9 test cases, RED-first. Go impl PENDING — composes the in-flight G03 pipeline wiring; needs an embedder-wiring fix at `cmd/worker/main.go:86-94`.
+- **STATUS (2026-07-16):** `Fixed (→ Fixed.md)` — `0e255b4`. Worker panic firewall landed (recover + backoff-restart wrapper on every worker goroutine + per-job firewall); supersedes the 2026-07-15 DESIGN DONE/Go-impl-PENDING note (design doc `research/g11_worker_design.md` preserved for history).
 - **Category:** existing-bug / gap
 - **Severity:** high — background auto-growth/validation/review are non-functional; a crash vector exists.
 - **Evidence:** stubs at `internal/worker/runner.go:317-368`; cycles that only log (`runner.go:440-507`). `runRegistryReview` does `coverage["total_skills"].(int)` and `coverage["coverage_percentage"].(string)` (`runner.go:518-519`) — unchecked assertions; if `GetCoverage` returns a differently-typed/absent key the goroutine panics, and worker goroutines have **no `recover()`** (`runner.go:375-434`), so the process dies. (The API `Recovery()` middleware, `middleware.go:254-276`, does not cover worker goroutines.)
@@ -170,7 +184,7 @@ flow from this.
 - **Test coverage:** unit (per-language extraction incl. kotlin), integration (parse a real Android/Kotlin repo → real symbols), fuzz (malformed source doesn't crash), mutation (remove a grammar → extraction test fails). **Challenges:** yes.
 
 ### G13 — Two rival `docker-compose.yml` files (rival-copy risk)
-- **STATUS (2026-07-15):** DESIGN DONE for the whole ops bundle **G13/G17/G22/G23/G24** + spot-verified vs `255061b` (`config.go:177 Password:"secret"`, `config/config.toml:35 password="secret"`) → `research/ops_hardening_design.md` (35 tests, 7 §1.1 mutations). Decisions: G13 canonicalize on `deploy/` via compose `profiles:` (no silent drop §11.4.122/§11.4.124); G17 remove `"secret"` default + fail-closed on empty/sentinel password (§11.4.10/§11.4.201) + enum-validate provider/sandbox/level/transport; G22 `x/time/rate` token-bucket + wire `MaxBodySize` + capture Brotli errors on the LIVE `buildRouter`; G23 `embed.FS` migrations + fail-CLOSED before bind; G24 keep `/health` open + gate `/metrics`+`/version` + fix the openapi 401 divergence. Ops doc corrected a stale register note (live `buildRouter` registers `/health` open + NO `/metrics`/`/version`, contra the pre-G01 `main.go:151` note). Go impl PENDING.
+- **STATUS (2026-07-16):** `Completed (→ Fixed.md)` — `9b85df2`. Compose canonicalization onto `deploy/` with app+monitoring profiles landed, closing G13's own scope (the sibling G17/G22/G23/G24 decisions recorded in this same design pass are tracked under their own ids, see below); design doc `research/ops_hardening_design.md` preserved for history.
 - **Category:** ops
 - **Severity:** high — P12.T4 explicitly requires one canonical compose; two exist now.
 - **Evidence:** `project/docker-compose.yml` (9198 bytes) **and** `project/deploy/docker-compose.yml` (3332 bytes) both present. `IMPLEMENTATION_PLAN.md:258` (P12.T4) calls for exactly one; the scripts/systemd unit must reference a single file.
@@ -205,6 +219,7 @@ flow from this.
 - **Why it matters:** the isolation story is inconsistent and the Docker path is subtly broken for the Go case.
 - **DECISION:** Rename/replace per G02; if Docker is the isolation boundary, mount code at a distinct path (e.g. `/work:ro`) and drop the conflicting tmpfs, or pass code via stdin. **Alternatives rejected:** leaving the dual `/tmp` mount — non-deterministic behaviour.
 - **Test coverage:** integration (Docker path runs the mounted file), unit (mount args well-formed), mutation (reintroduce dual /tmp → test fails).
+- **STATUS (2026-07-16):** `Fixed (→ Fixed.md)` — `2befa77`. Same commit as G02 — host code-execution DELETED BY CONSTRUCTION (removes the Go `go run`/dual-`/tmp`-mount problem by deleting the executable path entirely, not by fixing the mount).
 
 ### G17 — Weak/committed default DB password; config validation misses provider/sandbox enums
 - **Category:** weakness / security
@@ -213,6 +228,7 @@ flow from this.
 - **Why it matters:** weak default invites deployment as-is; unvalidated enums produce confusing runtime errors.
 - **DECISION:** Require the DB password via env with **no** working default (fail-closed if unset in non-dev); validate all closed-set config fields in `validate()`. `deploy/.env` is correctly git-ignored (`.gitignore:21`) and untracked — keep it so. **Alternatives rejected:** documented default password — a standing credential-hygiene risk (§11.4.10).
 - **Test coverage:** unit (invalid provider/sandbox/level rejected; empty password rejected in prod mode), security (no secret in tracked files — pre-commit grep), mutation (add an invalid enum → validate fails).
+- **STATUS (2026-07-15):** DESIGN DONE → `research/ops_hardening_design.md`; impl PENDING.
 
 ### G18 — CORS allowlist unreachable on the live path; SPEC config sample omits `allowed_origins`
 - **Category:** weakness / spec-drift
@@ -247,6 +263,7 @@ flow from this.
 - **Why it matters:** "source verification" (stage 1 of the zero-bluff pipeline) can be satisfied by any reachable URL; a moved/altered doc without a stored hash passes; skill-controlled URLs enable SSRF.
 - **DECISION:** Require a stored hash for `official-doc`/`code` resources, treat fetch/read errors as verification failures (not pass), and add an egress allowlist / block link-local + metadata IPs (SSRF guard). **Alternatives rejected:** HEAD-only reachability as sufficient — it proves nothing about content (R11).
 - **Test coverage:** unit (dead URL fails, mismatched hash fails, fetch error fails-closed), security (SSRF to 169.254.169.254 blocked), integration, mutation (flip fail-open back → test fails). **Challenges:** yes.
+- **STATUS (2026-07-16):** `Fixed (→ Fixed.md)` — `2befa77`. SSRF egress guard now blocks the full private/reserved space (RFC1918/ULA/link-local/metadata) + `additionalBlockedRanges`, re-screened on every dial via `net.Dialer.Control`.
 
 ### G22 — No rate limiting / auth on the live server; body limit only; Brotli flush errors ignored
 - **Category:** weakness / performance
@@ -255,6 +272,7 @@ flow from this.
 - **Why it matters:** unauthenticated + unthrottled + code-executing endpoints (post-G03 wiring) are a DoS/abuse surface; silent truncation corrupts responses.
 - **DECISION:** Add token-bucket rate limiting + the 100MB body cap to the unified server (G01); handle Brotli errors (abort the response on failure). **Alternatives rejected:** relying on an upstream proxy for limits — the app must be safe standalone per the deploy model (systemctl --user, R15).
 - **Test coverage:** load (429 over-limit), integration (413 over-size), unit (Brotli error handled), security, regression.
+- **STATUS (2026-07-16):** `Fixed (→ Fixed.md)` — `e81a493`. Rate-limit + body-cap + Brotli-error hardening landed.
 
 ### G23 — Migrations loaded from a cwd-relative path; failure only warns and the server continues
 - **Category:** ops
@@ -263,6 +281,7 @@ flow from this.
 - **Why it matters:** silent boot on a broken schema is a §11.4.108 runtime hazard; running from a different directory skips migrations entirely.
 - **DECISION:** Resolve the migrations dir from config/embed (`embed.FS`), and **fail-fast** (exit non-zero) if migrations don't apply. **Alternatives rejected:** warn-and-continue — hides a fatal state.
 - **Test coverage:** integration (missing migrations dir ⇒ startup fails), smoke (`migrate up` on fresh pgvector DB, `\d+` verified), regression.
+- **STATUS (2026-07-16):** `Fixed (→ Fixed.md)` — `ffada37`. `embed.FS` migrations + fail-closed startup landed.
 
 ---
 
@@ -275,6 +294,7 @@ flow from this.
 - **Impact:** minor info-leak (internal metrics, versions) to anonymous callers.
 - **DECISION:** Keep `/health` open (liveness), but gate `/metrics` behind auth or bind it to a private interface; align `/version` with the contract. **Alternatives rejected:** authing `/health` — breaks orchestrator probes.
 - **Test coverage:** security (anonymous `/metrics` denied where required), contract, regression.
+- **STATUS (2026-07-16):** `Fixed (→ Fixed.md)` — `7e70754`. `/health`/`/metrics`/`/version` hardening + OpenAPI reconciliation landed (current HEAD).
 
 ### G25 — `RemoveDependency` ignores name-lookup errors → audit log with empty names
 - **Category:** weakness
@@ -283,7 +303,7 @@ flow from this.
 - **Impact:** degraded audit fidelity (R11 evidence trail).
 - **DECISION:** Capture names best-effort but record the not-found condition explicitly in the audit detail. **Alternatives rejected:** ignoring silently — weakens the audit trail.
 - **Test coverage:** unit (audit detail records missing name), regression.
-- **STATUS (2026-07-15):** DESIGN DONE + verified vs `255061b` (`internal/skill/graph.go:99 RemoveDependency`, `:103-104` both `_ = tx.QueryRow(...).Scan(...)` discard errors; `graph_test.go` has ZERO `RemoveDependency` coverage) → `research/g18_g25_g26_correctness_bundle.md`. Decision = extract a pure `buildRemovalAuditDetail` helper (unit-testable not-found path, mirrors the file's `collectDepNames` idiom) + 1 `t.Skip`-marked live-DB integration test. 4 tests + 1 mutation. Go impl PENDING.
+- **STATUS (2026-07-16):** `Fixed (→ Fixed.md)` — `67ce4d6`. `buildRemovalAuditDetail` helper landed — audit-log empty-name-on-lookup-error fixed; supersedes the 2026-07-15 DESIGN DONE/Go-impl-PENDING note (design doc `research/g18_g25_g26_correctness_bundle.md` preserved for history).
 
 ### G26 — `${VAR:-default}` cannot resolve to an intentionally-empty value; provider/model env-substitution edge cases
 - **Category:** weakness
@@ -292,7 +312,7 @@ flow from this.
 - **Impact:** surprising config behaviour for empty overrides.
 - **DECISION:** Distinguish "unset" (`os.LookupEnv`) from "empty" so an explicit empty override is honoured. **Alternatives rejected:** documenting the quirk — still astonishing.
 - **Test coverage:** unit (empty-override honoured; unset uses default), regression.
-- **STATUS (2026-07-15):** DESIGN DONE + verified vs `255061b` (`internal/config/config.go:361` `os.Getenv(envKey); v != ""` in `interpolate` — cannot distinguish unset from explicitly-empty) → `research/g18_g25_g26_correctness_bundle.md`. Decision = switch to `os.LookupEnv`; all 6 unset/empty/value×default combos enumerated (no regression to the 4 covered cases). 3 tests + 1 mutation. Go impl PENDING.
+- **STATUS (2026-07-16):** `Fixed (→ Fixed.md)` — `fb94352`. `os.Getenv`→`os.LookupEnv` switch landed — explicit-empty override now honored; supersedes the 2026-07-15 DESIGN DONE note (design doc `research/g18_g25_g26_correctness_bundle.md` preserved for history).
 
 ### G27 — `sanitizeTableName` silently strips instead of rejecting; `EmbedAsync` result-channel semantics
 - **Category:** weakness
@@ -301,6 +321,7 @@ flow from this.
 - **Impact:** latent foot-gun if table names ever become user-influenced.
 - **DECISION:** Reject invalid table names outright (return error) and keep the caller set to a fixed allowlist enum. **Alternatives rejected:** silent stripping — masks programmer error.
 - **Test coverage:** unit (invalid table name rejected), security, regression.
+- **STATUS (2026-07-16):** `Fixed (→ Fixed.md)` — `e48b5a4`. `sanitizeTableName` replaced with `validateTableName` (reject, not strip).
 
 ### G28 — Anthropic Messages API as a first-class `LLMClient` provider (R19); `NewLLMClientFromConfig` factory absent
 - **Category:** feature / gap (R19 — operator mandate 2026-07-15)
@@ -309,7 +330,7 @@ flow from this.
 - **Why it matters:** R19 (operator mandate) requires Anthropic's Messages API as a first-class provider for the G05 jury + G20 auto-growth; without the factory + an `AnthropicLLM`, "supports Anthropic" is unmet.
 - **DECISION:** add an `AnthropicLLM` (thin `net/http`, `POST {base}/v1/messages`, `x-api-key` + `anthropic-version: 2023-06-01`, NO temperature/top_p/top_k — newer Claude models 400 on non-default sampling; a policy refusal ⇒ error, never `("",nil)`) implementing `LLMClient`; add `NewLLMClientFromConfig(cfg,logger)` dispatching `openai|anthropic|local|helixllm` (fail-closed on unknown), mirroring `NewEmbedderFromConfig` (`internal/db/embedding.go:293`). Thin client, NOT the `anthropic-sdk-go` submodule (§11.4.28 house-style; avoids a G14-class dep escalation). **Alternatives rejected:** vendoring the full SDK for one endpoint; a verbatim `*OpenAILLM` port (would 400 on sampling params). Embeddings: Anthropic has NO first-party embeddings (§11.4.99-verified live) — stays on G10's provider set; `"anthropic"` is never an `EmbeddingConfig.Provider`.
 - **Test coverage:** 13 — 9 unit (factory dispatch ×4, header/request mapping incl. no-sampling-params, response parse, non-2xx error map, refusal handling), 2 integration (live `Generate` behind `integration` tag + SKIP-without-`ANTHROPIC_API_KEY`; `Pipeline.Run` via Anthropic asserts no placeholder), 2 paired §1.1 mutations. **Challenges:** yes.
-- **STATUS (2026-07-15):** DESIGN DONE + all file:line claims verified vs `255061b` → `research/r19_anthropic_api_support_design.md`. Depends on G20's `DraftSkill` fix landing first (removes the concrete assertion). Go impl PENDING. **OPEN operator sub-decision (§11.4.66, non-blocking):** whether to ALSO expose an Anthropic-Messages-*shaped* server surface for R4 interop — R19's recommendation is NO (R4 already solved via MCP for every named CLI agent); recorded, deferred-safe default = do not build the redundant surface now (§11.4.101).
+- **STATUS (2026-07-16):** `Implemented (→ Fixed.md)` — `f083328`. Anthropic Messages API `LLMClient` provider + `NewLLMClientFromConfig` factory landed — closes G28's own scope (provider + factory); wiring into autoexpand/G03 is explicitly separate and NOT claimed done by this flip (supersedes the 2026-07-15 DESIGN DONE/Go-impl-PENDING note; design doc `research/r19_anthropic_api_support_design.md` preserved for history). **OPEN operator sub-decision (§11.4.66, non-blocking):** whether to ALSO expose an Anthropic-Messages-*shaped* server surface for R4 interop — R19's recommendation is NO (R4 already solved via MCP for every named CLI agent); recorded, deferred-safe default = do not build the redundant surface now (§11.4.101).
 
 ### G29 — `Store.Search` advertises "hybrid vector search" but is trigram/ILIKE-only; `Store.VectorSearch` has zero callers
 - **Category:** bug / doc-bluff (§11.4 / §11.4.6)
@@ -336,7 +357,7 @@ flow from this.
 - **Impact:** arbitrary-directory read once G03 wires the analyzer → high.
 - **DECISION:** validate `project_path` BEFORE the walk — canonicalize (`filepath.Abs`+`Clean`, resolve symlinks), enforce a config-driven allowlisted root prefix, reject traversal/absolute-escape, fail-closed. MUST land WITH or BEFORE G03.
 - **Test coverage:** security (traversal `../`, symlink-escape, absolute-outside-root all rejected), unit (in-root accepted), paired mutation (drop validation → traversal test FAILs), regression.
-- **STATUS (2026-07-15):** DISCOVERED → p05 doc. Design + impl PENDING; sequencing dependency on G03.
+- **STATUS (2026-07-16):** `Fixed (→ Fixed.md)` — `cbaf5fb`. Path-traversal/LFI jail on `learn_from_project` `project_path` landed (`cbaf5fb feat(mvp/skill-graph): G31 path-traversal/LFI jail on learn_from_project project_path`, confirmed real — resolves the earlier hash-verification gap; supersedes the 2026-07-15 DISCOVERED note).
 
 ### G32 — `registry.ReviewScheduler` fully built but has zero callers (dead flagship pipeline)
 - **Category:** bug / dead-flagship (§11.4.108 layer-2/3, §11.4.124)
@@ -345,7 +366,7 @@ flow from this.
 - **Impact:** the periodic skill-review / re-validation pipeline (a flagship maintenance mechanism) never runs in production → skills are never re-reviewed; SOURCE-green-but-RUNTIME-dead (§11.4.108).
 - **DECISION (§11.4.124 investigate-before-remove):** git-history investigate whether it was wired-then-regressed vs never-completed; then WIRE it (start from `cmd/worker` under the single-owner advisory lock) + add the missing wiring tests — NOT remove (required functionality, not obsolescence).
 - **Test coverage:** integration (scheduler runs a review cycle on a real DB), unit (cadence), paired mutation, regression + a §11.4.108 runtime-signature (scheduler tick observable on a clean deploy).
-- **STATUS (2026-07-15):** DISCOVERED → p05 doc. Investigate + wire PENDING.
+- **STATUS (2026-07-16):** `Fixed (→ Fixed.md)` — `25516a5`. `registryReviewWorker`→`RunReviewOnce` wire-in landed + age-mark-ordering fix; supersedes the 2026-07-15 DISCOVERED note.
 
 ### G33 — `Store.ExportToTOML` swallows a DB error → empty dependency name in exported skill file
 - **Category:** bug
@@ -354,7 +375,7 @@ flow from this.
 - **Impact:** a git-versioned TOML skill file (R14 source of truth) can be silently written with a blank dep name → corrupt round-trip.
 - **DECISION:** propagate the scan error (fail the export) rather than emit a partial file. **Alternatives rejected:** best-effort partial export (corrupts the R14 SoT silently).
 - **Test coverage:** unit (scan error → export errors, no partial file), regression, paired mutation.
-- **STATUS (2026-07-15):** DISCOVERED → p05 doc. Impl PENDING.
+- **STATUS (2026-07-16):** `Fixed (→ Fixed.md)` — `b8d0e56`. `ExportToTOML` scan-error propagation landed; supersedes the 2026-07-15 DISCOVERED note.
 
 ### G34 — unchecked `rid.(string)` type assertion in request-id middleware
 - **Category:** weakness
@@ -363,7 +384,7 @@ flow from this.
 - **Impact:** a mis-set request-id context value → per-request panic (DoS-ish); today the setter is internal so unreachable, but a latent foot-gun.
 - **DECISION:** comma-ok assertion with a safe fallback (empty/regenerated id); never panic on a context-value shape.
 - **Test coverage:** unit (non-string context value → no panic, fallback id), regression, paired mutation.
-- **STATUS (2026-07-15):** DISCOVERED → p05 doc. Impl PENDING.
+- **STATUS (2026-07-16):** `Fixed (→ Fixed.md)` — `08299e4`. `rid.(string)` comma-ok fix landed; supersedes the 2026-07-15 DISCOVERED note.
 
 ### G35 — CLI + TUI send `Authorization: Bearer` but the server reads `X-API-Key` → both first-party clients 401 the moment G01 auth enforces
 - **Category:** bug / integration regression (latent, §11.4.108)
@@ -372,7 +393,7 @@ flow from this.
 - **Impact:** the two shipped first-party clients cannot authenticate against their own backend the moment auth is enforced (the fix breaks the clients) — a real user-visible break.
 - **DECISION:** unify the auth-header contract — fix both clients to send `X-API-Key` (server-canonical) OR make the server accept both (documented); add a contract test asserting client-sent header == server-read header (§11.4.135 recurrence guard).
 - **Test coverage:** contract (client header == server header), integration (CLI/TUI authenticate against an auth-enforced server), paired mutation (revert a client to Bearer → contract test FAILs), regression.
-- **STATUS (2026-07-15):** DISCOVERED → p05 doc. Fix PENDING; MUST land before any client-vs-auth-server live test (§11.4.130).
+- **STATUS (2026-07-16):** `Fixed (→ Fixed.md)` — `6f334c1`. X-API-Key header unification across all 7 first-party senders landed; supersedes the 2026-07-15 DISCOVERED note.
 
 ### G36 — SSRF blocklist: non-zero `0.0.0.0/8` hosts not explicitly blocked (residual; the dangerous `0.0.0.0` IS caught)
 - **Category:** security (residual)
@@ -381,7 +402,7 @@ flow from this.
 - **Impact:** minimal — the exploitable case (`0.0.0.0`→localhost) is blocked; residual is defense-in-depth completeness.
 - **DECISION:** add `0.0.0.0/8` to `additionalBlockedRanges` for completeness (never a legitimate egress target); low priority.
 - **Test coverage:** unit (`0.0.0.x` rejected), paired mutation, regression.
-- **STATUS (2026-07-15):** TRACKED (G02 Fable review residual, proven non-live-reachable). Impl PENDING (low).
+- **STATUS (2026-07-16):** `Fixed (→ Fixed.md)` — `912cfb7`. `0.0.0.0/8` added to the SSRF blocklist; supersedes the 2026-07-15 TRACKED note.
 
 ### G37 — Import-skills path honors client status on the proven-DEAD `api.Server` router (O3 consolidation)
 - **Category:** weakness (latent / dead-path, §11.4.108)
@@ -399,7 +420,7 @@ flow from this.
 - **Impact:** future operator prompts are not auto-captured → relies on manual/reconstruction append (the exact loss risk R24 targets).
 - **DECISION:** wire a `UserPromptSubmit`-class hook (or equivalent) that appends a newest-first row per new prompt with deterministic Track/alias derivation (§11.4.182) + honest `?`/UNKNOWN; project-local, decoupled (§11.4.28/§11.4.177).
 - **Test coverage:** hook test (a simulated prompt appends exactly one correctly-shaped row), paired mutation (hook stripped → gate FAILs), regression.
-- **STATUS (2026-07-15):** FILED (R24 / §11.4.208(D)). Wiring PENDING — honestly recorded in the ledger's boundary note, never claimed as automatic.
+- **STATUS (2026-07-16):** `Completed (→ Fixed.md)` — `0438d7e`. UserPromptSubmit hook wired (`.claude/settings.json` + `scripts/append_request_history.sh`, selftest 7/7) — same commit cited for `G41`; supersedes the 2026-07-15 FILED/Wiring-PENDING note. Residual: UNKNOWN: the captured rows' Model+effort field cannot be observed from the `UserPromptSubmit` event alone — tracked as a known limitation, not re-opened as a separate item.
 
 ## Constitutional-compliance violations (R23 audit, 2026-07-15) — G39–G49
 
@@ -424,7 +445,7 @@ PASS (real run).
 - **G39 (HIGH, §11.4.161/§11.4.76/§11.4.173):** `project/Makefile:36`
   `CONTAINER_RUNTIME ?= docker` (rootful default) — MUST default rootless (podman).
   One-line fix; lands in the ops lane (project/ owned by the P1.T1 mutator now). Test:
-  Makefile-default assertion + paired mutation. **STATUS:** FILED; verify+fix PENDING.
+  Makefile-default assertion + paired mutation. **STATUS:** `Completed (→ Fixed.md)` — `b597623`.
 - **G40 (HIGH, §11.4.93/§11.4.95):** no SQLite `workable_items.db` single-source-of-truth;
   39 findings tracked in this markdown register instead. The constitution's own Go
   workable-items engine (`constitution/scripts/workable-items/`) exists + is unused →
@@ -432,7 +453,7 @@ PASS (real run).
   evidence-backed; migration is additive, low-risk).
 - **G41 (HIGH, §11.4.109):** `.claude/settings.local.json` wires ZERO hooks — the
   `guard-forbidden-commands.sh` PreToolUse guard (+ §11.4.182/§11.4.191 guards) not
-  installed. **STATUS:** FILED; wire PENDING.
+  installed. **STATUS:** `Completed (→ Fixed.md)` — `0438d7e`.
 - **G42 (HIGH, §11.4.27/§11.4.52/§11.4.85/§11.4.169):** only ~10 unit-ish tests; no
   stress/chaos/e2e/security-suite/Challenges/HelixQA coverage yet (expands G04). Lands
   per-package as the Go spine proceeds. **STATUS:** FILED; PENDING (phased with impl).
@@ -445,15 +466,18 @@ PASS (real run).
 - **G45 (MED, §11.4.15/§11.4.16/§11.4.34):** status/type/reopens closed-vocabulary not
   applied to the G0x findings. **STATUS:** FILED (couples with G40 DB adoption).
 - **G46 (LOW, §11.4.18):** shell scripts under `project/scripts/` lack the companion
-  `docs/scripts/<name>.md`. **STATUS:** FILED.
+  `docs/scripts/<name>.md`. **STATUS:** `Completed (→ Fixed.md)` — `97ce030`.
 - **G47 (MED, §11.4.54 — OPERATOR-DECISION):** project uses G0x/R0x/P0x ids
   cross-referenced across 20+ docs, not ATM-NNN; a destructive rename is riskier than
   (a) documenting G0x as an approved alias OR (b) minting parallel ATM-NNN without
   renaming. Surface via §11.4.66. **STATUS:** FILED; operator-decision PENDING.
-- **G48 (LOW, §11.4.57):** README lacks the `Tracked-Items` doc-link section. **STATUS:** FILED.
+  2026-07-16 session: Gxx-literal adopted as the working default for this round's
+  item filing (conductor decision, §11.4.101); durable closure still awaits explicit
+  operator confirmation this is permanent.
+- **G48 (LOW, §11.4.57):** README lacks the `Tracked-Items` doc-link section. **STATUS:** `Completed (→ Fixed.md)` — `74a88d1`.
 - **G49 (LOW, §11.4.157):** no `QWEN.md`/`GEMINI.md` mirrors of the project
   CLAUDE.md/AGENTS.md (would themselves be thin `@import` pointers per the consumer
-  model). **STATUS:** FILED.
+  model). **STATUS:** `Completed (→ Fixed.md)` — `4b5e78a`.
 
 The **R23 full re-run at project completion** (every anchor re-audited to zero real
 violations, CM-gates + a §11.4.32 project sweep wired) is the terminal compliance gate.
@@ -470,7 +494,15 @@ violations, CM-gates + a §11.4.32 project sweep wired) is the terminal complian
   by the `migrate.md` doc-review lane (post-R23; the doc at
   `project/docs/scripts/migrate.md` describes this behaviour and cites this id).
   (Next free id: G50 is SUPERSEDED per register line ~410, so this is G51.)
-  **STATUS:** FILED.
+  **STATUS:** `Fixed (→ Fixed.md)` — `0fee489`.
+
+- **G52 (Bug; first-time filing directly as Fixed — not previously in this register):** Health-probe repoint `/api/v1/health`→`/health` (TUI + CLI) + `ARCHITECTURE.md` doc-drift closed inline. **STATUS:** `Fixed (→ Fixed.md)` — `7b9f40a`.
+- **G53 (Bug; first-time filing directly as Fixed — not previously in this register):** `WaitForVectorIndexReady` catalog-query correction + hardened error handling. **STATUS:** `Fixed (→ Fixed.md)` — `707185a`.
+- **G54 (Task; severity not independently assessed — see Summary counts note near the top of this file):** `internal/validation/pipeline.go` carries pre-existing `gofmt` drift (~lines 66-76), unrelated to any `G36` change; own isolated commit required. Distinct from `G62` (the 18-file standalone `gofmt` hygiene item — originally sampled as the `internal/db` trio, since re-scoped project-wide; see its own bullet below) — sibling hygiene items, not duplicates. **Reconciliation note (2026-07-16, added per `G62`'s rescoping):** this file is also expected to be resolved incidentally when the pending `G29` hybrid-search landing rewrites `internal/validation/pipeline.go`; if `G29` lands first without reintroducing the drift, this item closes as a side effect — otherwise it remains its own isolated-commit fix. **STATUS:** Queued.
+- **G55 (Bug; severity not independently assessed — see Summary counts note near the top of this file):** Phantom OpenAPI/doc-listed routes beyond the `G52`-fixed `/api/v1/health` (e.g. `/api/v1/graph`, `/skills/:id/{evidence,validate}`) are documented/listed but unimplemented — a `G09`-class contract-drift instance. Composes with `G09` (pervasive OpenAPI↔implementation drift, already tracked above). **STATUS:** Queued.
+- **G56 (Bug; severity not independently assessed — see Summary counts note near the top of this file):** `docker-compose` app-profile deployment contract is broken: double `ENTRYPOINT`/`command` argv-stacking defeats `--config`; the worker container re-runs the server binary; compose passes nonexistent `--db-*` flags; `config.toml`'s `host="db"` is a dangling retired service name; `INSTALL.md`'s example keys don't match the real struct. Composes with `G13` (landed, `9b85df2`) — explicitly pre-existing, NOT a `G13` regression. **STATUS:** Queued.
+- **G57 (Bug — un-wired flagship, §11.4.108/§11.4.124; newly minted this session, no prior id existed):** `internal/mcp.ACPAdapter` — the `--mcp acp` stdio transport was unwired; fixed by wiring the transport in + an idempotent-`Stop` fix. The ledger only ever referred to this as "NEW-2" before this session; this is its first-time filing. **STATUS:** `Fixed (→ Fixed.md)` — `8fa4e27`.
+- **G58 (Bug; newly minted this session, no prior id existed):** Migration `003` `pg_trgm` extension + restore of `Store.Search` on a genuinely clean deploy. Distinct defect from `G29`'s hybrid-vector-wiring finding, though it touches the same function — kept as its own id per §11.4.186 anti-divergence (`composes_with: ["G29"]`). **STATUS:** `Fixed (→ Fixed.md)` — `68e7d2f`.
 
 ---
 
@@ -501,3 +533,178 @@ violations, CM-gates + a §11.4.32 project sweep wired) is the terminal complian
 that was read during this audit; the two UNCONFIRMED sub-points (MCP
 `ImportFromTOML` edge fidelity in G07) are labelled as such and require a read of
 `internal/skill/import_export.go` to close.*
+
+---
+
+## Session-discovered + planned items (2026-07-16)
+
+> All items in this section: `created_by=Claude`, `assigned_to=''`,
+> external-tracker-push=SKIP(`tracker_client_absent` — no
+> `.helix/reporting.yaml`-equivalent reporting config exists in this
+> project, §11.4.202(4)/§11.4.10).
+
+### New findings this round (G59–G68)
+
+- **G59 (Bug):** `Store.Create`/`Store.Update` never write `skills.embedding`; the DB-layer embed function — confirmed as `db.StoreSkillEmbedding` (see FACT below; `db.StoreEmbedding` was only ever a doc-comment misnaming, never a second symbol) — and `EmbedAsync` have zero non-test callers, so post-`G29` hybrid search degrades to keyword/trigram-only in practice. Composes with `G29` (open, NO-GO) and `G10` (embedding-dimension registry — distinct concern: dimension vs population). `G111` (ingestion CREATE/EXTEND stage, below) should land AFTER this fix, or explicitly document that newly-ingested skills inherit the same NULL-embedding gap until `G59` closes. **This item IS the tracked coverage for "embedding ingestion not yet wired":** `StoreSkillEmbedding` being dead/unwired code means the ingestion-time embedding-write path is absent by construction, so any codebase comment or downstream note citing embedding-ingestion as "tracked separately" refers to this id (`G59`) — no separate item is needed.
+  - **FACT (2026-07-16, source-confirmed):** the real exported symbol is `StoreSkillEmbedding` (package `db`, `func StoreSkillEmbedding(ctx, pool *Pool, skillID uuid.UUID, embedding pgvector.Vector) error`) at `internal/db/vector.go:180`; its doc comment at `vector.go:179` misnames it "StoreEmbedding" (comment bug, not a second symbol). It has ZERO call sites project-wide → dead/unwired (§11.4.124). Sibling `StoreEvidenceEmbedding` (`vector.go:194`) is also unwired.
+  - **STATUS:** Queued.
+- **G60 (Bug):** `internal/validation/pipeline.go`'s existence/conflict oracle uses ranked `Search(name,1)` instead of exact `Store.GetByName` — latent until `G59` (embedding population) lands AND `G29` fully lands, at which point a vector-rank-0 result can outrank an exact-name trigram hit and produce a spurious "not found"/missed-conflict verdict. Composes with `G29`; sequenced to land WITH or AFTER `G59`. **STATUS:** Queued.
+- **G61 (Task):** Two divergent `/health` implementations exist — the live inline handler in `cmd/server/main.go` vs the dead `internal/api.handleHealth` — with differing response body schemas; ties into the still-open `G01`-O3 dead-`api.Server`-consolidation and the `G09` OpenAPI↔implementation-drift finding. `G52` (landed) already fixed the CLIENT-side probe target; this item is the SERVER-side two-implementation problem, still open. Composes with `G01` (O3 sub-scope), `G09`, and `G96` (below — `skill_ingestion_research`'s router-consolidation proposal; UNCONFIRMED: covers the same root cause, pending the conductor reconciliation this bullet's own next sentence flags). **The conductor must resolve `G61`/`G96`/`G01`-O3 as ONE piece of work, not three independent fixes (§11.4.186 anti-divergence) — this merge/split boundary is an open question, not decided here.** **STATUS:** Queued.
+- **G62 (Task):** Re-scoped 2026-07-16 (VERIFIED via a full `gofmt -l` re-run, not the original 3-file sample): **20 files** project-wide carry pre-existing `gofmt` drift — `cmd/cli/commands/{expand,learn,registry}.go`, `cmd/tui/{browse,main,model,registry}.go`, `cmd/worker/main.go`, `internal/api/{expand_handler,http3,learn_handler,registry_handler,search_handler}.go`, `internal/autoexpand/pipeline.go`, `internal/db/{audit,embedding,postgres}.go`, `internal/models/skill.go`, `internal/registry/registry.go`, `internal/validation/pipeline.go` (all confirmed byte-untouched by the G23 review). Of these, `internal/db/embedding.go` and `internal/validation/pipeline.go` are expected to be resolved incidentally when the pending `G29` hybrid-search landing rewrites both files — tracked there (and in `G54` for `pipeline.go`), not duplicated here. **`G62`'s own fix scope is the remaining 18 standalone-hygiene files** (the 20 above minus `embedding.go` and `internal/validation/pipeline.go`): formatting-only fix, own isolated commit, `gofmt -w` + `gofmt -l` empty-after proof + `go build/vet/test -race` unchanged-behaviour proof. Distinct from `G54` (the `pipeline.go` gofmt item above) — sibling, not duplicate. **STATUS:** Queued.
+- **G63 (Bug):** A 4th divergent route-contract surface exists (≠ live server ≠ dead `internal/api.Server` ≠ OpenAPI): the `registry` CLI/TUI command group is 100% unreachable; the TUI health indicator is permanently disconnected; live handlers ignore query parameters. Composes with `G01`, `G09`, `G61`, `G96` — same route-contract problem-space; UNCONFIRMED: whether the operator-blocked decisions here gate how `G61`/`G96` get resolved too (not yet determined).
+  - **Operator-Block-Details:**
+    - **WHAT:** 5 product/ownership decisions (D1-D5) must be made before this item is implementable: D1 — whether the `registry` CLI/TUI command group is kept, rewired, or removed; D2 — which of the 4 divergent route-contract surfaces (live server / dead `internal/api.Server` / OpenAPI / `registry` group) becomes canonical; D3 — whether the TUI health indicator is reconnected to the live health endpoint or removed; D4 — whether live handlers should start honoring the query parameters they currently ignore, and which semantics; D5 — how this item's resolution sequences against `G61`/`G96`/`G01`-O3 (one merged work item vs three).
+    - **WHY (self-resolution exhausted per §11.4.21):** (a) no CLI/ADB/SSH/API access gap — the code is fully readable, this is a product-scope decision not an access problem; (b) subagent delegation cannot substitute for an operator product decision; (c) existing repo tooling has no canonical-router config to consult; (d) no synthetic/mocked fallback resolves an ownership decision; (e) external research (§11.4.8) was performed for the surrounding technical patterns but cannot substitute for the operator's product intent.
+    - **UNBLOCK CONDITION:** operator supplies explicit D1-D5 decisions (or delegates them to the conductor with an explicit scope).
+    - **WHO:** operator (product/architecture owner).
+  - **Design reference:** `scratchpad/new1_route_contract_design.md` (agent-local scratch path, cited by the source draft). **§11.4.197 follow-up:** this design doc is NOT yet relocated into the project's `research/` tree — it must be moved from scratchpad into an in-repo `research/` location (or re-derived if the scratchpad copy is unavailable) before the full route-contract decision can be finalized and closed; tracked here as an open follow-up, not resolved by this edit.
+  - **STATUS:** Operator-blocked.
+- **G64 (Bug):** `scripts/migrate.sh:179-183` (the `else` branch) deletes the `schema_migrations` row on `down` even when there is no matching `.down.sql` file, producing a tracked-version desync. Composes with landed `G51` (`0fee489`, same file, different code path — `G51` fixed missing `-v ON_ERROR_STOP=on` + stderr-discard; this is the unconditional-delete-on-down bug, not yet fixed). **STATUS:** Queued.
+- **G65 (Bug):** `scripts/stop.sh` only supports `--quiet`/`-q`/`-h`; `--compose` hits "unknown arg" (exit 2); `restore.sh:292`'s `2>/dev/null||true` swallows that failure so the pre-restore stop is silently skipped. Composes with landed `G13` (`9b85df2`, ops-script family `G13` touched). **STATUS:** Queued.
+- **G66 (Bug):** Seed corpus is missing 3 prerequisite TOMLs; 4 of 8 seed files fail-closed on a clean import. No Gxx was ever assigned to this finding prior to this session. Affects the `seed/` corpus; independent of the ingestion epics below but touches the same import path they will exercise (`G70`/`G80`-style `Store.Import*` methods) — verify seed-corpus fixes land before `G88`'s real `anthropics/skills` e2e test, to avoid conflating a pre-existing seed-corpus gap with a new-feature regression. **STATUS:** Queued.
+- **G67 (Task):** `project/qa-results/` is not fully gitignored today (only `*.log` is ignored); a genuine policy conflict exists between gitignore-whole-dir (§11.4.30 .gitignore mandate) and curate-only-at-release-prep (§11.4.83 curated QA evidence must stay committed) — a real conflict needing an explicit operator decision, not a mechanical fix. No downstream code dependency; can resolve independently at any time.
+  - **Operator-Block-Details:**
+    - **WHAT:** decide the `project/qa-results/` tracking policy — either (a) gitignore the whole directory (satisfies §11.4.30 hygiene, but risks losing curated QA evidence that §11.4.83 requires to stay committed), or (b) keep it tracked but curate-only-at-release-prep (satisfies §11.4.83, but requires disciplined pruning of raw/uncurated output to avoid §11.4.30 violations), or (c) some hybrid (e.g. gitignore raw subpaths, track only a `curated/` subdirectory).
+    - **WHY (self-resolution exhausted per §11.4.21):** this is a direct conflict between two constitutional mandates (§11.4.30 vs §11.4.83) applied to the same directory; neither mandate subordinates the other, so the choice of resolution shape is a policy decision, not a technical one self-resolvable by the agent.
+    - **UNBLOCK CONDITION:** operator picks the policy (whole-dir-gitignore / curate-only / hybrid).
+    - **WHO:** operator.
+  - **STATUS:** Operator-blocked.
+- **G68 (Bug — Queued, VERIFY flag):** `RemoveDependency`'s coarse delete (removes ALL typed edges for a skill pair) should become relation-type-aware. `G25` (landed `67ce4d6`) fixed a DIFFERENT defect on the same function (audit-log empty-name-on-lookup-error) — this "coarse delete" facet was NOT stated as closed by `G25`'s own write-up, but was also **not independently re-diffed against current `graph.go` in this session** (§11.4.6 — genuinely unconfirmed, not assumed still-open). Conductor MUST re-check `internal/skill/graph.go`'s current `RemoveDependency` body before filing/closing — do not treat as a fresh open bug if it turns out already addressed as a side effect of `G07`'s `073192f` landing.
+  - **FACT (2026-07-16, source-confirmed):** `RemoveDependency` is DEFINED at `internal/skill/graph.go:125` (`func (s *Store) RemoveDependency(ctx, skillID, dependsOn uuid.UUID) error`) but is UNWIRED — its only caller anywhere is its own test `graph_removedep_g25_test.go:153`; there is NO CLI/REST/MCP/worker call site → dead per §11.4.124. It has audit-detail test coverage but no end-to-end handler/CLI driver. This dead/unwired finding is a SEPARATE confirmed fact — it does NOT resolve the "coarse delete" VERIFY question above, which remains genuinely unconfirmed.
+  - **STATUS:** Queued — VERIFY.
+
+### Planned feature epics (G69–G123)
+
+**G69 — FEAT: GitHub Skills Source Ingestion & Sync**
+
+- **Type:** Feature. **Status:** Queued. **Severity (proposed, carried forward verbatim from the source draft's own stated severity — not independently reassessed here):** high (net-new capability, operator-mandated 2026-07-16).
+- Add GitHub-repository skill-source registration + fetch/parse/import + non-destructive enhancement-delta application + regular re-sync, exposed via CLI + REST + MCP + TUI.
+- Full detail pointers: `gh_skills_research/CATALOG.md` (12-repo research corpus), `gh_skills_research/DESIGN.md` (architecture), `gh_skills_research/WIRING_PLAN.md` (exact file:line wiring), `gh_skills_research/TRACKED_ITEMS.md` (the 23 sub-items below).
+- Depends on `G06`/`G07` (DAG correctness, both landed `186e047`/`073192f`) — confirmed satisfied. `G80` and `G86` (sub-items touching the `internal/skill` package / `internal/mcp/server.go` respectively) MUST serialize behind the in-flight `G29` lane (§11.4.119 single-resource-owner + §11.4.191 work-to-track binding). `G123` (below) must resolve BEFORE `G70`'s migration (`004_skill_sources`) lands, since `G95` (the `G93` umbrella's own schema item) independently claims the SAME migration number.
+
+| Sub-item | Type | Title | Depends on |
+|---|---|---|---|
+| G70 | Task | Migration: `skill_sources` + `skill_source_mappings` + `skills.origin` | G69; conflicts with G95 pending G123 |
+| G71 | Task | Migration: `skill_enhancement_proposals` | G70 |
+| G72 | Task | `SourceSyncConfig` + env overrides + `config.toml` example | G69; overlaps G94 pending G123 |
+| G73 | Task | New `AuditEvent*` constants for skill-source events | G69 |
+| G74 | Feature | `internal/skillsource` package: source registry CRUD | G70; overlaps G97 pending G123 |
+| G75 | Feature | `internal/source/github`: hand-rolled REST fetch client | G74 |
+| G76 | Feature | `internal/source/github`: shallow-clone fallback | G75 |
+| G77 | Feature | `internal/source/skillmd`: SKILL.md parser | G69 |
+| G78 | Feature | `internal/source/mapper`: ParsedSkill → `models.Skill` + license gate | G77 |
+| G79 | Feature | `internal/source/dedup`: NEW/DUPLICATE/VARIANT classifier | G78 |
+| G80 | Feature | `Store.ImportSkillModel` (sibling to `ImportFromTOML`) | G79; serializes behind the G29 lane |
+| G81 | Feature | `internal/source/enhance`: delta extraction + proposal store | G71, G79 |
+| G82 | Feature | `internal/source/sync`: per-source scan orchestrator | G75, G76, G80, G81 |
+| G83 | Task | Worker wiring: `JobTypeSourceRescan` + `sourceRescanWorker` | G82 |
+| G84 | Feature | REST wiring: `cmd/server/skillsource_routes.go` + `buildRouter` | G83 |
+| G85 | Feature | CLI wiring: `cmd/cli/commands/source.go` | G84 |
+| G86 | Feature | MCP wiring: `internal/mcp/source_tools.go` | G84; serializes behind the G29 lane |
+| G87 | Feature | TUI wiring: `cmd/tui/sources.go` (read-only, lowest priority) | G84 |
+| G88 | Task | e2e/full-automation test: real `anthropics/skills` pipeline run | G85, G86, G87 |
+| G89 | Task | Stress + chaos test suite for the ingestion pipeline | G88 |
+| G90 | Task | Vendor Challenges + HelixQA constitution submodules (blocking dependency) | G69 |
+| G91 | Task | HelixQA Challenge bank entry for skill-source ingestion | G89, G90 |
+| G92 | Task | Docs: README/API/CLI reference sync for the new surfaces | G91 |
+
+*All sub-items above (`G70`–`G92`): **Status = Queued**.*
+
+**G93 — FEAT: Unified Multi-Source Skill Ingestion Subsystem**
+
+- **Type:** Feature. **Status:** Queued. **Severity (proposed, carried forward verbatim from the source draft's own stated severity — not independently reassessed here):** high (net-new capability, operator-mandated 2026-07-16).
+- Add a pluggable multi-source skill-ingestion subsystem (filesystem real-time-watch/web/API/PDF/FTP/SMB/WebDAV) with a 7-stage extract→normalize→refine→dedup→create/wire pipeline, exposed via CLI + REST + MCP.
+- Full detail pointers: `skill_ingestion_research/CODEBASE_MAP.md` (integration-point map), `skill_ingestion_research/RESEARCH.md` (library research: `fsnotify`, `goquery`, `go-readability`, `html-to-markdown`, `ledongthuc/pdf`, `kin-openapi`, `jlaffaye/ftp`, `go-smb2`, `gowebdav`), `skill_ingestion_research/DESIGN.md` (architecture, 7 honest boundaries), `skill_ingestion_research/TRACKED_ITEMS.md` (the 25 non-deferred + 4 deferred sub-items below).
+- `G96` (router-duplication fix) — UNCONFIRMED: duplicates `G01`'s O3 sub-scope + `G61` above — conductor resolves as ONE item before any of `G94`-`G122` that assume "one canonical router" (namely `G115`) lands. `G111` (CREATE/EXTEND stage) should soft-serialize behind `G59` (embedding-population fix). Honest gaps already stated BY the source draft itself (never silently resolved here): no production-ready pure-Go NFS client exists (v1 = reuse the filesystem `Source` against an operator-mounted NFS export, `G105`); scanned/image-only PDF OCR has no clean permissively-licensed pure-Go path (`gen2brain/go-fitz` is AGPL-3.0 — an explicit operator license decision, not resolved here); only the filesystem source gets genuine real-time behaviour in v1 (the other four are one-shot bulk + deferred polling, `G119`).
+
+| Sub-item | Type | Title | Depends on |
+|---|---|---|---|
+| G94 | Task | Add `config.IngestionConfig` section | G93; overlaps G72 pending G123 |
+| G95 | Task | Ingestion schema migration (`004_ingestion.up/down.sql`) | G93; migration-number collision with G70, see G123 |
+| G96 | Task | Resolve `internal/api.Server` vs `cmd/server/main.go` router duplication | G93; UNCONFIRMED: duplicates G01-O3 + G61, see G123 |
+| G97 | Feature | `Source` interface + `ItemRef`/`RawItem` types | G93 |
+| G98 | Feature | Filesystem `Source` (bulk one-shot) | G97 |
+| G99 | Feature | HTTP/website `Source` (single URL + bounded in-house crawl) | G97 |
+| G100 | Feature | PDF `Source` (upload-based) | G97 |
+| G101 | Feature | OpenAPI/API-schema `Source` | G97 |
+| G102 | Feature | FTP `Source` | G97 |
+| G103 | Feature | SMB `Source` | G97 |
+| G104 | Feature | WebDAV `Source` | G97 |
+| G105 | Task | NFS honest-gap documentation + mount-based workaround wiring | G98 |
+| G106 | Feature | HTML EXTRACT+NORMALIZE stage | G99 |
+| G107 | Feature | PDF EXTRACT+NORMALIZE stage | G100 |
+| G108 | Feature | OpenAPI EXTRACT+NORMALIZE stage | G101 |
+| G109 | Feature | LLM-REFINE stage (interface-only, provider-agnostic) | G106, G107, G108 |
+| G110 | Feature | DEDUP stage | G109 |
+| G111 | Feature | CREATE/EXTEND + WIRE GRAPH RELATIONS stage | G110; soft-serializes behind G59 |
+| G112 | Feature | Ingestion job orchestration (durable) | G111 |
+| G113 | Feature | Recursive directory watcher (fsnotify + debounce + bounded pool) | G98 |
+| G114 | Task | `worker.JobTypeIngestSource` + real handler | G112 |
+| G115 | Feature | REST `/api/v1/ingest/*` endpoints | G114; assumes G96 resolved |
+| G116 | Feature | CLI `ingest` command group | G115 |
+| G117 | Feature | MCP `skill_ingest_source` tool | G115 |
+| G118 | Task | Full anti-bluff test-suite execution + HelixQA Challenge bank wiring | G116, G117 |
+| G119 | Feature | Periodic polling for FTP/SMB/WebDAV/API sources (deferred) | G102, G103, G104, G101 |
+| G120 | Feature | Deep-research-extend stage activation (deferred) | G109 |
+| G121 | Feature | TUI ingestion pane (deferred) | G115 |
+| G122 | Feature | Source-removal → Skill staleness/deletion policy (deferred) | G118 |
+
+*All sub-items above (`G94`–`G122`): **Status = Queued**.*
+
+**G123 — Architectural-overlap reconciliation (G69 vs G93)**
+
+- **Type:** Task. **Status:** Queued.
+- Reconcile the overlapping schema/config/registry design between `G69` (GitHub-Skills-Ingestion) and `G93` (Unified-Multi-Source-Skill-Ingestion) before either's sub-items land.
+- **Evidence (found independently this session — neither background research stream could see the other's output while running in parallel):**
+  1. **Migration-number collision:** `G70`'s DDL claims `migrations/004_skill_sources.up.sql` as "next free"; `G95`'s DDL independently claims `migrations/004_ingestion.up.sql` as ALSO "next free". Both cannot be `004`.
+  2. **Duplicate registry abstraction:** `G74` proposes a new `internal/skillsource` package with `Store` CRUD for a `skill_sources` table; `G97` proposes a new `internal/ingest/source.Source` interface + its own source-registry concept. Per §11.4.186 anti-divergence this MUST be a single mechanism with adapter plugins, never duplicated per-source-type infrastructure.
+  3. **Duplicate config surface:** `G72` (`SourceSyncConfig`) and `G94` (`IngestionConfig`) both add a new top-level config section covering overlapping concerns (allowlisted roots/hosts, credential env-var naming, poll/scan cadence).
+- **FACT (2026-07-16, source-confirmed) — reframes item 1 above:** NO migration-004 collision currently exists on disk — `migrations/` holds only the `001`/`002`/`003` up/down pairs (git history for `migrations/` = 3 commits only); neither `G70` nor `G95` has actually created a `004_*` file yet, so item 1's "collision" is a PLANNING-time clash between two proposed-but-unimplemented DDL claims, not a present file collision. Separately confirmed a latent robustness gap in the migration runner itself: `discoverMigrationsFS` (`internal/db/migrations.go:200-258`) keys files into `map[int64]string` by numeric prefix and would SILENTLY let a lexicographically-later same-version file overwrite an earlier one with no error, if a real same-number collision were ever introduced — not presently triggered, but a genuine gap in the runner's collision handling. This item is therefore reframed from "a migration-004 collision exists" to "a latent silent-overwrite-on-collision gap in the migration runner, plus a planning-time number clash between `G70` and `G95` that must be resolved before either creates its `004_*` file — no `004` exists yet".
+- **Recommended resolution shape (a proposal for the conductor/operator to confirm, NOT decided here per §11.4.6):** treat `G93`'s `Source` interface (`G97`) as the canonical pluggable-adapter abstraction, and re-scope `G69`'s GitHub-specific sub-items (`G74`-`G92`) to implement ONE concrete `Source` adapter against that interface rather than a parallel `internal/skillsource` registry — collapsing `G70`+`G95` into a single migration, and `G72`+`G94` into a single config section. **This is a genuine architecture decision, not a mechanical fix — do not auto-apply this recommendation without conductor/operator sign-off.**
+- **STATUS:** Queued.
+
+**G124 — FEAT: Auto-generated, always-in-sync Skills-tree documentation catalog (`docs/skills/`)**
+
+- **Type:** Feature. **Status:** Queued. **Created-by:** Operator. **Assigned-to:** Operator.
+- **One-liner:** docs/skills always-in-sync structurally-organized Skills-tree catalog auto-generated from the skill store, exported (md/html/pdf), and auto-synchronized via Docs Chain + hooks + §11.4.86 roster fingerprint.
+- **What:** maintain `docs/skills/` as a complete, structurally-organized (tree: index → category → per-skill detail) catalog of EVERY skill in the System with details + descriptions (name, kind, description, dependencies/6 relation types, resources), GENERATED from the DB/skill store, exported md+html+pdf (§11.4.65), and AUTOMATICALLY kept in sync via §11.4.106 Docs Chain context + §11.4.86 sha256 roster fingerprint + §11.4.109/§11.4.164 hooks, configurable/triggerable via CLI + REST + all clients.
+- **Acceptance:** catalog present + tree-structured + one detail page per skill; regeneration re-armed by any skill add/modify/remove (fingerprint drift); md/html/pdf exports in sync; Docs Chain context registered; hook wires it out-of-the-box; four-layer coverage §11.4.4(b) + self-validated generator §11.4.107(10) + paired §1.1 + real-DB e2e §11.4.27; no bluff.
+- **Composes with:** §11.4.12/.44/.60/.65/.86/.106/.109/.164/.171/.197/.202.
+- **Note:** full research+design is in flight (`scratchpad/docs_skills_catalog_research/`) — this item is filed at intake per §11.4.202; sub-items are decomposed from that design (`TRACKED_ITEMS.md`, filed below as `G125`-`G135`). **§11.4.197 follow-up:** this design doc is NOT yet relocated into the project's `research/` tree — it must be moved from scratchpad into an in-repo `research/` location (or re-derived if the scratchpad copy is unavailable) before this umbrella's design basis is durable; tracked here as an open follow-up, not resolved by this edit (same relocation flag as `G63`).
+- **Source-side advanceable now:** yes (generator design + skill-model mapping). **Build/DB-gated:** the live regeneration proof needs a running DB with seeded skills.
+- **STATUS:** Queued.
+
+| Sub-item | Type | Description (§11.4.171, subject+goal) | Depends on | Source-side now, or build/DB-gated? |
+|---|---|---|---|---|
+| G125 | Task | Build the `skillscatalog` generator: DB → deterministic Markdown tree + sha256 roster fingerprint sidecar (§11.4.86), reusing existing `Store` read methods, with the `EmbedFullContent` config toggle | G124 | Source-side now — needs only the existing Postgres test-DB infra, no Docs Chain |
+| G126 | Task | Wire a `skill-system docs skills-catalog generate\|verify` CLI subcommand onto the existing root command, matching Docs Chain's own `verify` exit-code contract | G125 | Source-side now |
+| G127 | Feature | Add `POST /api/v1/skills/catalog/regenerate` + `GET /api/v1/skills/catalog/status` REST handlers under `internal/api`, alongside the existing `skills_handler.go` surface | G125 | Source-side now (runtime reachability inherits the pre-existing G01 unwired-router status, not newly introduced) |
+| G128 | Feature | Add a read-only `skill_catalog_status` MCP tool alongside `skill_search`/`skill_get`/`skill_tree`/`skill_create`; defer the write-capable `skill_catalog_regenerate` tool until G01's write-tool auth consolidation lands | G125 | Source-side now (the deferred write-tool is explicitly out of this item's scope) |
+| G129 | Task | Add a periodic (default 60s) reconciliation worker job under `internal/worker` calling `skillscatalog.Verify`, and on drift `skillscatalog.Generate` — the out-of-the-box no-operator-action mechanism | G125 | Source-side now |
+| G130 | Task | Wire an immediate-tick signal from every skill-graph write path (`Store.Create`/`CreateFromTOML`/`ImportFromTOML`, `AddDependency`/`RemoveDependency`, and the create/update/delete REST+MCP handlers) into G129's worker queue so a write converges the catalog on the next tick | G125, G129 | Source-side now |
+| G131 | Task | Author `guard-skills-catalog-fresh.sh`, a §11.4.109/§11.4.201-compliant PreToolUse/pre-commit guard asserting the real fingerprint-drift condition, blocking a commit touching skill-model/seed/migration paths while the catalog is stale | G125, G126 | Source-side now |
+| G132 | Task | Register G131's guard hook through the existing §11.4.164 `post_update_hook.sh` auto-propagation seam so a fresh clone/session gets it installed automatically | G131 | Source-side now |
+| G133 | Task | Author `.docs_chain/contexts/skills_catalog.yaml` wiring the generated Markdown tree through Docs Chain's pandoc-html/weasyprint-pdf derive edges, mirroring the already-designed sibling contexts | G125; shared prerequisite tracked as R10/P13.T1/G43/X1, not re-scoped here | **Blocked** — draftable source-side now, but not functionally completable/verifiable until Docs Chain is incorporated (X1/P13.T1 clear) |
+| G134 | Task | Implement the full DESIGN.md §6 anti-bluff proof plan: golden-good fixture, golden-bad fixtures (dangling edge, empty-name check per the G33 lesson), a paired §1.1 mutation, a 3x/10x determinism re-run, and a real-DB end-to-end test | G125 | Source-side now |
+| G135 | Task | Add a HelixQA Challenge bank entry exercising create-skill-then-find-it-in-catalog end-to-end, and update `README.md`'s §11.4.57 Tracked-Items doc-link section to reference `docs/skills/README.md` | G125, G134 | Source-side now |
+
+*All sub-items above (`G125`–`G135`): **Status = Queued**.*
+
+### G136 — Task: Retroactive severity assessment for session-discovered items G52–G124
+
+- **Type:** Task. **Status:** Queued.
+- **One-line description (§11.4.171, ≥6 words, subject+goal):** Assign evidence-based CRITICAL/HIGH/MEDIUM/LOW severity ratings to every session-discovered item `G52` through `G124` — and equally the `G124`-umbrella sub-items `G125`–`G135` plus this item `G136` itself, which inherit the same treatment so that NO session-discovered item is left un-assessed — using the same rubric already applied to `G01`-`G37`, and fold the results into the Summary counts table at the top of this file.
+- **Evidence:** cited by the Summary-counts Note (top of this file) and by `G45`/`G54`/`G55`/`G56` and every other item marked "severity not independently assessed" — this id gives that recurring caveat a single tracked home instead of a bare unattributed clause.
+- **Depends on:** none blocking — can start at any time; individual items' severities should be finalized as each one's own investigation concludes.
+- **STATUS:** Queued.
+
+### Open-questions ledger — per-item resolution state (§11.4.6)
+
+- **§11.4.197 follow-ups #4/#5** — RESOLVED (2026-07-16, source-confirmed), no new item filed:
+  - **#4 (nil-UUID FK edges):** **FACT:** a nil/zero UUID edge CANNOT be silently persisted. `skill_dependencies.skill_id`/`depends_on` are implicitly NOT NULL (PK columns, `migrations/001_initial.up.sql:26-29`, widened `002_granularity.up.sql:36-38`, FK `REFERENCES skills(id)`). `AddDependency` (`internal/skill/graph.go:22-53`) pre-checks both endpoints; `ImportFromTOML` (`internal/skill/import_export.go:112-138`) only inserts name-resolved existing IDs; `Store.Create` (`internal/skill/store.go:397-409`) relies on the FK; `CrossReference` (`internal/validation/pipeline.go:536-538`) hard-errors on `uuid.Nil`; every skill gets `uuid.New()` (`store.go:358-360`) so no nil-ID skill row exists → the FK is an effective backstop. Test `graph_removedep_g25_test.go:136-151` proves the FK must be DROPPED to even construct a dangling edge.
+  - **#5 (ExportToTOML direction):** **FACT:** no mismatch exists. `ImportFromTOML` (`import_export.go:22`) = TOML→DB (writes); `ExportToTOML` (`import_export.go:345`) = DB→TOML (reads via `GetByName`). Round-trip stability was fixed by `G07` (`import_export.go:367-373`), all 6 relation types emitted (`405-443`), proven by tests `g07_roundtrip_test.go` + `g33_export_empty_dep_name_test.go`.
+  - Both follow-ups are CLOSED by this source-confirmation; citing `G07` (`073192f`) as the landing commit for #5's round-trip stability.
+- **`G59` name discrepancy** — RESOLVED (2026-07-16, source-confirmed): the real symbol is `db.StoreSkillEmbedding` (`internal/db/vector.go:180`); `db.StoreEmbedding` was only ever a doc-comment misnaming at `vector.go:179`, never a second symbol. See the FACT line on `G59`'s own bullet above.
+- **`G68` verify status** — the "coarse delete" facet is STILL genuinely unconfirmed against current source (see `G68`'s own `VERIFY` flag above); separately, this session source-confirmed a DIFFERENT fact — `RemoveDependency` is unwired/dead code (§11.4.124) — which does not resolve the coarse-delete question.
+- **`G93`'s own already-declared honest gaps** (no viable pure-Go NFS client; AGPL-licensed OCR path only; non-filesystem sources get no real-time push) are carried forward verbatim from `skill_ingestion_research/DESIGN.md`/`RESEARCH.md` — not independently re-verified this session, not re-litigated.
+- **`G73`/`G90`** (Challenges + HelixQA submodule vendoring) is flagged in its own source draft as a blocking dependency for `G91` — this plan preserves that blocking relationship but does not independently verify whether the two submodules are already vendored elsewhere in this project.
