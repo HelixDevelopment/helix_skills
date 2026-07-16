@@ -83,6 +83,19 @@ func (e *OpenAIEmbedder) Embed(ctx context.Context, texts []string) ([][]float32
 		Model: e.model,
 		Input: texts,
 	}
+	// e.dimensions > 0 is a construction invariant for every embedder built
+	// via the sole production factory, NewEmbedderFromConfig (Fable round-2
+	// finding F4) -- this branch is never false on that path. It remains
+	// here (rather than being made unconditional) only because
+	// openAIEmbedRequest.Dimensions carries a `json:"dimensions,omitempty"`
+	// tag: an unconditional `reqBody.Dimensions = e.dimensions` already
+	// produces an IDENTICAL request body for e.dimensions == 0 (omitempty
+	// drops the zero value), so this guard's sole remaining, intentional
+	// effect is defending a directly-constructed OpenAIEmbedder (bypassing
+	// the factory -- e.g. a test) with a negative e.dimensions from leaking
+	// that negative value onto the wire; omitempty alone would not catch
+	// that case. Any e.dimensions <= 0 still fails every real call below at
+	// the unconditional response-length guard, loudly and fail-closed.
 	if e.dimensions > 0 {
 		reqBody.Dimensions = e.dimensions
 	}
@@ -130,6 +143,26 @@ func (e *OpenAIEmbedder) Embed(ctx context.Context, texts []string) ([][]float32
 	for _, d := range result.Data {
 		if d.Index < 0 || d.Index >= len(texts) {
 			return nil, fmt.Errorf("OpenAI returned invalid embedding index %d", d.Index)
+		}
+		// G10 per-embed response-length guard (research/g10_embedding_provider_design.md
+		// §2.5, §11.4.201): this codebase requested a width above (reqBody.Dimensions) but,
+		// until this fix, never verified the width it got back -- unlike LocalEmbedder's
+		// Dimensions() check below, which this mirrors exactly. This is defense-in-depth
+		// against ANY response whose embedding length does not match what was configured:
+		// an OpenAI-COMPATIBLE gateway/proxy that ignores (or only partially honors) the
+		// "dimensions" request parameter, or a provider-side regression that silently
+		// changes a model's output width. UNCONFIRMED: whether the OpenAI-hosted
+		// text-embedding-ada-002 model specifically ignores the "dimensions" parameter and
+		// always returns 1536, or instead rejects the request outright -- the "dimensions"
+		// parameter is documented as supported only for text-embedding-3-and-later models,
+		// and older-model behavior when it is sent has not been verified here against the
+		// current API reference (§11.4.6/§11.4.99). Either way, a wrong-length vector must
+		// be rejected HERE, at the source, rather than handed through to a vector(N) column
+		// where the mismatch would surface as an opaque insert/query-time pgvector error far
+		// from this call -- NEVER silently padded, truncated, or accepted.
+		if len(d.Embedding) != e.dimensions {
+			return nil, fmt.Errorf("OpenAI returned vector length %d at index %d, expected %d",
+				len(d.Embedding), d.Index, e.dimensions)
 		}
 		vec := make([]float32, len(d.Embedding))
 		for i, v := range d.Embedding {
@@ -300,7 +333,22 @@ type localEmbedResponse struct {
 // per-provider policy a second time (Fable code-review remediation, finding
 // 6a: a duplicated "is it configured" check is a second source of truth that
 // can silently drift from this one).
+//
+// A positive cfg.Dimensions is a CONSTRUCTION INVARIANT enforced here, once,
+// for every provider (Fable round-2 finding F4): both OpenAIEmbedder.Embed
+// and LocalEmbedder.Embed unconditionally reject any response whose
+// embedding length does not equal e.dimensions -- a zero (or negative)
+// e.dimensions would make every single Embed call fail that check, since a
+// real provider response is never zero-length. config.Load()'s own
+// validate() already rejects embedding.dimensions <= 0 before a *Config ever
+// reaches this factory, but this factory is the SOLE production constructor
+// (see above) and MUST NOT rely solely on that upstream, call-site-external
+// check to hold an invariant its own returned Embedder depends on to ever
+// succeed -- the check belongs at the point of construction.
 func NewEmbedderFromConfig(cfg config.EmbeddingConfig) (Embedder, error) {
+	if cfg.Dimensions <= 0 {
+		return nil, fmt.Errorf("embedding provider requires a positive dimensions value, got %d", cfg.Dimensions)
+	}
 	switch cfg.Provider {
 	case "openai":
 		if cfg.APIKey == "" {

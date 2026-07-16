@@ -66,3 +66,37 @@ func TestG29_NewEmbedderFromConfig_LocalStillRequiresEndpoint(t *testing.T) {
 		t.Fatal("NewEmbedderFromConfig(local, empty local_endpoint) = nil error, want non-nil")
 	}
 }
+
+// TestG10_NewEmbedderFromConfig_RejectsNonPositiveDimensions is the Fable
+// round-2 finding-F4 regression guard: NewEmbedderFromConfig is the SOLE
+// production constructor for every Embedder (this cmd/server's G10
+// boot-time check and internal/mcp's hybrid-search wiring both derive "is
+// this provider configured" from its error return alone, per this
+// function's own doc comment), so it MUST NOT depend solely on
+// config.Load()'s upstream validate() to hold the positive-dimensions
+// invariant that OpenAIEmbedder.Embed / LocalEmbedder.Embed's unconditional
+// response-length guards silently assume. A §1.1 mutation deleting the
+// added `if cfg.Dimensions <= 0 { ... }` check makes every case here FAIL
+// (a non-positive-dimensions config constructs successfully instead of
+// erroring).
+func TestG10_NewEmbedderFromConfig_RejectsNonPositiveDimensions(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		cfg  config.EmbeddingConfig
+	}{
+		{"openai_zero_dimensions", config.EmbeddingConfig{Provider: "openai", APIKey: "sk-test-not-a-real-key", Model: "text-embedding-3-small", Dimensions: 0}},
+		{"openai_negative_dimensions", config.EmbeddingConfig{Provider: "openai", APIKey: "sk-test-not-a-real-key", Model: "text-embedding-3-small", Dimensions: -1}},
+		{"local_zero_dimensions", config.EmbeddingConfig{Provider: "local", LocalEndpoint: "http://127.0.0.1:0", Dimensions: 0}},
+		{"local_negative_dimensions", config.EmbeddingConfig{Provider: "local", LocalEndpoint: "http://127.0.0.1:0", Dimensions: -768}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			emb, err := NewEmbedderFromConfig(tc.cfg)
+			if err == nil {
+				t.Fatalf("NewEmbedderFromConfig(%+v) = (%v, nil), want a non-nil error for a non-positive dimensions value", tc.cfg, emb)
+			}
+			if emb != nil {
+				t.Errorf("NewEmbedderFromConfig(%+v) returned a non-nil Embedder alongside its error: %v", tc.cfg, emb)
+			}
+		})
+	}
+}

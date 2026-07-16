@@ -100,6 +100,15 @@ func main() {
 		logger.Fatal("Database migration failed; refusing to serve", zap.Error(err))
 	}
 
+	// 4.5. G10 boot-time embedding-dimension safety assertion (§11.4.201),
+	// runs AFTER migrations (the columns must exist) and BEFORE anything reads
+	// or writes an embedding column. See assertEmbeddingDimensionsOnStartup's
+	// doc comment for why this is fail-closed and why it is skipped (never
+	// fatal) when no embedding provider is configured.
+	if err := assertEmbeddingDimensionsOnStartup(ctx, pool, cfg.Embedding, logger); err != nil {
+		logger.Fatal("Embedding dimension safety check failed; refusing to serve", zap.Error(err))
+	}
+
 	// 5. Initialize skill store and registry
 	skillStore := skill.NewStore(pool)
 	skillRegistry := registry.NewRegistry(pool)
@@ -175,6 +184,69 @@ func migrateOnStartup(ctx context.Context, pool *db.Pool, fsys fs.FS, logger *za
 		return fmt.Errorf("apply embedded migrations: %w", err)
 	}
 	logger.Info("Migrations completed")
+	return nil
+}
+
+// embeddingDimensionCheckTargets is the closed, ordered set of table.column
+// pairs the G10 boot-time assertion covers -- every pgvector column an
+// embedder's output can be written into (db.StoreSkillEmbedding /
+// db.StoreEvidenceEmbedding) or read via KNN (db.FindSimilarSkills /
+// db.FindSimilarEvidences, skill.Store.VectorSearch), per
+// migrations/001_initial.up.sql:14,60 (both declared vector(768)). Exposed as
+// a package-level var (rather than inlined in the loop) so a test can assert
+// on the exact target list without duplicating it.
+var embeddingDimensionCheckTargets = []struct{ Table, Column string }{
+	{Table: "skills", Column: "embedding"},
+	{Table: "evidences", Column: "embedding"},
+}
+
+// assertEmbeddingDimensionsOnStartup is the G10 boot-time safety guard
+// (research/g10_embedding_provider_design.md §2.2, §11.4.201). It is called
+// from main() AFTER migrations (so the target columns exist) and BEFORE any
+// skill/evidence store or MCP server construction that could read or write an
+// embedding.
+//
+// "Is an embedding provider configured" is derived SOLELY from
+// db.NewEmbedderFromConfig's own error return -- the SAME single source of
+// truth internal/mcp.NewMCPServer already relies on for its own
+// store.WithEmbedder wiring (see that constructor's doc comment; Fable
+// code-review remediation, finding 6a). Calling the factory again here is NOT
+// a second, hand-duplicated "is it configured" policy: NewEmbedderFromConfig
+// merely constructs a plain Go struct from cfg (no network I/O, no side
+// effect), so invoking it a second time to read the resulting embedder's
+// Dimensions() costs nothing and cannot drift from NewMCPServer's own
+// decision. When no provider is configured (or misconfigured -- e.g. a
+// missing OpenAI api_key), the factory itself errors and NewMCPServer never
+// wires an embedder anywhere in the process; there is nothing to assert a
+// dimension for, so the check is skipped (never fatal) rather than blocking
+// startup on an intentionally embedder-less deployment.
+//
+// A configured-but-mismatched embedder is a hard, fail-closed startup error
+// (never a logger.Warn-and-continue): every StoreSkillEmbedding /
+// StoreEvidenceEmbedding insert and every KNN search (VectorSearch /
+// HybridSearch) against a mismatched column would otherwise be silently
+// broken -- either erroring opaquely deep in a background worker/API request,
+// or (if pgvector still let the erroneous data through some future dimension-
+// widening path) corrupting distance calculations. Catching it here, once, at
+// boot, with both dimensions and their sources named in the error, is the
+// entire point of this guard.
+func assertEmbeddingDimensionsOnStartup(ctx context.Context, pool *db.Pool, cfg config.EmbeddingConfig, logger *zap.Logger) error {
+	emb, err := db.NewEmbedderFromConfig(cfg)
+	if err != nil {
+		logger.Debug("embedding dimension check skipped: no embedding provider configured", zap.Error(err))
+		return nil
+	}
+
+	wantDim := emb.Dimensions()
+	for _, target := range embeddingDimensionCheckTargets {
+		if err := db.AssertEmbeddingDimension(ctx, pool, target.Table, target.Column, wantDim); err != nil {
+			return err
+		}
+		logger.Info("embedding dimension verified",
+			zap.String("table", target.Table),
+			zap.String("column", target.Column),
+			zap.Int("dimension", wantDim))
+	}
 	return nil
 }
 
