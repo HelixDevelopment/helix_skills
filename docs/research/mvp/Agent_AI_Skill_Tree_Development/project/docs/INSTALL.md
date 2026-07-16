@@ -121,11 +121,11 @@ API_KEY=your-api-key
 ### Step 3: Start Database
 
 ```bash
-# Start PostgreSQL first
-docker compose up -d db
+# Start PostgreSQL first (default profile brings up only the postgres datastore)
+docker compose -f deploy/docker-compose.yml up -d postgres
 
 # Wait for database to be ready
-docker compose exec db pg_isready -U skilluser
+docker compose -f deploy/docker-compose.yml exec postgres pg_isready -U skilluser
 ```
 
 ### Step 4: Run Migrations
@@ -137,8 +137,9 @@ docker compose exec db pg_isready -U skilluser
 ### Step 5: Start Services
 
 ```bash
-# Start all services
-docker compose up -d
+# Start all services (postgres + app + worker; the app/worker are opt-in
+# under the `app` compose profile)
+docker compose -f deploy/docker-compose.yml --profile app up -d
 
 # Or use the start script
 ./scripts/start.sh
@@ -153,8 +154,8 @@ curl http://localhost:8080/health
 # List skills
 curl http://localhost:8080/api/v1/skills
 
-# Check container status
-docker compose ps
+# Check container status (enable the app profile to see app/worker too)
+docker compose -f deploy/docker-compose.yml --profile app ps
 ```
 
 ---
@@ -304,16 +305,16 @@ curl http://localhost:8080/api/v1/graph
 ### Container Status
 
 ```bash
-# View containers
-docker compose ps
+# View containers (enable the app profile to include app/worker)
+docker compose -f deploy/docker-compose.yml --profile app ps
 
 # View logs
-docker compose logs -f
+docker compose -f deploy/docker-compose.yml --profile app logs -f
 
 # View specific service logs
-docker compose logs -f api
-docker compose logs -f worker
-docker compose logs -f db
+docker compose -f deploy/docker-compose.yml --profile app logs -f app
+docker compose -f deploy/docker-compose.yml --profile app logs -f worker
+docker compose -f deploy/docker-compose.yml logs -f postgres
 ```
 
 ---
@@ -337,14 +338,14 @@ HTTP3_PORT=8444
 
 ```bash
 # Check if database container is running
-docker compose ps db
+docker compose -f deploy/docker-compose.yml ps postgres
 
 # Check database logs
-docker compose logs db
+docker compose -f deploy/docker-compose.yml logs postgres
 
 # Reset database (WARNING: deletes data!)
-docker compose down -v
-docker compose up -d db
+docker compose -f deploy/docker-compose.yml --profile app --profile monitoring down -v --remove-orphans
+docker compose -f deploy/docker-compose.yml up -d postgres
 ./scripts/migrate.sh up
 ```
 
@@ -391,11 +392,11 @@ WORKER_MEMORY_LIMIT=512M
 1. **Check database indexes**: Run `VACUUM ANALYZE` in PostgreSQL
 2. **Increase worker concurrency**: `WORKER_CONCURRENCY=8`
 3. **Enable connection pooling**: Check `DB_MAX_OPEN_CONNS`
-4. **Monitor metrics**: Enable Prometheus profile in docker-compose
+4. **Monitor metrics**: Enable the `monitoring` compose profile (`docker compose -f deploy/docker-compose.yml --profile monitoring up -d`)
 
 ### Getting Help
 
-1. Check logs: `docker compose logs -f`
+1. Check logs: `docker compose -f deploy/docker-compose.yml --profile app logs -f`
 2. Run status: `./scripts/status.sh`
 3. Review configuration: `cat .env`
 4. Open an issue: [GitHub Issues](https://github.com/helixdevelopment/skill-system/issues)
@@ -441,10 +442,10 @@ For major version upgrades:
 
 # 2. Stop and remove containers
 ./scripts/stop.sh
-docker compose down
+docker compose -f deploy/docker-compose.yml --profile app --profile monitoring down --remove-orphans
 
 # 3. Pull new images
-docker compose pull
+docker compose -f deploy/docker-compose.yml pull
 
 # 4. Start with new version
 ./scripts/start.sh

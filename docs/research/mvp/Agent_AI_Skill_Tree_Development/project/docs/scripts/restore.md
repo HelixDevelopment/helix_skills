@@ -1,7 +1,7 @@
 # `scripts/restore.sh` — restore from a backup archive
 
-**Revision:** 2
-**Last modified:** 2026-07-15T20:29:01Z
+**Revision:** 3
+**Last modified:** 2026-07-16T00:00:00Z
 
 ## Overview
 
@@ -12,11 +12,16 @@ restores the SQL dump (dropping and recreating the target database), and
 (unless `--db-only`) restores configuration files and the evidence data
 directory, then restarts services.
 
-**Note on which compose stack this targets:** like `backup.sh`, this
-script is part of the older project-root-based family
-(`INSTALL_DIR = project/`, `project/.env`, `project/docker-compose.yml`) —
-see "Two coexisting script families" in this project's top-level
-`README.md`.
+**Note on which compose stack this targets (G13):** like `backup.sh`, this
+script now targets the single canonical compose file
+`project/deploy/docker-compose.yml` (via an explicit
+`compose -f "$INSTALL_DIR/deploy/docker-compose.yml"`), and its datastore
+service is `postgres` — the retired root `project/docker-compose.yml` and its
+`db` service name are gone (see `research/ops_hardening_design.md` G13 +
+`scripts/check_compose_canonical.sh`). It still reads its environment from
+`project/.env` (its own `INSTALL_DIR`), not `project/deploy/.env`, and uses
+its own inline `load_env`/`detect_compose` helpers rather than sourcing
+`_lib.sh`.
 
 ## Prerequisites
 
@@ -102,9 +107,9 @@ a reminder to verify with `curl http://localhost:8080/health`.
   for the cross-script detail. In practice this means the "stop services"
   step of a restore may not actually stop anything if `stop.sh` rejects
   the flag; the database is still forcibly dropped/recreated regardless
-  since `restore_database()` execs directly against the `db` service via
-  compose, independent of whether `stop.sh` succeeded.
-- **Postgres readiness wait:** after starting just the `db` service, the
+  since `restore_database()` execs directly against the `postgres` service
+  via compose, independent of whether `stop.sh` succeeded.
+- **Postgres readiness wait:** after starting just the `postgres` service, the
   script sleeps 5s then polls `pg_isready` up to 30 times (2s apart, ~65s
   total) before proceeding to the restore, regardless of whether readiness
   was actually reached (no hard failure if the loop exhausts retries
@@ -119,8 +124,8 @@ a reminder to verify with `curl http://localhost:8080/health`.
 3. `show_backup_info()` — extracts and prints `backup.json` metadata
    (via `jq` if available).
 4. Confirmation prompt (skipped with `--force`).
-5. Stops services (`stop.sh --compose`, best-effort), starts just `db`,
-   waits for Postgres readiness (bounded retry loop).
+5. Stops services (`stop.sh --compose`, best-effort), starts just
+   `postgres`, waits for Postgres readiness (bounded retry loop).
 6. `restore_database()` — extracts + decompresses the SQL dump, drops and
    recreates the target database, replays the dump.
 7. Unless `--db-only`: `restore_config()` (backs up then overwrites `.env`
@@ -140,5 +145,6 @@ a reminder to verify with `curl http://localhost:8080/health`.
 
 ## Last verified
 
-2026-07-16, against `project/scripts/restore.sh` (9700 bytes, last
-modified 2026-07-15).
+2026-07-16, against `project/scripts/restore.sh` (10245 bytes, last
+modified 2026-07-16) after the G13 canonical-compose change (compose calls
+target `-f deploy/docker-compose.yml`; datastore service `postgres`).

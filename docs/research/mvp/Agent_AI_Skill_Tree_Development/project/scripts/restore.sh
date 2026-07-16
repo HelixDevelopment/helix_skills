@@ -11,6 +11,12 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INSTALL_DIR="$(dirname "$SCRIPT_DIR")"
 SERVICE_NAME="skill-system"
+# G13: the single canonical compose file + its datastore service name. Compose
+# calls target this file explicitly (-f); the canonical datastore service is
+# `postgres`, never the retired root file's `db`.
+# See research/ops_hardening_design.md (G13) + scripts/check_compose_canonical.sh.
+COMPOSE_FILE="$INSTALL_DIR/deploy/docker-compose.yml"
+DB_SERVICE="postgres"
 
 # Colors
 RED='\033[0;31m'
@@ -124,7 +130,7 @@ restore_database() {
     
     # Check if database exists and prompt
     local db_exists
-    db_exists=$(cd "$INSTALL_DIR" && $COMPOSE_CMD exec -T db psql -U "$DB_USER" -tc "SELECT 1 FROM pg_database WHERE datname = '$DB_NAME';" 2>/dev/null | tr -d '[:space:]')
+    db_exists=$(cd "$INSTALL_DIR" && $COMPOSE_CMD -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -U "$DB_USER" -tc "SELECT 1 FROM pg_database WHERE datname = '$DB_NAME';" 2>/dev/null | tr -d '[:space:]')
     
     if [ "$db_exists" = "1" ] && [ "$FORCE" = false ]; then
         echo ""
@@ -140,12 +146,12 @@ restore_database() {
     # Drop and recreate database
     log_info "Recreating database..."
     cd "$INSTALL_DIR"
-    $COMPOSE_CMD exec -T db psql -U "$DB_USER" -c "DROP DATABASE IF EXISTS $DB_NAME;" 2>/dev/null || true
-    $COMPOSE_CMD exec -T db psql -U "$DB_USER" -c "CREATE DATABASE $DB_NAME;" 2>/dev/null
+    $COMPOSE_CMD -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -U "$DB_USER" -c "DROP DATABASE IF EXISTS $DB_NAME;" 2>/dev/null || true
+    $COMPOSE_CMD -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -U "$DB_USER" -c "CREATE DATABASE $DB_NAME;" 2>/dev/null
     
     # Restore from dump
     log_info "Restoring database (this may take a while)..."
-    if ! $COMPOSE_CMD exec -T db psql -U "$DB_USER" -d "$DB_NAME" < "$sql_file" 2>/dev/null; then
+    if ! $COMPOSE_CMD -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -U "$DB_USER" -d "$DB_NAME" < "$sql_file" 2>/dev/null; then
         log_error "Database restore failed"
         rm -rf "$temp_dir"
         exit 1
@@ -288,7 +294,7 @@ main() {
     # Start just the database
     log_info "Starting database..."
     cd "$INSTALL_DIR"
-    $COMPOSE_CMD up -d db
+    $COMPOSE_CMD -f "$COMPOSE_FILE" up -d "$DB_SERVICE"
     
     # Wait for database
     log_info "Waiting for database..."
@@ -296,7 +302,7 @@ main() {
     
     local retries=30
     while [ $retries -gt 0 ]; do
-        if $COMPOSE_CMD exec -T db pg_isready -U "$DB_USER" -d "$DB_NAME" &> /dev/null; then
+        if $COMPOSE_CMD -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" pg_isready -U "$DB_USER" -d "$DB_NAME" &> /dev/null; then
             break
         fi
         retries=$((retries - 1))

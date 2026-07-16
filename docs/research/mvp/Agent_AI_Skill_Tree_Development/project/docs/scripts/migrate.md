@@ -1,15 +1,17 @@
 # `scripts/migrate.sh` — database migration runner
 
-**Revision:** 4
-**Last modified:** 2026-07-15T23:26:33Z
+**Revision:** 5
+**Last modified:** 2026-07-16T00:00:00Z
 
 ## Overview
 
 A small SQL-migration runner that applies/rolls back/creates/inspects
 versioned SQL migration files under `project/migrations/*.up.sql` /
 `*.down.sql`, tracked in a `schema_migrations` table it creates on demand.
-It executes SQL directly inside the `db` compose service via `compose exec
-... psql`.
+It executes SQL directly inside the canonical `postgres` compose service —
+targeting the single canonical compose file explicitly via
+`compose -f deploy/docker-compose.yml exec -T postgres psql ...` (G13; no
+longer a cwd-discovered rival root compose or a `db` service name).
 
 **Note on which compose stack this targets:** like `backup.sh`/
 `restore.sh`, this script is part of the older project-root-based family
@@ -23,7 +25,8 @@ covers only the standalone `scripts/migrate.sh` CLI.
 
 - One of: Docker with `docker compose`, `docker-compose`, or
   `podman-compose`.
-- A running `db` compose service.
+- A running `postgres` compose service (the canonical `deploy/docker-compose.yml`
+  datastore service; the retired root file's `db` service is superseded).
 - `project/.env` (optional; falls back to `DB_HOST=db`, `DB_PORT=5432`,
   `DB_NAME=skilldb`, `DB_USER=skilluser`, `DB_PASSWORD=skillpassword`).
 - `project/migrations/` directory (created automatically if absent).
@@ -87,7 +90,7 @@ disk; `down` can delete a version's tracking row even when no matching
 - **`schema_migrations` table missing:** created automatically by
   `ensure_migrations_table()` on first use of any subcommand that needs
   it (`up`, `down`, `status`, `version`).
-- **The `psql` invocation fails (`up`)** — because the `db` service is
+- **The `psql` invocation fails (`up`)** — because the `postgres` service is
   unreachable / `compose exec` cannot run at all, OR (since the G51 fix,
   see below) because any individual SQL statement inside the migration
   errors under `-v ON_ERROR_STOP=1`: the loop stops immediately
@@ -144,8 +147,8 @@ disk; `down` can delete a version's tracking row even when no matching
 ## Internal behavior
 
 1. `load_env()` / `detect_compose()` — same pattern as `backup.sh`.
-2. `exec_sql()` runs a single SQL statement via `compose exec -T db psql
-   ... -t -c "$sql"`.
+2. `exec_sql()` runs a single SQL statement via `compose -f
+   deploy/docker-compose.yml exec -T postgres psql ... -t -c "$sql"`.
 3. `ensure_migrations_table()` idempotently creates `schema_migrations
    (version BIGINT PRIMARY KEY, applied_at TIMESTAMP DEFAULT
    CURRENT_TIMESTAMP, description TEXT)`.
@@ -164,7 +167,7 @@ disk; `down` can delete a version's tracking row even when no matching
 ## Dependencies
 
 `bash`, one of `{docker compose, docker-compose, podman-compose}`,
-`psql` (inside the `db` container), `grep`, `sed`, `date`.
+`psql` (inside the `postgres` container), `grep`, `sed`, `date`.
 
 ## Cross-references
 
@@ -176,6 +179,7 @@ migration mechanism).
 
 ## Last verified
 
-2026-07-16, against `project/scripts/migrate.sh` (10248 bytes, last
+2026-07-16, against `project/scripts/migrate.sh` (10727 bytes, last
 modified 2026-07-16) after the G51 fix (`-v ON_ERROR_STOP=1` + surfaced
-stderr on the `up`/`down` migration-apply `psql` calls).
+stderr on the `up`/`down` migration-apply `psql` calls) and the G13
+canonical-compose change (`-f deploy/docker-compose.yml exec -T postgres`).

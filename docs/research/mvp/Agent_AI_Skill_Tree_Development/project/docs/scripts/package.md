@@ -1,6 +1,6 @@
 # `scripts/package.sh` — build a distributable archive
 
-**Revision:** 1
+**Revision:** 2
 **Last modified:** 2026-07-16T00:00:00Z
 
 ## Overview
@@ -32,7 +32,7 @@ scripts + config + docs) for shipping to another environment.
 |---|---|
 | `--output <dir>` | Output directory (default: `<project>/dist`). |
 | `--version <ver>` | Package version (default: derived from `git describe`/short hash/`dev`). |
-| `--no-source` | Exclude source code (`cmd/`, `internal/`, `go.mod`/`go.sum`, `Makefile`, `Dockerfile`, `docker-compose.yml`, `.env.example`) — package only binaries/scripts/config/docs. |
+| `--no-source` | Exclude source code (`cmd/`, `internal/`, `go.mod`/`go.sum`, `Makefile`, `Dockerfile`, the canonical `deploy/docker-compose.yml`, `.env.example`) — package only binaries/scripts/config/docs. |
 | `--help`, `-h` | Print usage and exit 0. |
 
 ### Examples
@@ -47,7 +47,9 @@ scripts + config + docs) for shipping to another environment.
 ## Inputs
 
 `project/cmd/`, `project/internal/`, `project/go.mod`, `project/go.sum`,
-`project/Makefile`, `project/Dockerfile`, `project/docker-compose.yml`,
+`project/Makefile`, `project/Dockerfile`, the canonical
+`project/deploy/docker-compose.yml` (copied into the package's `deploy/`
+subdir so its relative paths resolve),
 `project/.env.example` (all copied only when `--no-source` is **not**
 given); `project/scripts/*.sh`; `project/config/`; `project/migrations/`;
 `project/docs/`; `project/README.md`, `project/LICENSE`,
@@ -90,7 +92,10 @@ executable bit on the source copy.
    else `"dev"`.
 2. `create_package()`:
    - Creates a temp directory structure:
-     `{bin,scripts,config,docs,migrations,data/{evidence,backups}}`.
+     `{bin,scripts,config,docs,migrations,deploy,data/{evidence,backups}}`
+     (the `deploy/` subdir preserves the canonical compose file's home so
+     its `../config`, `../migrations`, `../Dockerfile` relative paths still
+     resolve inside the package — G13).
    - Copies source (unless `--no-source`), scripts (always, made
      executable), config, migrations, docs, and top-level project files
      (each guarded for existence).
@@ -116,5 +121,6 @@ of them itself.
 
 ## Last verified
 
-2026-07-16, against `project/scripts/package.sh` (7177 bytes, last
-modified 2026-07-15).
+2026-07-16, against `project/scripts/package.sh` (7528 bytes, last
+modified 2026-07-16) after the G13 canonical-compose change (packages
+`deploy/docker-compose.yml` into the package's `deploy/` subdir).

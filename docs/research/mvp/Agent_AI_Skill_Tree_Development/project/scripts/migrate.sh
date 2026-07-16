@@ -15,6 +15,12 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INSTALL_DIR="$(dirname "$SCRIPT_DIR")"
 MIGRATIONS_DIR="$INSTALL_DIR/migrations"
+# G13: the single canonical compose file + its datastore service name. All
+# compose calls below target this file explicitly (-f), never cwd-discovery of
+# a rival root compose, and the canonical service is `postgres` (not `db`).
+# See research/ops_hardening_design.md (G13) + scripts/check_compose_canonical.sh.
+COMPOSE_FILE="$INSTALL_DIR/deploy/docker-compose.yml"
+DB_SERVICE="postgres"
 
 # Colors
 RED='\033[0;31m'
@@ -60,7 +66,7 @@ detect_compose() {
 exec_sql() {
     local sql="$1"
     cd "$INSTALL_DIR"
-    $COMPOSE_CMD exec -T db psql -U "$DB_USER" -d "$DB_NAME" -t -c "$sql" 2>/dev/null
+    $COMPOSE_CMD -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -U "$DB_USER" -d "$DB_NAME" -t -c "$sql" 2>/dev/null
 }
 
 # Check if migrations table exists
@@ -120,7 +126,7 @@ migrate_up() {
             # so a real failure is visible and caught by the else/exit 1 path.
             # See G51 in GAPS_AND_RISKS_REGISTER.md (§11.4.201).
             cd "$INSTALL_DIR"
-            if $COMPOSE_CMD exec -T db psql -v ON_ERROR_STOP=1 -U "$DB_USER" -d "$DB_NAME" < "$migration"; then
+            if $COMPOSE_CMD -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U "$DB_USER" -d "$DB_NAME" < "$migration"; then
                 exec_sql "INSERT INTO schema_migrations (version, description) VALUES (${version}, '${description}');"
                 log_success "Applied migration ${version}"
                 applied=$((applied + 1))
@@ -167,7 +173,7 @@ migrate_down() {
         # the schema_migrations row is NOT removed on a failed rollback (psql
         # otherwise exits 0 on a statement error, silently desyncing state).
         # See G51 in GAPS_AND_RISKS_REGISTER.md (§11.4.201).
-        $COMPOSE_CMD exec -T db psql -v ON_ERROR_STOP=1 -U "$DB_USER" -d "$DB_NAME" < "$down_file"
+        $COMPOSE_CMD -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U "$DB_USER" -d "$DB_NAME" < "$down_file"
         exec_sql "DELETE FROM schema_migrations WHERE version = ${current_version};"
         log_success "Rolled back migration ${current_version}"
     else

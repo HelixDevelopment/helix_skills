@@ -1,21 +1,34 @@
 # =============================================================================
-# HelixKnowledge Skill Graph Service - datastore compose stack (R15)
+# HelixKnowledge Skill Graph Service - CANONICAL compose stack (R15 / G13)
 # =============================================================================
-# Scope: this compose file is the systemctl --user-operable datastore layer.
-# It brings up PostgreSQL + pgvector only. The application service block below
-# is intentionally commented out - the Go binary is not wired to a container
-# image yet, and shipping a fake/placeholder "app" image here would be a
-# bluff (nothing would actually run). Uncomment + finish the `app` service
-# once cmd/server builds a real, tagged image.
+# This is the ONE canonical compose file for the whole ops layer (Gap register
+# G13; research/ops_hardening_design.md). The former rival root file
+# project/docker-compose.yml is retired - its app/worker/monitoring service
+# DEFINITIONS are folded forward here as opt-in compose PROFILES (preserved,
+# never silently dropped: Constitution Sec 11.4.122 / Sec 11.4.124), and every
+# ops script + the systemd --user unit references THIS file only.
+#
+# Activation model (compose profiles - https://docs.docker.com/compose/profiles/):
+#   * DEFAULT (no --profile): brings up ONLY `postgres` - the standing
+#     systemctl --user-operable datastore layer (pgvector).
+#   * --profile app:        also brings up `app` + `worker` (the Go API server
+#     and background worker). These build from the REAL ../Dockerfile; they are
+#     opt-in and gated on a working Go build (G13-a, build-readiness decision -
+#     NOT activated by default, so a not-yet-buildable binary is never a bluff
+#     that "the app runs"; a failed build fails LOUDLY, it is not a fake image).
+#   * --profile monitoring: also brings up `prometheus` + `grafana`.
 #
 # Usage (see ../scripts/ for the systemctl --user-friendly wrappers):
-#   docker compose --env-file .env -f docker-compose.yml up -d
-#   podman compose --env-file .env -f docker-compose.yml up -d
+#   podman compose --env-file .env -f docker-compose.yml up -d           # postgres only
+#   podman compose --env-file .env -f docker-compose.yml --profile app up -d
+#   podman compose --env-file .env -f docker-compose.yml --profile monitoring up -d
+#   docker  compose --env-file .env -f docker-compose.yml up -d          # (rootless)
 #   podman-compose --env-file .env -f docker-compose.yml up -d
 #
 # All variables below have dev-safe defaults via ${VAR:-default} so the
-# stack runs even with no .env file present. Copy .env.example to .env and
-# edit it for anything beyond local development.
+# datastore runs even with no .env file present. Copy .env.example to .env and
+# edit it for anything beyond local development. (DB password hardening is
+# tracked separately under G17, not G13.)
 # =============================================================================
 
 name: ${COMPOSE_PROJECT_NAME:-helix-skills}
@@ -23,6 +36,9 @@ name: ${COMPOSE_PROJECT_NAME:-helix-skills}
 services:
   # ---------------------------------------------------------------------
   # postgres: PostgreSQL 16 with the pgvector extension pre-installed.
+  # The standing datastore layer - brought up by the DEFAULT (no-profile)
+  # `up`. This is the canonical datastore (the retired root file's `db`
+  # service is superseded by this one).
   # ---------------------------------------------------------------------
   postgres:
     image: pgvector/pgvector:pg16
@@ -50,31 +66,227 @@ services:
         max-file: "3"
 
   # ---------------------------------------------------------------------
-  # app: HelixKnowledge Skill Graph API server.
+  # app: HelixKnowledge Skill Graph API server (HTTP/2 + HTTP/3, MCP).
   #
-  # DISABLED (commented out) until a real, buildable/runnable image exists
-  # for cmd/server. Do NOT uncomment this with an invented/placeholder
-  # image - that would be a bluff (R15/anti-bluff mandate: no claim of a
-  # working app service without a real build behind it). Once the Go
-  # binary builds cleanly, wire it up along these lines:
-  #
-  # app:
-  #   build:
-  #     context: ..
-  #     dockerfile: Dockerfile
-  #     args:
-  #       VERSION: ${VERSION:-dev}
-  #   image: ${COMPOSE_PROJECT_NAME:-helix-skills}-app:${VERSION:-dev}
-  #   container_name: ${COMPOSE_PROJECT_NAME:-helix-skills}-app
-  #   restart: unless-stopped
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #   environment:
-  #     DATABASE_URL: postgres://${DB_USER:-skilluser}:${DB_PASSWORD:-skillpassword}@postgres:5432/${DB_NAME:-skilldb}?sslmode=disable
-  #   ports:
-  #     - "${HTTP_PORT:-8080}:8080"
+  # Folded forward from the retired root project/docker-compose.yml `api`
+  # service, under the opt-in `app` profile. Builds from the REAL
+  # ../Dockerfile (not an invented/placeholder image); it is NOT part of
+  # the default `up`, so nothing fake runs unless an operator explicitly
+  # opts in with `--profile app` after the Go binary builds (G13-a).
+  # ---------------------------------------------------------------------
+  app:
+    profiles: [app]
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      args:
+        VERSION: ${VERSION:-dev}
+        COMMIT: ${COMMIT:-unknown}
+        BUILD_TIME: ${BUILD_TIME:-unknown}
+    image: ${COMPOSE_PROJECT_NAME:-helix-skills}-app:${VERSION:-dev}
+    container_name: ${COMPOSE_PROJECT_NAME:-helix-skills}-app
+    restart: unless-stopped
+    command: >
+      /app/server
+      --config /config/config.toml
+      --db-host postgres
+      --db-port 5432
+      --db-name ${DB_NAME:-skilldb}
+      --db-user ${DB_USER:-skilluser}
+      --db-password ${DB_PASSWORD:-skillpassword}
+      --http-port 8080
+      --http3-port 8443
+      --log-level ${LOG_LEVEL:-info}
+    environment:
+      DATABASE_URL: postgres://${DB_USER:-skilluser}:${DB_PASSWORD:-skillpassword}@postgres:5432/${DB_NAME:-skilldb}?sslmode=disable
+      SERVER_HTTP_PORT: "8080"
+      SERVER_HTTP3_PORT: "8443"
+      SERVER_LOG_LEVEL: ${LOG_LEVEL:-info}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-local}
+      EMBEDDING_DIMENSION: ${EMBEDDING_DIMENSION:-768}
+      ENABLE_HTTP3: ${ENABLE_HTTP3:-true}
+      ENABLE_METRICS: ${ENABLE_METRICS:-true}
+      ENABLE_AUTO_EXPAND: ${ENABLE_AUTO_EXPAND:-true}
+      MCP_SERVER_NAME: ${MCP_SERVER_NAME:-skill-system}
+      MCP_VERSION: ${MCP_VERSION:-1.0.0}
+      JWT_SECRET: ${JWT_SECRET:-}
+      API_KEY: ${API_KEY:-}
+    ports:
+      - "${HTTP_PORT:-8080}:8080"
+      - "${HTTP3_PORT:-8443}:8443/udp"
+    volumes:
+      - ../config:/config:ro
+      - evidence_data:/data/evidence
+      - api_logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          memory: ${API_MEMORY_LIMIT:-512M}
+          cpus: '${API_CPU_LIMIT:-1}'
+        reservations:
+          memory: 128M
+    stop_signal: SIGTERM
+    stop_grace_period: 30s
 
+  # ---------------------------------------------------------------------
+  # worker: background skill expansion / validation / embedding worker.
+  # Folded forward from the retired root `worker` service, opt-in under the
+  # `app` profile (it depends on the `app` API service).
+  # ---------------------------------------------------------------------
+  worker:
+    profiles: [app]
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      args:
+        VERSION: ${VERSION:-dev}
+        COMMIT: ${COMMIT:-unknown}
+        BUILD_TIME: ${BUILD_TIME:-unknown}
+    image: ${COMPOSE_PROJECT_NAME:-helix-skills}-app:${VERSION:-dev}
+    container_name: ${COMPOSE_PROJECT_NAME:-helix-skills}-worker
+    restart: unless-stopped
+    command: >
+      /app/worker
+      --config /config/config.toml
+      --db-host postgres
+      --db-port 5432
+      --db-name ${DB_NAME:-skilldb}
+      --db-user ${DB_USER:-skilluser}
+      --db-password ${DB_PASSWORD:-skillpassword}
+      --log-level ${LOG_LEVEL:-info}
+    environment:
+      DATABASE_URL: postgres://${DB_USER:-skilluser}:${DB_PASSWORD:-skillpassword}@postgres:5432/${DB_NAME:-skilldb}?sslmode=disable
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-4}
+      WORKER_QUEUE_SIZE: ${WORKER_QUEUE_SIZE:-100}
+      WORKER_POLL_INTERVAL: ${WORKER_POLL_INTERVAL:-30s}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-local}
+      EMBEDDING_DIMENSION: ${EMBEDDING_DIMENSION:-768}
+      AUTO_EXPAND_ENABLED: ${AUTO_EXPAND_ENABLED:-true}
+      AUTO_EXPAND_MAX_DEPTH: ${AUTO_EXPAND_MAX_DEPTH:-3}
+      AUTO_EXPAND_CONFIDENCE_THRESHOLD: ${AUTO_EXPAND_CONFIDENCE_THRESHOLD:-0.7}
+      VALIDATION_ENABLED: ${VALIDATION_ENABLED:-true}
+      VALIDATION_INTERVAL: ${VALIDATION_INTERVAL:-1h}
+      LLM_PROVIDER: ${LLM_PROVIDER:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-}
+      CODE_ANALYSIS_ENABLED: ${CODE_ANALYSIS_ENABLED:-true}
+      CODE_ANALYSIS_MAX_FILES: ${CODE_ANALYSIS_MAX_FILES:-1000}
+    volumes:
+      - ../config:/config:ro
+      - evidence_data:/data/evidence
+      - worker_logs:/app/logs
+      - ${SOURCE_CODE_PATH:-/dev/null}:/data/source:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /tmp/worker.pid && kill -0 $$(cat /tmp/worker.pid) || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          memory: ${WORKER_MEMORY_LIMIT:-1G}
+          cpus: '${WORKER_CPU_LIMIT:-2}'
+        reservations:
+          memory: 256M
+    stop_signal: SIGTERM
+    stop_grace_period: 60s
+
+  # ---------------------------------------------------------------------
+  # prometheus: metrics scraping. Folded forward from the retired root
+  # `prometheus` service under the opt-in `monitoring` profile.
+  # ---------------------------------------------------------------------
+  prometheus:
+    profiles: [monitoring]
+    image: prom/prometheus:v2.50.0
+    container_name: ${COMPOSE_PROJECT_NAME:-helix-skills}-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ../config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ---------------------------------------------------------------------
+  # grafana: dashboards. Folded forward from the retired root `grafana`
+  # service under the opt-in `monitoring` profile. (Admin password default
+  # is preserved verbatim from the root file; credential hardening is
+  # tracked under G17, not G13.)
+  # ---------------------------------------------------------------------
+  grafana:
+    profiles: [monitoring]
+    image: grafana/grafana:10.4.0
+    container_name: ${COMPOSE_PROJECT_NAME:-helix-skills}-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ../config/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ../config/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    depends_on:
+      - prometheus
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# =============================================================================
+# Named volumes. `helix_skills_pgdata` is the standing datastore volume; the
+# app/worker/monitoring volumes only materialize when their profile is
+# activated. All services share the compose DEFAULT network (service-name DNS),
+# so the retired root file's custom `skill-network` + 172.20.0.0/16 subnet is
+# dropped (divergence eliminated per Sec 11.4.186).
+# =============================================================================
 volumes:
   helix_skills_pgdata:
     name: ${COMPOSE_PROJECT_NAME:-helix-skills}_pgdata
+  evidence_data:
+    driver: local
+  api_logs:
+    driver: local
+  worker_logs:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local

@@ -39,6 +39,12 @@ curl -fsSL https://raw.githubusercontent.com/helixdevelopment/skill-system/main/
 
 ### Docker Compose (Manual)
 
+The canonical compose stack is `deploy/docker-compose.yml` (there is no root
+compose file). The default, no-profile `up` starts **only** the `postgres`
+datastore; the API server + worker (`app` + `worker` services) are opt-in under
+the `app` compose profile, and Prometheus + Grafana under the `monitoring`
+profile.
+
 ```bash
 # Clone repository
 git clone https://github.com/helixdevelopment/skill-system.git
@@ -47,22 +53,29 @@ cd skill-system
 # Copy environment
 cp .env.example .env
 
-# Start the stack
-docker compose up -d
+# Start the datastore only (default profile: postgres)
+docker compose -f deploy/docker-compose.yml up -d
 
-# Check health
+# Start the full application stack (postgres + app + worker)
+docker compose -f deploy/docker-compose.yml --profile app up -d
+
+# Check health (needs the app profile, above)
 curl http://localhost:8080/health
 ```
 
 ### Services
 
-| Service | Endpoint | Description |
-|---------|----------|-------------|
-| API Server | `http://localhost:8080` | HTTP/2 REST API |
-| HTTP/3 API | `https://localhost:8443` | QUIC/UDP transport |
-| PostgreSQL | `localhost:5432` | Database + pgvector |
-| Prometheus | `http://localhost:9090` | Metrics (optional) |
-| Grafana | `http://localhost:3000` | Dashboards (optional) |
+Only `postgres` is brought up by the default `up`; every other service is gated
+behind the compose profile shown below (activate with `--profile <name>`).
+
+| Service | Endpoint | Profile | Description |
+|---------|----------|---------|-------------|
+| PostgreSQL | `localhost:5432` | _default_ | Database + pgvector (always up) |
+| API Server | `http://localhost:8080` | `app` | HTTP/2 REST API |
+| HTTP/3 API | `https://localhost:8443` | `app` | QUIC/UDP transport |
+| Background Worker | _(internal)_ | `app` | Skill expansion / validation |
+| Prometheus | `http://localhost:9090` | `monitoring` | Metrics |
+| Grafana | `http://localhost:3000` | `monitoring` | Dashboards |
 
 ## Architecture Overview
 
@@ -163,7 +176,7 @@ The system exposes tools via the Model Context Protocol for AI assistants:
   "mcpServers": {
     "skill-system": {
       "command": "docker",
-      "args": ["exec", "-i", "skill-api", "/app/skillctl", "mcp", "stdio"]
+      "args": ["exec", "-i", "helix-skills-app", "/app/skillctl", "mcp", "stdio"]
     }
   }
 }
@@ -252,7 +265,7 @@ make lint
 ├── docs/              # Documentation
 ├── config/            # Configuration templates
 ├── Dockerfile         # Multi-stage build
-├── docker-compose.yml # Full stack
+├── deploy/            # Canonical compose stack (deploy/docker-compose.yml) + systemd unit
 ├── Makefile           # Build automation
 └── README.md          # This file
 ```

@@ -1,6 +1,6 @@
 # check_container_runtime_default.sh
 
-**Revision:** 1
+**Revision:** 2
 **Last modified:** 2026-07-16T00:00:00Z
 
 ## Overview
@@ -34,7 +34,8 @@ regression from silently landing again.
   Makefile's text; it never invokes `podman`, `docker`, or any compose
   subcommand. (A working rootless Podman install is naturally still
   required to actually *use* the project's container targets — see
-  `Makefile` and `docker-compose.yml` — but is orthogonal to this gate.)
+  `Makefile` and `deploy/docker-compose.yml` — but is orthogonal to this
+  gate.)
 
 ## Usage examples
 
@@ -167,10 +168,11 @@ project/scripts/check_container_runtime_default.sh -h
   distinct from this gate's Makefile-default assertion). `_lib.sh` and its
   callers are out of this script's scope and were not modified as part of
   landing this gate — see the "Known related finding" note below.
-- `../docker-compose.yml` — the compose stack `$(COMPOSE_CMD)` (i.e.
-  `$(CONTAINER_RUNTIME) compose`) drives; verified CLI-compatible with
-  Podman via `podman compose` (which shells out to the installed
-  `podman-compose` provider) on the host this gate was authored and run on.
+- `../deploy/docker-compose.yml` — the single canonical compose stack (G13)
+  that `$(COMPOSE_CMD)` (i.e. `$(CONTAINER_RUNTIME) compose`) drives via
+  `-f $(COMPOSE_FILE)`; verified CLI-compatible with Podman via
+  `podman compose` (which shells out to the installed `podman-compose`
+  provider) on the host this gate was authored and run on.
 
 ## Known related finding (not fixed by this script — out of scope)
 

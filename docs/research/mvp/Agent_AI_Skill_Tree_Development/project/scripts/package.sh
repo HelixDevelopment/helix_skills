@@ -52,8 +52,10 @@ create_package() {
     
     log_info "Creating package: $package_name"
     
-    # Create directory structure
-    mkdir -p "$package_dir"/{bin,scripts,config,docs,migrations,data/{evidence,backups}}
+    # Create directory structure. `deploy/` preserves the canonical compose
+    # file's home so its ../config, ../migrations, ../Dockerfile relative paths
+    # still resolve inside the package (G13 - single canonical compose).
+    mkdir -p "$package_dir"/{bin,scripts,config,docs,migrations,deploy,data/{evidence,backups}}
     
     # Copy source code (if enabled)
     if [ "$INCLUDE_SOURCE" = true ]; then
@@ -71,8 +73,9 @@ create_package() {
         # Copy Dockerfile
         cp "$PROJECT_DIR/Dockerfile" "$package_dir/"
         
-        # Copy docker-compose
-        cp "$PROJECT_DIR/docker-compose.yml" "$package_dir/"
+        # Copy the canonical compose file (G13: project/deploy/docker-compose.yml),
+        # preserving its deploy/ home so its relative paths resolve in-package.
+        cp "$PROJECT_DIR/deploy/docker-compose.yml" "$package_dir/deploy/"
         
         # Copy .env.example
         cp "$PROJECT_DIR/.env.example" "$package_dir/"

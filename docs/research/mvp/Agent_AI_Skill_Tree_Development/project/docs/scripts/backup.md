@@ -1,31 +1,34 @@
 # `scripts/backup.sh` — create a backup archive
 
-**Revision:** 1
+**Revision:** 2
 **Last modified:** 2026-07-16T00:00:00Z
 
 ## Overview
 
 Creates a compressed `tar.gz` archive containing a database dump
-(`pg_dump`), configuration files (`.env`, `config/config.toml`,
-`docker-compose.yml`), the evidence data directory, and a JSON metadata
-file describing the backup. Companion of `restore.sh`, which consumes the
-archives this script produces.
+(`pg_dump`), configuration files (`.env`, `config/config.toml`, the
+canonical `deploy/docker-compose.yml`), the evidence data directory, and a
+JSON metadata file describing the backup. Companion of `restore.sh`, which
+consumes the archives this script produces.
 
-**Note on which compose stack this targets:** unlike the newer
-`start.sh`/`stop.sh`/`_lib.sh` family, `backup.sh` is part of the older
-script family that reads its own `INSTALL_DIR` (= `project/`, i.e. the
-parent of `scripts/`) and expects `docker-compose.yml` + `.env` directly
-at `project/` root — **not** `project/deploy/docker-compose.yml` /
-`project/deploy/.env`. See "Two coexisting script families" in this
-project's top-level `README.md` for the observed discrepancy between the
-two conventions.
+**Note on which compose stack this targets (G13):** `backup.sh` now targets
+the single canonical compose file `project/deploy/docker-compose.yml` (the
+same file the `start.sh`/`stop.sh`/`_lib.sh` family uses), via an explicit
+`compose -f "$INSTALL_DIR/deploy/docker-compose.yml"`; its datastore service
+is `postgres` and its app service is `app` — the retired root
+`project/docker-compose.yml` and its `db`/`api` service names are gone (see
+`research/ops_hardening_design.md` G13 + `scripts/check_compose_canonical.sh`).
+It still differs from the `_lib.sh` family in one respect: it reads its
+environment from `project/.env` (its own `INSTALL_DIR`), not
+`project/deploy/.env`, and uses its own inline `load_env`/`detect_compose`
+helpers rather than sourcing `_lib.sh`.
 
 ## Prerequisites
 
 - One of: Docker with `docker compose`, `docker-compose` (legacy
   standalone binary), or `podman-compose`.
-- A running `db` compose service (the script execs `pg_dump` inside it via
-  `compose exec -T db`).
+- A running `postgres` compose service (the script execs `pg_dump` inside it
+  via `compose -f deploy/docker-compose.yml exec -T postgres`).
 - `project/.env` (optional; falls back to `DB_HOST=db`,
   `DB_PORT=5432`, `DB_NAME=skilldb`, `DB_USER=skilluser`,
   `DB_PASSWORD=skillpassword` if absent or a given variable is unset).
@@ -58,8 +61,9 @@ two conventions.
 
 ## Inputs
 
-`project/.env` (optional, for DB connection defaults), a running `db`
-compose service, `project/config/config.toml` and `project/docker-compose.yml`
+`project/.env` (optional, for DB connection defaults), a running `postgres`
+compose service, `project/config/config.toml` and
+`project/deploy/docker-compose.yml`
 (copied when present, `--full` mode only), `project/data/evidence/`
 (archived when present, `--full` mode only).
 
@@ -86,7 +90,7 @@ the retention window on every run.
   none found → `log_error` + `exit 1`.
 - **`pg_dump` fails on the first attempt:** the script retries once with
   `PGPASSWORD` explicitly injected via `compose exec -T -e
-  PGPASSWORD=... db pg_dump ...` before giving up (`exit 1`, temp dir
+  PGPASSWORD=... postgres pg_dump ...` before giving up (`exit 1`, temp dir
   removed).
 - **No evidence directory:** logged as a warning; the backup proceeds
   without an `evidence.tar.gz` member.
@@ -104,8 +108,9 @@ the retention window on every run.
    and exits.
 4. `generate_name()` builds the backup name from `--name`, or
    `skill-system_<version>_<timestamp>` where `<version>` is read by
-   execing the `api` container's `--version` flag (falls back to
-   `"unknown"` if that fails).
+   execing the `app` container's `/app/server --version` (falls back to
+   `"unknown"` if that fails; the `app` service is opt-in under the
+   canonical file's `app` profile).
 5. `create_backup()`: creates a temp working tree
    (`database/`, `config/`, `evidence/`, `metadata/`), dumps + gzips the
    database, copies configuration + archives evidence in `--full` mode,
@@ -126,5 +131,6 @@ distribution" script — not a backup).
 
 ## Last verified
 
-2026-07-16, against `project/scripts/backup.sh` (9176 bytes, last modified
-2026-07-15).
+2026-07-16, against `project/scripts/backup.sh` (9710 bytes, last modified
+2026-07-16) after the G13 canonical-compose change (compose calls target
+`-f deploy/docker-compose.yml`; services `postgres`/`app`).

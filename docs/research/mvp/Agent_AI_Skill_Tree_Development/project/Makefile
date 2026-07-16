@@ -40,6 +40,12 @@ LDFLAGS     = -s -w \
 # `make CONTAINER_RUNTIME=docker ...` when Docker is genuinely required.
 CONTAINER_RUNTIME ?= podman
 COMPOSE_CMD       ?= $(CONTAINER_RUNTIME) compose
+# G13: the ONE canonical compose file (research/ops_hardening_design.md). Every
+# compose target below targets it explicitly via `-f $(COMPOSE_FILE)`, never a
+# retired rival root docker-compose.yml via cwd discovery. The canonical
+# datastore service is `postgres`; the app/worker services are opt-in under the
+# `app` compose profile (postgres-only is the standing default `up`).
+COMPOSE_FILE      ?= deploy/docker-compose.yml
 IMAGE_NAME        ?= skill-system
 IMAGE_TAG         ?= $(VERSION)
 
@@ -136,13 +142,13 @@ run-worker: build-worker ## Run worker in development mode
 .PHONY: dev
  dev: ## Start development stack (docker compose)
 	@echo -e "$(BLUE)Starting development stack...$(NC)"
-	$(COMPOSE_CMD) -f docker-compose.yml up -d db
+	$(COMPOSE_CMD) -f $(COMPOSE_FILE) up -d postgres
 	@echo -e "$(GREEN)Database ready. Run 'make run' to start server.$(NC)"
 
 .PHONY: dev-down
 dev-down: ## Stop development stack
 	@echo -e "$(BLUE)Stopping development stack...$(NC)"
-	$(COMPOSE_CMD) -f docker-compose.yml down
+	$(COMPOSE_CMD) -f $(COMPOSE_FILE) down
 
 # ---------------------------------------------------------------------------
 # Testing
@@ -236,8 +242,8 @@ db-reset: ## Reset database (drop and recreate)
 	@echo -e "$(YELLOW)WARNING: This will delete all data!$(NC)"
 	@read -p "Are you sure? [y/N] " confirm; \
 	if [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ]; then \
-		$(COMPOSE_CMD) exec db psql -U $(DB_USER) -c "DROP DATABASE IF EXISTS $(DB_NAME);"; \
-		$(COMPOSE_CMD) exec db psql -U $(DB_USER) -c "CREATE DATABASE $(DB_NAME);"; \
+		$(COMPOSE_CMD) -f $(COMPOSE_FILE) exec postgres psql -U $(DB_USER) -c "DROP DATABASE IF EXISTS $(DB_NAME);"; \
+		$(COMPOSE_CMD) -f $(COMPOSE_FILE) exec postgres psql -U $(DB_USER) -c "CREATE DATABASE $(DB_NAME);"; \
 		$(MAKE) migrate-up; \
 		echo -e "$(GREEN)Database reset complete$(NC)"; \
 	else \
@@ -250,7 +256,7 @@ db-reset: ## Reset database (drop and recreate)
 .PHONY: docker-build
 docker-build: ## Build Docker image
 	@echo -e "$(BLUE)Building Docker image...$(NC)"
-	$(COMPOSE_CMD) build \
+	$(COMPOSE_CMD) -f $(COMPOSE_FILE) --profile app build \
 		--build-arg VERSION=$(VERSION) \
 		--build-arg COMMIT=$(COMMIT) \
 		--build-arg BUILD_TIME=$(BUILD_TIME)
@@ -266,20 +272,30 @@ docker-push: docker-build ## Push Docker image to registry
 .PHONY: docker-up
 docker-up: ## Start services with docker compose
 	@echo -e "$(BLUE)Starting services...$(NC)"
-	$(COMPOSE_CMD) up -d
+	$(COMPOSE_CMD) -f $(COMPOSE_FILE) --profile app up -d
 
 .PHONY: docker-down
 docker-down: ## Stop services
 	@echo -e "$(BLUE)Stopping services...$(NC)"
-	$(COMPOSE_CMD) down
+	# G13/F1: symmetric with `docker-up`. `docker-up` starts the `app` profile
+	# (postgres+app+worker) and monitoring is an opt-in `--profile monitoring`
+	# `up`; a profile-less `down` would leave those profiled containers running
+	# (a profile-less down/logs/ps only sees the default `postgres` service).
+	# Enabling BOTH profiles (+ --remove-orphans) makes `down` actually stop
+	# everything `docker-up`(+monitoring) could start.
+	$(COMPOSE_CMD) -f $(COMPOSE_FILE) --profile app --profile monitoring down --remove-orphans
 
 .PHONY: docker-logs
 docker-logs: ## Show service logs
-	$(COMPOSE_CMD) logs -f
+	# G13/F1: enable both profiles so `logs -f` follows the app/worker/monitoring
+	# services too (a profile-less logs only sees the default `postgres` service).
+	$(COMPOSE_CMD) -f $(COMPOSE_FILE) --profile app --profile monitoring logs -f
 
 .PHONY: docker-ps
 docker-ps: ## Show running containers
-	$(COMPOSE_CMD) ps
+	# G13/F1: enable both profiles so `ps` lists the app/worker/monitoring
+	# services too (a profile-less ps only sees the default `postgres` service).
+	$(COMPOSE_CMD) -f $(COMPOSE_FILE) --profile app --profile monitoring ps
 
 # ---------------------------------------------------------------------------
 # Backup & Restore
@@ -323,7 +339,7 @@ clean: ## Remove build artifacts
 .PHONY: clean-all
 clean-all: docker-down clean ## Full cleanup including containers and volumes
 	@echo -e "$(BLUE)Full cleanup...$(NC)"
-	$(COMPOSE_CMD) down -v --remove-orphans
+	$(COMPOSE_CMD) -f $(COMPOSE_FILE) down -v --remove-orphans
 	rm -rf $(BUILD_DIR) $(DIST_DIR)
 
 # ---------------------------------------------------------------------------

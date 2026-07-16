@@ -1,6 +1,6 @@
 # `scripts/_lib.sh` — shared ops-script library
 
-**Revision:** 1
+**Revision:** 2
 **Last modified:** 2026-07-16T00:00:00Z
 
 ## Overview
@@ -110,7 +110,7 @@ None beyond reading `deploy/.env` from disk (never written by this file).
   `logs.sh`) use `hx_detect_engine`, which dies with an actionable
   "install Docker or Podman" message.
 - **`deploy/.env` absent:** `hx_load_env` does not fail; it applies the
-  same dev-safe defaults `docker-compose.yml` itself falls back to
+  same dev-safe defaults `deploy/docker-compose.yml` itself falls back to
   (`skilldb` / `skilluser` / `skillpassword` / port `5432` / project name
   `helix-skills`).
 
@@ -132,13 +132,14 @@ callers that run compose).
 ## Cross-references
 
 Sourced by: `start.sh`, `stop.sh`, `restart.sh`, `status.sh`, `install.sh`,
-`uninstall.sh`, `logs.sh`. Not used by the older project-root-based family
+`uninstall.sh`, `logs.sh`. Not used by the older inline family
 (`backup.sh`, `migrate.sh`, `package.sh`, `restore.sh`), which implement
-their own inline `load_env`/`detect_compose` helpers against
-`project/docker-compose.yml` + `project/.env` rather than
-`project/deploy/docker-compose.yml` + `project/deploy/.env` — see the
-"Two coexisting script families" note in `README.md` at the MVP project
-root for the observed discrepancy between the two conventions.
+their own inline `load_env`/`detect_compose` helpers rather than sourcing
+`_lib.sh`. After G13 (`research/ops_hardening_design.md`), BOTH families
+target the same single canonical compose file
+`project/deploy/docker-compose.yml`; the inline family differs only in
+reading its environment from `project/.env` (its own `INSTALL_DIR`) rather
+than `project/deploy/.env`, and in not sharing this library.
 
 ## Last verified
 

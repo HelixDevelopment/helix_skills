@@ -15,6 +15,13 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INSTALL_DIR="$(dirname "$SCRIPT_DIR")"
 SERVICE_NAME="skill-system"
+# G13: the single canonical compose file + its service names. Compose calls
+# target this file explicitly (-f); canonical services are `postgres` (datastore)
+# and `app` (opt-in `--profile app`), never the retired root file's `db`/`api`.
+# See research/ops_hardening_design.md (G13) + scripts/check_compose_canonical.sh.
+COMPOSE_FILE="$INSTALL_DIR/deploy/docker-compose.yml"
+DB_SERVICE="postgres"
+APP_SERVICE="app"
 
 # Colors
 RED='\033[0;31m'
@@ -66,7 +73,7 @@ generate_name() {
     local timestamp
     timestamp=$(date +%Y%m%d_%H%M%S)
     local version
-    version=$(cd "$INSTALL_DIR" && $COMPOSE_CMD exec -T api /app/server --version 2>/dev/null || echo "unknown")
+    version=$(cd "$INSTALL_DIR" && $COMPOSE_CMD -f "$COMPOSE_FILE" exec -T "$APP_SERVICE" /app/server --version 2>/dev/null || echo "unknown")
     version=$(echo "$version" | tr -d '[:space:]')
     
     if [ -n "$BACKUP_NAME" ]; then
@@ -92,7 +99,7 @@ create_backup() {
     log_info "Dumping database..."
     cd "$INSTALL_DIR"
     
-    if ! $COMPOSE_CMD exec -T db pg_dump \
+    if ! $COMPOSE_CMD -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" pg_dump \
         -U "$DB_USER" \
         -d "$DB_NAME" \
         --no-owner \
@@ -100,9 +107,9 @@ create_backup() {
         --clean \
         --if-exists \
         > "$backup_root/database/skilldb.sql" 2>/dev/null; then
-        
+
         # Fallback: try with password in environment
-        if ! $COMPOSE_CMD exec -T -e PGPASSWORD="$DB_PASSWORD" db pg_dump \
+        if ! $COMPOSE_CMD -f "$COMPOSE_FILE" exec -T -e PGPASSWORD="$DB_PASSWORD" "$DB_SERVICE" pg_dump \
             -U "$DB_USER" \
             -d "$DB_NAME" \
             --no-owner \
@@ -132,9 +139,9 @@ create_backup() {
             cp "$INSTALL_DIR/config/config.toml" "$backup_root/config/"
         fi
         
-        # Copy compose file
-        if [ -f "$INSTALL_DIR/docker-compose.yml" ]; then
-            cp "$INSTALL_DIR/docker-compose.yml" "$backup_root/config/"
+        # Copy compose file (G13 canonical: deploy/docker-compose.yml)
+        if [ -f "$COMPOSE_FILE" ]; then
+            cp "$COMPOSE_FILE" "$backup_root/config/"
         fi
         
         log_success "Configuration backed up"
@@ -159,7 +166,7 @@ create_backup() {
     "name": "$name",
     "type": "$BACKUP_TYPE",
     "created_at": "$(date -Iseconds)",
-    "version": "$(cd "$INSTALL_DIR" && $COMPOSE_CMD exec -T api /app/server --version 2>/dev/null || echo "unknown")",
+    "version": "$(cd "$INSTALL_DIR" && $COMPOSE_CMD -f "$COMPOSE_FILE" exec -T "$APP_SERVICE" /app/server --version 2>/dev/null || echo "unknown")",
     "hostname": "$(hostname)",
     "database": {
         "name": "$DB_NAME",
