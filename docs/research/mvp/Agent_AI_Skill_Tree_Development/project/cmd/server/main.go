@@ -178,6 +178,54 @@ func migrateOnStartup(ctx context.Context, pool *db.Pool, fsys fs.FS, logger *za
 	return nil
 }
 
+// healthPinger is the minimal database dependency the OPEN /health handler
+// needs. *db.Pool satisfies it via its own Health method. Abstracting this
+// out (rather than depending on *db.Pool directly) lets a hermetic unit test
+// exercise the handler's error-redaction behavior with a fake unhealthy
+// dependency that returns a realistic pgx/pgxpool-shaped connection error —
+// without needing an actually-broken database connection.
+type healthPinger interface {
+	Health(ctx context.Context) error
+}
+
+// newHealthHandler returns the OPEN, unauthenticated /health liveness-probe
+// handler. It MUST be registered directly on the router (never behind
+// authMW) so an orchestrator/systemd liveness check reaches it without an
+// API key.
+//
+// SECURITY (§G24 finding 3): pgx/pgxpool connection-error strings routinely
+// embed the live DSN's connection details — e.g. "database health check
+// failed: failed to connect to `host=127.0.0.1 user=skillsys
+// database=postgres`: dial error ...". Emitting that verbatim on this OPEN
+// surface would disclose host/user/password details to ANY unauthenticated
+// caller whenever the database is down. The full error is therefore logged
+// server-side ONLY (zap); the wire response carries just a coarse
+// "ok"/"error" constant, matching the redacted api/openapi.yaml
+// HealthResponse.database contract. The overall "status"/200 behavior is
+// intentionally left unchanged here (it does not vary with dbStatus) — see
+// the api/openapi.yaml HealthResponse description for the tracked
+// served-vs-dead-handler duplication this does not attempt to unify.
+func newHealthHandler(pool healthPinger, transport string, logger *zap.Logger) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		dbStatus := "ok"
+		if err := pool.Health(ctx); err != nil {
+			dbStatus = "error"
+			logger.Warn("health check: database ping failed", zap.Error(err))
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"status":    "healthy",
+			"server":    "helix-knowledge-skill-system",
+			"version":   "1.0.0",
+			"database":  dbStatus,
+			"transport": transport,
+		})
+	}
+}
+
 // buildRouter assembles the SINGLE hardened Gin router used by every
 // HTTP-serving mode. It wires the config-driven CORS allowlist, resolves the
 // fail-closed API-key auth ONCE, and guards BOTH the /api/v1 data routes AND the
@@ -242,24 +290,29 @@ func buildRouter(cfg *config.Config, pool *db.Pool, store *skill.Store, reg *reg
 	// auth-disabled mode.
 	authMW := api.ResolveAPIKeyAuth(cfg.Server.APIKeys, cfg.Server.AuthDisabled, logger)
 
-	// Health check (open)
-	router.GET("/health", func(c *gin.Context) {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
+	// Health check (open, unauthenticated liveness probe). Wired via
+	// newHealthHandler (below) rather than an inline closure so the
+	// error-redaction behavior is independently unit-testable without a live
+	// database connection (§G24 finding 3 remediation).
+	router.GET("/health", newHealthHandler(pool, cfg.MCP.Transport, logger))
 
-		dbStatus := "ok"
-		if err := pool.Health(ctx); err != nil {
-			dbStatus = "error: " + err.Error()
-		}
-
-		c.JSON(http.StatusOK, gin.H{
-			"status":    "healthy",
-			"server":    "helix-knowledge-skill-system",
-			"version":   "1.0.0",
-			"database":  dbStatus,
-			"transport": cfg.MCP.Transport,
-		})
-	})
+	// System telemetry endpoints (§G24). Registered UNDER the SAME fail-closed
+	// authMW as /api/v1 — never at the router root — so an anonymous scrape of
+	// the Prometheus exposition (goroutine/memory/uptime gauges, Go runtime
+	// internals) or the build/version info is DENIED (401 with keys configured,
+	// 503 when auth is unconfigured-and-not-disabled) instead of leaking internal
+	// telemetry and version strings to any caller. /health stays OPEN above for
+	// liveness probes — the standard open-liveness / gated-telemetry split. This
+	// also aligns the live route surface with api/openapi.yaml, which marks
+	// /metrics and /version as 401 (ApiKeyAuth). The dead internal/api/server.go
+	// registered these three at the router root OUTSIDE auth; that path is not the
+	// wired one, so the fix lands here on the LIVE buildRouter (§11.4.108).
+	sys := router.Group("/")
+	if authMW != nil {
+		sys.Use(authMW)
+	}
+	sys.GET("/metrics", api.MetricsHandler())
+	sys.GET("/version", api.VersionHandler())
 
 	// All /api/v1 data routes are authenticated under the fail-closed guard.
 	v1 := router.Group("/api/v1")
@@ -359,6 +412,8 @@ func buildRouter(cfg *config.Config, pool *db.Pool, store *skill.Store, reg *reg
 			"description": "API and MCP server for AI agent skill management",
 			"endpoints": []string{
 				"GET  /health",
+				"GET  /metrics (Prometheus exposition, auth required)",
+				"GET  /version (auth required)",
 				"GET  /api/v1/skills (auth required)",
 				"GET  /api/v1/skills/search?q=query (auth required)",
 				"GET  /api/v1/skills/:name (auth required)",

@@ -960,31 +960,59 @@ paths:
       operationId: getHealth
       summary: Health check
       tags: [System]
+      # §G24: /health is the UNAUTHENTICATED liveness probe — an orchestrator /
+      # systemd health check MUST reach it without an API key. This per-operation
+      # override clears the global ApiKeyAuth requirement so the contract matches
+      # the live open posture (the previous '401' here contradicted the operable
+      # need and was a §11.4.186 cross-doc divergence). /metrics and /version
+      # remain ApiKeyAuth-gated (their '401' responses below are correct).
+      #
+      # §G24 finding 2 (independent review): the schema + example below
+      # describe the body the LIVE handler (cmd/server/main.go's
+      # newHealthHandler, registered on buildRouter) actually serves, not the
+      # dead *Server.handleHealth shape (internal/api/system_handler.go) that
+      # was never wired onto this route. The two implementations' body shapes
+      # remain genuinely different (status enum, uptime_seconds vs. no uptime,
+      # a single coarse "database" string vs. a "checks" map) — unifying them
+      # is intentionally out of scope here and tracked as its own item; this
+      # comment + the HealthResponse schema below only make the DOCS match the
+      # bytes actually on the wire (§11.4.186).
+      security: []
       responses:
         '200':
-          description: Service is healthy.
+          description: >-
+            Service is reachable. See HealthResponse for the live field
+            semantics — notably "status" is currently always the literal
+            "healthy" (it does not vary by database reachability on this
+            handler) and "database" is a coarse, redacted "ok"/"error" (never
+            the underlying connection error text — §G24 finding 3).
           content:
-            application/toon:
-              schema:
-                $ref: '#/components/schemas/HealthResponse'
+            # §G24 finding N1: newHealthHandler (cmd/server/main.go) writes via
+            # c.JSON unconditionally — it never calls NegotiateResponse — so
+            # this endpoint can never serve application/toon for any
+            # Accept/?format=; TOON is intentionally not offered here.
             application/json:
               schema:
                 $ref: '#/components/schemas/HealthResponse'
               example:
-                status: "ok"
-                version: "1.4.2"
-                uptime_seconds: 86412
-                checks:
-                  database: true
-                  embedding_provider: true
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                status: "healthy"
+                server: "helix-knowledge-skill-system"
+                version: "1.0.0"
+                database: "ok"
+                transport: "http"
 
   /metrics:
     get:
       operationId: getMetrics
       summary: Prometheus metrics
       tags: [System]
+      # §G24 finding 4: the example below MUST name a metric the live exposition
+      # actually emits. internal/api/system_handler.go registers three real
+      # gauges under the helix_api_* namespace/subsystem (uptime_seconds,
+      # goroutines_count, memory_usage_bytes) via promauto — it never emits
+      # skillgraph_skills_total (no such metric exists anywhere in the
+      # codebase), so the previous example described a metric that can never
+      # appear in a real scrape (§11.4.186 cross-doc divergence).
       responses:
         '200':
           description: Prometheus text exposition format.
@@ -993,9 +1021,9 @@ paths:
               schema:
                 type: string
               example: |
-                # HELP skillgraph_skills_total Total number of skills.
-                # TYPE skillgraph_skills_total gauge
-                skillgraph_skills_total 128
+                # HELP helix_api_uptime_seconds Number of seconds since the API server started
+                # TYPE helix_api_uptime_seconds gauge
+                helix_api_uptime_seconds 128.5
         '401':
           $ref: '#/components/responses/Unauthorized'
 
@@ -1015,10 +1043,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/VersionResponse'
               example:
-                version: "1.4.2"
-                git_commit: "a1b2c3d4"
-                build_date: "2026-07-01T00:00:00Z"
+                version: "1.0.0"
+                commit: "a1b2c3d4"
+                build_time: "2026-07-01T00:00:00Z"
                 go_version: "go1.22.5"
+                platform: "linux/amd64"
         '401':
           $ref: '#/components/responses/Unauthorized'
 
@@ -1750,19 +1779,43 @@ components:
 
     HealthResponse:
       type: object
-      required: [status]
+      description: >-
+        Describes the body served by the LIVE, unauthenticated GET /health
+        handler (cmd/server/main.go's newHealthHandler). A separate, dead
+        *Server.handleHealth implementation (internal/api/system_handler.go)
+        is NOT wired onto this route and has a different shape (status
+        enum [ok, degraded, down], uptime_seconds, a "checks" map) — that
+        duplication is tracked separately (§G24) and is not described here.
+      required: [status, server, version, database, transport]
       properties:
         status:
           type: string
-          enum: [ok, degraded, down]
+          description: >-
+            Overall liveness status. Currently always the literal "healthy" —
+            the live handler does not vary this by database reachability.
+          enum: [healthy]
+        server:
+          type: string
+          description: Static server identifier.
         version:
           type: string
-        uptime_seconds:
-          type: integer
-        checks:
-          type: object
-          additionalProperties:
-            type: boolean
+          description: >-
+            Static server version string, currently hardcoded independent of
+            the build-time version/commit/build_time values served by
+            GET /version.
+        database:
+          type: string
+          description: >-
+            Coarse database connectivity status. The underlying connection
+            error (which may otherwise embed host/user/password DSN details)
+            is NEVER exposed on this open, unauthenticated endpoint — it is
+            redacted server-side to one of these two values and the real
+            error is logged, not served.
+          enum: [ok, error]
+        transport:
+          type: string
+          description: The configured MCP transport mode.
+          example: "http"
 
     VersionResponse:
       type: object
@@ -1770,13 +1823,15 @@ components:
       properties:
         version:
           type: string
-        git_commit:
+        commit:
           type: string
-        build_date:
+        build_time:
           type: string
-          format: date-time
         go_version:
           type: string
+        platform:
+          type: string
+          description: 'runtime.GOOS + "/" + runtime.GOARCH, e.g. "linux/amd64".'
 
     Error:
       type: object
