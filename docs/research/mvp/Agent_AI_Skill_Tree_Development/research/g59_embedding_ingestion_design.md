@@ -1,5 +1,8 @@
 # Design: G59 — Wire Embedding Ingestion
 
+**Revision:** 1
+**Last modified:** 2026-07-17T23:11:30Z
+
 **Date:** 2026-07-17
 **Status:** DESIGN
 **Scope:** Wire `db.StoreSkillEmbedding` into skill create/update paths
@@ -7,6 +10,9 @@
 ---
 
 ## 1. Current State
+
+**Revision:** 1
+**Last modified:** 2026-07-17T23:11:30Z
 
 ### What's Implemented
 - `internal/db/vector.go:180` — `StoreSkillEmbedding(ctx, pool, skillID, embedding)` — exists but zero callers

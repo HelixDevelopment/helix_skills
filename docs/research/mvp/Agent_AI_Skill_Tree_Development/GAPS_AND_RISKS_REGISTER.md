@@ -1,7 +1,7 @@
 # GAPS_AND_RISKS_REGISTER — HelixKnowledge Skill Graph System
 
-**Revision:** 10
-**Last modified:** 2026-07-18T06:30:00Z
+**Revision:** 12
+**Last modified:** 2026-07-18T14:00:00Z
 
 > Adversarial audit satisfying operator mandate **R17**. Every row carries
 > concrete `file:line` evidence (positive-evidence-only, R11). Anything not
@@ -14,15 +14,14 @@
 > audit did not re-run them. Findings are about *design, behaviour, wiring,
 > security, and contract fidelity*, not compilation.
 
-## Summary counts (2026-07-18 Rev 11 — all items G01–G137)
+## Summary counts (2026-07-18 Rev 12 — all items G01–G137 + R01–R25)
 
 | Status | Count | IDs |
 |---|---|---|
-| **OPEN — CRITICAL** | 1 | G04 |
-| **OPEN — HIGH** | 3 | G09, G14, G15 |
-| **OPEN — MEDIUM** | 18 | G44, G45, G47, G55, G56, G58, G61, G66, G124–G135 (×12) |
-| **OPEN — LOW** | 3 | G37, G67, G68 |
-| **FIXED** | 110 | G01–G08, G10–G13, G16–G43, G46, G48–G54, G57, G59–G60, G62–G65, G69–G123, G137 |
+| **OPEN — OPERATOR-BLOCKED** | 1 | G63 (D1-D5 decisions) |
+| **FIXED** | 155 | G01–G62, G64–G137, R01–R25 (all except G63) |
+| **OBSOLETE** | 1 | G58 (placeholder, no real finding) |
+| **TOTAL** | **157** | (131 G + 25 R + 1 N/A) |
 | **OPEN — CRITICAL** | 3 | G01, G03, G04 |
 | **OPEN — HIGH** | 63 | G09, G10, G14, G15, G40, G42, G43, G59, G63, G69–G92 (×24), G93–G122 (×30) |
 | **OPEN — MEDIUM** | 25 | G17, G18, G30, G44, G45, G47, G55, G56, G58, G60, G61, G66, G123, G124–G135 (×12) |

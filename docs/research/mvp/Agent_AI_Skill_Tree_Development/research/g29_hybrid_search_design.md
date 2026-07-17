@@ -1,5 +1,8 @@
 # Design: G29 — Wire Hybrid Vector Search
 
+**Revision:** 1
+**Last modified:** 2026-07-17T23:11:30Z
+
 **Date:** 2026-07-17
 **Status:** DESIGN
 **Scope:** Wire `Store.VectorSearch` into `Store.Search` for hybrid vector+keyword search
@@ -7,6 +10,9 @@
 ---
 
 ## 1. Current State
+
+**Revision:** 1
+**Last modified:** 2026-07-17T23:11:30Z
 
 ### What's Implemented
 - `internal/skill/store.go:50-118` — `Store.Search` — ILIKE/trigram only (no vector)

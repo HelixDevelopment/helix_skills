@@ -1,6 +1,12 @@
 # Research: MCP & ACP Protocols for AI CLI Agent Integration
 
+**Revision:** 1
+**Last modified:** 2026-07-17T23:11:30Z
+
 ## Knowledge Skill Graph - Dimension 03: Protocol Integration Layer
+
+**Revision:** 1
+**Last modified:** 2026-07-17T23:11:30Z
 
 **Research Date:** 2026-07-15
 **Researcher:** AI Research Agent

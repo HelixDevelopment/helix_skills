@@ -1,5 +1,8 @@
 # OpenDesign UI/UX Planning — Skill Tree Visualization & Management
 
+**Revision:** 1
+**Last modified:** 2026-07-17T23:11:30Z
+
 **Date:** 2026-07-17
 **Status:** DESIGN
 **Scope:** UI/UX planning for the skill tree visualization and management interface
@@ -7,6 +10,9 @@
 ---
 
 ## 1. Overview
+
+**Revision:** 1
+**Last modified:** 2026-07-17T23:11:30Z
 
 The skill system needs UI/UX surfaces for:
 1. **Skill Tree Visualization** — Interactive DAG visualization

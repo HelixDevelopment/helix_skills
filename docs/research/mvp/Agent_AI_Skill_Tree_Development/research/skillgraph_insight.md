@@ -1,6 +1,12 @@
 # Insight Extraction: Skill Graph System
 
+**Revision:** 1
+**Last modified:** 2026-07-17T23:11:30Z
+
 ## Cross-Dimension Insights
+
+**Revision:** 1
+**Last modified:** 2026-07-17T23:11:30Z
 
 ### Insight 1: Single-Database Architecture Eliminates an Entire Class of Integration Failures
 - **Derived From**: Dim 02 (Memory Systems), Dim 04 (Vector DB), Dim 01 (CodeGraph)

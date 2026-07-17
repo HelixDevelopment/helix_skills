@@ -1,5 +1,8 @@
 # Design: G03 — Wire Validation Pipeline into Worker
 
+**Revision:** 1
+**Last modified:** 2026-07-17T23:11:30Z
+
 **Date:** 2026-07-17
 **Status:** DESIGN
 **Scope:** Wire `internal/validation.Pipeline` into the worker's `handleValidate` and `runValidationCycle`
@@ -7,6 +10,9 @@
 ---
 
 ## 1. Current State
+
+**Revision:** 1
+**Last modified:** 2026-07-17T23:11:30Z
 
 ### What's Implemented
 - `internal/validation/pipeline.go` — Full validation pipeline with:

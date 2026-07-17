@@ -1,5 +1,8 @@
 # Deep Research: SPEC.md Gap Analysis — All Remaining Unimplemented Features
 
+**Revision:** 1
+**Last modified:** 2026-07-17T23:11:30Z
+
 **Date:** 2026-07-17
 **Analyst:** Deep Research Agent (T2)
 **Scope:** SPEC.md §2-§8 vs current implementation tree
@@ -8,6 +11,9 @@
 ---
 
 ## Executive Summary
+
+**Revision:** 1
+**Last modified:** 2026-07-17T23:11:30Z
 
 Of the 137 tracked gaps (G01-G137), **31 are CLOSED/FIXED**, **6 are operator-blocked**, and **100 remain OPEN**. The implementation has made significant progress on security (G01 runtime hole closed, G02 sandbox RCE eliminated, G21 SSRF guard landed) and core DAG correctness (G06/G07 landed), but the **flagship pipelines** (validation jury, auto-expand growth, code analysis) remain partially or fully unwired, and **zero test coverage** exists for most packages.
 

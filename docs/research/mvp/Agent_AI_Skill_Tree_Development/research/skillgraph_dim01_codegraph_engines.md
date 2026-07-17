@@ -1,6 +1,12 @@
 # Research: Code Analysis Engines & Knowledge Graph Systems for AI Skill Graphs
 
+**Revision:** 1
+**Last modified:** 2026-07-17T23:11:30Z
+
 ## Research Date: 2025
+
+**Revision:** 1
+**Last modified:** 2026-07-17T23:11:30Z
 ## Researcher: AI Research Agent
 ## Scope: Technology landscape for self-growing Knowledge Skill Graph system
 

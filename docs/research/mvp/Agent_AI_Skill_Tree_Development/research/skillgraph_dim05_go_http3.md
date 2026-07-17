@@ -1,6 +1,12 @@
 # Research: Go HTTP/3, QUIC, and Serialization Technologies
 
+**Revision:** 1
+**Last modified:** 2026-07-17T23:11:30Z
+
 ## Research Objective
+
+**Revision:** 1
+**Last modified:** 2026-07-17T23:11:30Z
 
 Validate technology choices for a Knowledge Skill Graph system API in Go that uses HTTP/3 (QUIC) with Brotli compression and TOML serialization. Research covers: quic-go HTTP/3 server production readiness, Gin + HTTP/3 integration, Brotli compression libraries, TOML vs JSON serialization performance, Caddy as alternative QUIC proxy, and Go 1.22+ features.
 

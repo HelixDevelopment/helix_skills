@@ -1,5 +1,8 @@
 # Design: CodeGraph Integration (§11.4.78/§11.4.80)
 
+**Revision:** 1
+**Last modified:** 2026-07-17T23:11:30Z
+
 **Date:** 2026-07-17
 **Status:** DESIGN
 **Scope:** Wire CodeGraph MCP server integration for code index and sync automation
@@ -8,6 +11,9 @@
 ---
 
 ## 1. Overview
+
+**Revision:** 1
+**Last modified:** 2026-07-17T23:11:30Z
 
 CodeGraph is an MCP server providing code intelligence (AST parsing, symbol indexing, dependency analysis). The skill system needs to integrate with CodeGraph for:
 

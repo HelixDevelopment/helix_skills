@@ -1,5 +1,8 @@
 # Dim 04 Research: Vector Database Technologies for Skill Graph System
 
+**Revision:** 1
+**Last modified:** 2026-07-17T23:11:30Z
+
 **Research Date:** 2025-08-06
 **Researcher:** AI Research Agent
 **Objective:** Validate PostgreSQL + pgvector choice for Knowledge Skill Graph system; compare against alternatives; understand production characteristics at 10K-100K skills scale with millions of evidence nodes.
@@ -7,6 +10,9 @@
 ---
 
 ## Table of Contents
+
+**Revision:** 1
+**Last modified:** 2026-07-17T23:11:30Z
 
 1. [pgvector Capabilities](#1-pgvector-capabilities)
 2. [Comparison with Dedicated Vector DBs](#2-comparison-with-dedicated-vector-databases)

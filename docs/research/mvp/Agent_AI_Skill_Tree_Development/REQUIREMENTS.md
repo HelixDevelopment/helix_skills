@@ -1,5 +1,8 @@
 # HelixKnowledge Skill Graph System — Consolidated Requirements (living doc)
 
+**Revision:** 1
+**Last modified:** 2026-07-17T23:11:30Z
+
 Status: **requirements-gathering + research phase → P0.5 critical remediation.**
 Foundation (extracted Go backend) **compiles clean** (`go build ./...`=0 at HEAD
 `255061b`; the original "does not compile" was the pre-P0 Baseline, resolved by the
@@ -7,6 +10,9 @@ build-fix commit `5532e2b` — see "Baseline", now marked SUPERSEDED). This doc 
 single source of truth as scope evolves; correct it here.
 
 ## Vision
+
+**Revision:** 1
+**Last modified:** 2026-07-17T23:11:30Z
 A **universal**, self-growing Knowledge Skill Graph for AI CLI agents. Users
 request knowledge for arbitrary technologies; the system **creates skills
 dynamically on demand**, maps their dependency DAG, validates them (no bluff),

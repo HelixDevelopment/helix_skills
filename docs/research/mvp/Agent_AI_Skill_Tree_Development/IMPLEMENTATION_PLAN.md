@@ -1,5 +1,8 @@
 # HelixKnowledge Skill Graph System — Comprehensive Implementation Plan
 
+**Revision:** 1
+**Last modified:** 2026-07-17T23:11:30Z
+
 > **Status:** living master plan. Supersedes the short "Draft staged plan
 > (S0–S6)" in `REQUIREMENTS.md` by expanding it into phases → tasks → subtasks
 > with explicit evidence gates. `REQUIREMENTS.md` remains the source-of-truth for
@@ -12,6 +15,9 @@
 ---
 
 ## 0. How to read this plan
+
+**Revision:** 1
+**Last modified:** 2026-07-17T23:11:30Z
 
 - Work is decomposed into **Phases (P0–P13)** and four always-on **Cross-cutting
   tracks (X1–X4)**. Each phase has a **Goal**, ordered **Tasks (`Pn.Tm`)**, each

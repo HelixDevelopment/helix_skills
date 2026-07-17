@@ -1,6 +1,12 @@
 # Dimension 06: Validation & Verification Techniques - Deep Research
 
+**Revision:** 1
+**Last modified:** 2026-07-17T23:11:30Z
+
 ## Research: LLM Hallucination Prevention & Knowledge Validation Techniques
+
+**Revision:** 1
+**Last modified:** 2026-07-17T23:11:30Z
 **Date:** 2025-07-30
 **Purpose:** Inform the Knowledge Skill Graph system's validation pipeline to guarantee ZERO false/bluff knowledge
 **Methodology:** 18 independent web searches across 6 research areas; 40+ authoritative sources analyzed

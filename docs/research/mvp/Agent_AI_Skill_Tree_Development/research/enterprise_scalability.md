@@ -1,5 +1,8 @@
 # Enterprise Scalability Documentation — Skill Graph System
 
+**Revision:** 1
+**Last modified:** 2026-07-17T23:11:30Z
+
 **Date:** 2026-07-17
 **Status:** DESIGN
 **Scope:** Scalability planning for enterprise deployment of the skill graph system
@@ -7,6 +10,9 @@
 ---
 
 ## 1. Overview
+
+**Revision:** 1
+**Last modified:** 2026-07-17T23:11:30Z
 
 This document addresses scalability concerns for deploying the HelixKnowledge Skill Graph System at enterprise scale, covering:
 

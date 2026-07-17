@@ -1,5 +1,8 @@
 # SkillGraph Memory Systems Research: Comprehensive Findings
 
+**Revision:** 1
+**Last modified:** 2026-07-17T23:11:30Z
+
 **Research Date:** 2026-01-18
 **Researcher:** AI Research Agent
 **Scope:** LLM Memory Systems for Persistent Agent Knowledge
@@ -8,6 +11,9 @@
 ---
 
 ## Table of Contents
+
+**Revision:** 1
+**Last modified:** 2026-07-17T23:11:30Z
 
 1. [pgvector Production Performance](#1-pgvector-production-performance)
 2. [Memory Architectures for LLM Agents](#2-memory-architectures-for-llm-agents)

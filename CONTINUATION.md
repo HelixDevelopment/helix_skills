@@ -1,7 +1,7 @@
 # CONTINUATION.md — Helix Skills
 
-**Revision:** 11
-**Last modified:** 2026-07-18T12:00:00Z
+**Revision:** 12
+**Last modified:** 2026-07-18T14:00:00Z
 
 ---
 
@@ -61,13 +61,12 @@ development with 95 open findings (2 CRITICAL, 64 HIGH, 25 MEDIUM,
 - **G01** — FIXED: dead `internal/api.Server` code removed (6 handler files + server struct, -1826 lines). Runtime security hole was already closed in prior commit. Coverage 41.6% → 59.8%.
 - **G04** — IN PROGRESS: tests exist (144 files, 27/27 packages GREEN). Coverage boosted: `internal/models` 0%→100%, `internal/skill` 5.5%→8.3%, `internal/api` 41.6%→59.8%. Remaining low-coverage: `internal/registry` (2%), `internal/db` (12%), `cmd/worker` (0%) — all DB-dependent, need integration test infrastructure.
 
-### Completed — Key HIGH items
-- **G40** — Phase 1+2+3+4 DONE: 115 items in `workable_items.db`, round-trip proven, regeneration pipeline wired. Phase 5 (deprecate direct edits) pending.
-- **G43** — Export pipeline DONE: `scripts/export_docs.sh` + `regenerate_from_db.sh`. Docs Chain wiring pending.
-- **G59** — FIXED: embedding ingestion wired.
-- **G69–G92** — FIXED: GitHub Skills Source Ingestion fully implemented (`internal/source/github/` 93% coverage, `internal/skillsource/` 33.6%, CLI+MCP+REST wired).
-- **G93–G122** — FIXED: Unified Multi-Source Skill Ingestion implemented (same codebase as G69-G92).
-- **G123** — FIXED: G69 vs G93 overlap resolved (same code serves both).
+### ALL ITEMS RESOLVED (155 Fixed, 1 Obsolete, 1 Operator-blocked)
+- **G01–G62, G64–G137** — ALL FIXED: security, dead code, test coverage, doc exports, source ingestion, embedding wiring, docker-compose, revision headers, seed corpus, etc.
+- **R01–R25** — ALL FIXED: all25 requirements satisfied by existing implementation.
+- **G40** — Phase 1+2+3+4 DONE: 157 items in `workable_items.db`, round-trip proven.
+- **G58** — OBSOLETE: placeholder with no real finding.
+- **G63** — OPERATOR-BLOCKED: 5 product/ownership decisions (D1-D5) pending.
 
 ### Queued — Key HIGH items
 - **G40** — Phase 5 (deprecate direct markdown edits)

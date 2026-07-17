@@ -1,6 +1,12 @@
 # SPEC.md — HelixKnowledge Skill Graph System
 
+**Revision:** 1
+**Last modified:** 2026-07-17T23:11:30Z
+
 ## 1. Overview
+
+**Revision:** 1
+**Last modified:** 2026-07-17T23:11:30Z
 
 A self-growing Knowledge Skill Graph system for AI CLI agents. Each Skill is a versioned unit of knowledge for a specific technology, with recursive dependencies forming a DAG. The system auto-detects gaps, validates knowledge through multi-layer defense, and learns from real codebases.
 
