@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Evidence Browser — HelixKnowledge</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .evidence-shell {
+      display: grid;
+      grid-template-rows: var(--topbar-height) auto 1fr;
+      grid-template-columns: 260px 1fr 300px;
+      min-height: 100vh;
+    }
+    .evidence-shell .topbar { grid-column: 1 / -1; }
+    .evidence-toolbar {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      gap: var(--sp-md);
+      padding: var(--sp-sm) var(--sp-lg);
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+    .evidence-toolbar .search-bar { flex: 1; }
+    .filter-group {
+      display: flex;
+      gap: var(--sp-xs);
+    }
+
+    /* Skill list (left) */
+    .skill-list-panel {
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      padding: var(--sp-sm);
+    }
+    .skill-list-panel__header {
+      padding: var(--sp-sm);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      margin-bottom: var(--sp-sm);
+    }
+    .skill-item {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-sm);
+      padding: var(--sp-sm) var(--sp-md);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: background 0.2s;
+      font-size: 0.8rem;
+    }
+    .skill-item:hover { background: var(--bg-tertiary); }
+    .skill-item--active {
+      background: var(--bg-tertiary);
+      border-left: 3px solid var(--accent);
+    }
+    .skill-item__name {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .skill-item__count {
+      font-size: 0.7rem;
+      padding: 1px 6px;
+      background: rgba(52,152,219,0.15);
+      color: var(--info);
+      border-radius: 999px;
+      flex-shrink: 0;
+    }
+
+    /* Code viewer (center) */
+    .code-viewer {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .code-viewer__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--sp-sm) var(--sp-lg);
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      font-size: 0.8rem;
+    }
+    .code-viewer__filepath {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+    }
+    .code-viewer__body {
+      flex: 1;
+      overflow: auto;
+      padding: var(--sp-md);
+      background: #0d1117;
+    }
+    .code-viewer__body pre {
+      margin: 0;
+      font-size: 0.82rem;
+      line-height: 1.65;
+      tab-size: 4;
+    }
+    .code-viewer__body code {
+      font-family: var(--font-mono);
+    }
+
+    /* Syntax highlight classes */
+    .kw  { color: #ff7b72; }  /* keyword */
+    .fn  { color: #d2a8ff; }  /* function */
+    .str { color: #a5d6ff; }  /* string */
+    .cm  { color: #8b949e; }  /* comment */
+    .ty  { color: #79c0ff; }  /* type */
+    .num { color: #f2cc60; }  /* number */
+    .op  { color: #c9d1d9; }  /* operator */
+    .at  { color: #ffa657; }  /* attribute/decorator */
+    .var { color: #e6edf3; }  /* variable */
+
+    /* Annotation highlight line */
+    .hl {
+      background: rgba(233,69,96,0.08);
+      border-left: 3px solid var(--accent);
+      display: inline-block;
+      width: calc(100% + var(--sp-md) * 2);
+      margin-left: calc(-1 * var(--sp-md));
+      padding-left: var(--sp-md);
+    }
+
+    /* Metadata panel (right) */
+    .meta-panel {
+      background: var(--bg-secondary);
+      border-left: 1px solid var(--border);
+      overflow-y: auto;
+      padding: var(--sp-lg);
+    }
+    .meta-panel__section {
+      margin-bottom: var(--sp-lg);
+    }
+    .meta-panel__section h4 {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: var(--sp-sm);
+    }
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--sp-xs) 0;
+      font-size: 0.8rem;
+      border-bottom: 1px solid rgba(42,42,74,0.5);
+    }
+    .meta-row__label { color: var(--text-muted); }
+    .meta-row__value { font-weight: 600; }
+
+    .validation-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-xs);
+    }
+    .validation-list li {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-sm);
+      font-size: 0.8rem;
+      padding: var(--sp-xs) var(--sp-sm);
+      border-radius: var(--radius-sm);
+      background: var(--bg-primary);
+    }
+
+    .pattern-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+      font-size: 0.7rem;
+      font-weight: 600;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+    }
+
+    .source-link {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-sm);
+      padding: var(--sp-sm) var(--sp-md);
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 0.8rem;
+      color: var(--info);
+      transition: border-color 0.2s;
+    }
+    .source-link:hover {
+      border-color: var(--info);
+      text-decoration: none;
+    }
+
+    @media (max-width: 1200px) {
+      .evidence-shell { grid-template-columns: 220px 1fr 260px; }
+    }
+    @media (max-width: 1024px) {
+      .evidence-shell { grid-template-columns: 1fr; grid-template-rows: var(--topbar-height) auto auto 1fr auto; }
+      .skill-list-panel { border-right: none; border-bottom: 1px solid var(--border); max-height: 200px; }
+      .meta-panel { border-left: none; border-top: 1px solid var(--border); }
+    }
+    @media (max-width: 768px) {
+      .evidence-toolbar { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#code-viewer">Skip to code</a>
+
+  <div class="evidence-shell">
+    <!-- Topbar -->
+    <header class="topbar" role="banner">
+      <span class="topbar__brand" aria-label="HelixKnowledge">hx://skill-graph</span>
+      <nav aria-label="Primary navigation">
+        <ul class="topbar__nav">
+          <li><a href="index.html">Overview</a></li>
+          <li><a href="skill-tree.html">Skill Tree</a></li>
+          <li><a href="gap-dashboard.html">Gaps</a></li>
+          <li><a href="evidence-browser.html" aria-current="page">Evidence</a></li>
+          <li><a href="skill-editor.html">Editor</a></li>
+          <li><a href="search.html">Search</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <!-- Toolbar -->
+    <div class="evidence-toolbar">
+      <div class="search-bar" style="max-width:400px">
+        <span class="search-bar__icon" aria-hidden="true">[Q]</span>
+        <input class="input" type="search" placeholder="Search evidence snippets..." aria-label="Search evidence">
+      </div>
+      <div class="filter-group" role="group" aria-label="Filter by domain">
+        <span class="chip chip--active">All</span>
+        <span class="chip">android</span>
+        <span class="chip">go</span>
+        <span class="chip">python</span>
+        <span class="chip">kotlin</span>
+        <span class="chip">linux</span>
+      </div>
+    </div>
+
+    <!-- Skill list -->
+    <nav class="skill-list-panel" aria-label="Skills with evidence">
+      <div class="skill-list-panel__header">24 skills with evidence</div>
+      <div class="skill-item skill-item--active" role="button" tabindex="0" aria-current="true">
+        <span class="status-dot status-dot--success"></span>
+        <span class="skill-item__name">linux:systemd</span>
+        <span class="skill-item__count">12</span>
+      </div>
+      <div class="skill-item" role="button" tabindex="0">
+        <span class="status-dot" style="background:var(--domain-android)"></span>
+        <span class="skill-item__name">android:compose-ui</span>
+        <span class="skill-item__count">8</span>
+      </div>
+      <div class="skill-item" role="button" tabindex="0">
+        <span class="status-dot" style="background:var(--domain-go)"></span>
+        <span class="skill-item__name">go:http-server</span>
+        <span class="skill-item__count">15</span>
+      </div>
+      <div class="skill-item" role="button" tabindex="0">
+        <span class="status-dot" style="background:var(--domain-python)"></span>
+        <span class="skill-item__name">python:fastapi</span>
+        <span class="skill-item__count">22</span>
+      </div>
+      <div class="skill-item" role="button" tabindex="0">
+        <span class="status-dot" style="background:var(--domain-kotlin)"></span>
+        <span class="skill-item__name">kotlin:coroutines</span>
+        <span class="skill-item__count">6</span>
+      </div>
+      <div class="skill-item" role="button" tabindex="0">
+        <span class="status-dot" style="background:var(--domain-linux)"></span>
+        <span class="skill-item__name">linux:docker</span>
+        <span class="skill-item__count">18</span>
+      </div>
+      <div class="skill-item" role="button" tabindex="0">
+        <span class="status-dot" style="background:var(--domain-android)"></span>
+        <span class="skill-item__name">android:room-db</span>
+        <span class="skill-item__count">9</span>
+      </div>
+      <div class="skill-item" role="button" tabindex="0">
+        <span class="status-dot" style="background:var(--domain-go)"></span>
+        <span class="skill-item__name">go:grpc</span>
+        <span class="skill-item__count">11</span>
+      </div>
+      <div class="skill-item" role="button" tabindex="0">
+        <span class="status-dot" style="background:var(--domain-python)"></span>
+        <span class="skill-item__name">python:pydantic</span>
+        <span class="skill-item__count">14</span>
+      </div>
+      <div class="skill-item" role="button" tabindex="0">
+        <span class="status-dot" style="background:var(--domain-kotlin)"></span>
+        <span class="skill-item__name">kotlin:ktor</span>
+        <span class="skill-item__count">7</span>
+      </div>
+      <div class="skill-item" role="button" tabindex="0">
+        <span class="status-dot" style="background:var(--domain-linux)"></span>
+        <span class="skill-item__name">linux:networking</span>
+        <span class="skill-item__count">5</span>
+      </div>
+    </nav>
+
+    <!-- Code viewer -->
+    <div class="code-viewer" id="code-viewer">
+      <div class="code-viewer__header">
+        <div>
+          <strong>Snippet 3 / 12</strong>
+          <span style="margin-left:var(--sp-sm);font-size:0.7rem;color:var(--text-muted)">Pattern: unit-file-creation</span>
+        </div>
+        <div style="display:flex;gap:var(--sp-xs)">
+          <button class="btn btn--sm">&larr; Prev</button>
+          <button class="btn btn--sm">Next &rarr;</button>
+        </div>
+      </div>
+      <div class="code-viewer__body">
+        <pre><code><span class="cm"># /etc/systemd/system/myapp.service</span>
+<span class="cm"># Pattern: unit-file-creation | Confidence: 0.94</span>
+
+<span class="kw">[Unit]</span>
+<span class="var">Description</span><span class="op">=</span><span class="str">My Application Service</span>
+<span class="var">After</span><span class="op">=</span><span class="str">network.target</span>
+<span class="var">Wants</span><span class="op">=</span><span class="str">postgresql.service</span>
+
+<span class="kw">[Service]</span>
+<span class="var">Type</span><span class="op">=</span><span class="str">notify</span>
+<span class="var">User</span><span class="op">=</span><span class="str">appuser</span>
+<span class="var">Group</span><span class="op">=</span><span class="str">appuser</span>
+<span class="hl"><span class="var">WorkingDirectory</span><span class="op">=</span><span class="str">/opt/myapp</span></span>
+<span class="hl"><span class="var">ExecStart</span><span class="op">=</span><span class="str">/opt/myapp/bin/server --config /etc/myapp/config.yaml</span></span>
+<span class="var">ExecReload</span><span class="op">=</span><span class="str">/bin/kill -HUP $MAINPID</span>
+<span class="var">Restart</span><span class="op">=</span><span class="str">on-failure</span>
+<span class="var">RestartSec</span><span class="op">=</span><span class="num">5</span>
+<span class="var">LimitNOFILE</span><span class="op">=</span><span class="num">65536</span>
+
+<span class="cm"># Resource controls</span>
+<span class="var">MemoryMax</span><span class="op">=</span><span class="str">512M</span>
+<span class="var">CPUQuota</span><span class="op">=</span><span class="str">80%</span>
+
+<span class="kw">[Install]</span>
+<span class="var">WantedBy</span><span class="op">=</span><span class="str">multi-user.target</span></code></pre>
+      </div>
+      <div style="padding:var(--sp-sm) var(--sp-lg);background:var(--bg-secondary);border-top:1px solid var(--border);display:flex;gap:var(--sp-sm);font-size:0.75rem">
+        <span class="badge badge--linux">linux</span>
+        <span class="badge badge--success">validated</span>
+        <span style="color:var(--text-muted)">Confidence: 0.94</span>
+        <span style="color:var(--text-muted)">Source: helm-charts/myapp/templates/</span>
+      </div>
+    </div>
+
+    <!-- Metadata panel -->
+    <aside class="meta-panel" role="complementary" aria-label="Evidence metadata">
+      <div class="meta-panel__section">
+        <h4>Pattern Info</h4>
+        <div class="meta-row">
+          <span class="meta-row__label">Pattern</span>
+          <span class="meta-row__value">unit-file-creation</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-row__label">Skill</span>
+          <span class="meta-row__value">linux:systemd</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-row__label">Confidence</span>
+          <span class="meta-row__value" style="color:var(--success)">0.94</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-row__label">Language</span>
+          <span class="meta-row__value">INI / systemd</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-row__label">Lines</span>
+          <span class="meta-row__value">22</span>
+        </div>
+      </div>
+
+      <div class="meta-panel__section">
+        <h4>Validation</h4>
+        <ul class="validation-list">
+          <li><span class="status-dot status-dot--success"></span> Syntax valid</li>
+          <li><span class="status-dot status-dot--success"></span> Pattern matches</li>
+          <li><span class="status-dot status-dot--success"></span> ExecStart present</li>
+          <li><span class="status-dot status-dot--success"></span> [Install] section</li>
+          <li><span class="status-dot status-dot--warning"></span> WatchdogSec missing</li>
+          <li><span class="status-dot status-dot--success"></span> Resource limits set</li>
+        </ul>
+      </div>
+
+      <div class="meta-panel__section">
+        <h4>Source</h4>
+        <a href="#" class="source-link" aria-label="View source file">
+          <span aria-hidden="true">[F]</span>
+          <span>
+            <span style="display:block;font-weight:600;color:var(--text-primary)">myapp.service</span>
+            <span style="display:block;font-size:0.7rem;color:var(--text-muted)">helm-charts/myapp/templates/</span>
+          </span>
+        </a>
+        <div style="margin-top:var(--sp-sm)">
+          <div class="meta-row">
+            <span class="meta-row__label">Repository</span>
+            <span class="meta-row__value">github.com/org/helm-charts</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-row__label">Commit</span>
+            <span class="meta-row__value" style="font-size:0.75rem">a3f8c2d</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-row__label">Indexed</span>
+            <span class="meta-row__value">2026-07-10</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="meta-panel__section">
+        <h4>Related Patterns</h4>
+        <div style="display:flex;flex-wrap:wrap;gap:var(--sp-xs)">
+          <span class="pattern-tag">service-restart</span>
+          <span class="pattern-tag">resource-limits</span>
+          <span class="pattern-tag">network-deps</span>
+          <span class="pattern-tag">user-isolation</span>
+        </div>
+      </div>
+
+      <div class="meta-panel__section">
+        <h4>Other Snippets</h4>
+        <div style="display:flex;flex-direction:column;gap:var(--sp-xs)">
+          <a href="#" style="font-size:0.8rem;display:flex;justify-content:space-between;padding:var(--sp-xs);border-radius:var(--radius-sm);background:var(--bg-primary)">
+            <span>Snippet 1</span><span style="color:var(--text-muted)">timer-unit</span>
+          </a>
+          <a href="#" style="font-size:0.8rem;display:flex;justify-content:space-between;padding:var(--sp-xs);border-radius:var(--radius-sm);background:var(--bg-primary)">
+            <span>Snippet 2</span><span style="color:var(--text-muted)">socket-activation</span>
+          </a>
+          <a href="#" style="font-size:0.8rem;display:flex;justify-content:space-between;padding:var(--sp-xs);border-radius:var(--radius-sm);background:var(--bg-tertiary);border:1px solid var(--accent)">
+            <span style="color:var(--accent)">Snippet 3</span><span style="color:var(--text-muted)">unit-file</span>
+          </a>
+          <a href="#" style="font-size:0.8rem;display:flex;justify-content:space-between;padding:var(--sp-xs);border-radius:var(--radius-sm);background:var(--bg-primary)">
+            <span>Snippet 4</span><span style="color:var(--text-muted)">journald-log</span>
+          </a>
+        </div>
+      </div>
+    </aside>
+  </div>
+</body>
+</html>

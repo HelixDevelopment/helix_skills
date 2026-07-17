@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Search — HelixKnowledge</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .search-layout {
+      display: grid;
+      grid-template-rows: var(--topbar-height) 1fr;
+      grid-template-columns: 1fr 300px;
+      min-height: 100vh;
+    }
+    .search-layout .topbar { grid-column: 1 / -1; }
+
+    .search-main {
+      padding: var(--sp-xl);
+      overflow-y: auto;
+    }
+    .search-side {
+      background: var(--bg-secondary);
+      border-left: 1px solid var(--border);
+      overflow-y: auto;
+      padding: var(--sp-lg);
+    }
+
+    /* Hero search */
+    .search-hero {
+      max-width: 720px;
+      margin: 0 auto var(--sp-xl);
+    }
+    .search-hero__title {
+      font-size: 1.6rem;
+      margin-bottom: var(--sp-md);
+      text-align: center;
+    }
+    .search-hero__title span { color: var(--accent); }
+
+    /* Large search bar */
+    .search-large {
+      position: relative;
+    }
+    .search-large__icon {
+      position: absolute;
+      left: var(--sp-lg);
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 1.2rem;
+    }
+    .search-large .input {
+      padding: var(--sp-md) var(--sp-lg) var(--sp-md) 3rem;
+      font-size: 1rem;
+      border-radius: var(--radius-lg);
+      background: var(--bg-secondary);
+      border: 2px solid var(--border);
+    }
+    .search-large .input:focus {
+      border-color: var(--accent);
+    }
+
+    /* Autocomplete dropdown */
+    .autocomplete {
+      position: absolute;
+      top: calc(100% + var(--sp-xs));
+      left: 0;
+      right: 0;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-elevated);
+      z-index: 50;
+      max-height: 320px;
+      overflow-y: auto;
+    }
+    .autocomplete__section {
+      padding: var(--sp-xs) var(--sp-md);
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+    }
+    .autocomplete__item {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-sm);
+      padding: var(--sp-sm) var(--sp-md);
+      cursor: pointer;
+      transition: background 0.15s;
+      font-size: 0.85rem;
+    }
+    .autocomplete__item:hover,
+    .autocomplete__item--active {
+      background: var(--bg-tertiary);
+    }
+    .autocomplete__item-name { flex: 1; }
+    .autocomplete__item-name mark {
+      background: rgba(233,69,96,0.3);
+      color: var(--accent);
+      border-radius: 2px;
+      padding: 0 1px;
+    }
+    .autocomplete__item-meta {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    /* Filter chips */
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-sm);
+      flex-wrap: wrap;
+      margin-bottom: var(--sp-lg);
+    }
+    .filter-bar__label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-right: var(--sp-xs);
+    }
+
+    /* Results header */
+    .results-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--sp-md);
+      padding-bottom: var(--sp-sm);
+      border-bottom: 1px solid var(--border);
+    }
+    .results-header__count {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+    .results-header__count strong {
+      color: var(--text-primary);
+    }
+
+    /* Result cards */
+    .result-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: var(--sp-lg);
+      margin-bottom: var(--sp-md);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .result-card:hover {
+      border-color: var(--accent);
+      box-shadow: var(--shadow-card);
+    }
+    .result-card__top {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--sp-md);
+      margin-bottom: var(--sp-sm);
+    }
+    .result-card__domain-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 5px;
+    }
+    .result-card__title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      flex: 1;
+    }
+    .result-card__title a {
+      color: var(--text-primary);
+      text-decoration: none;
+    }
+    .result-card__title a:hover {
+      color: var(--accent);
+      text-decoration: underline;
+    }
+    .result-card__score {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: var(--sp-xs);
+      padding: var(--sp-xs) var(--sp-sm);
+      background: rgba(46,204,113,0.1);
+      border-radius: var(--radius-sm);
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--success);
+    }
+    .result-card__desc {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin-bottom: var(--sp-sm);
+    }
+    .result-card__desc mark {
+      background: rgba(233,69,96,0.2);
+      color: var(--accent);
+      border-radius: 2px;
+      padding: 0 1px;
+    }
+    .result-card__footer {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-sm);
+      flex-wrap: wrap;
+    }
+    .result-card__tags {
+      display: flex;
+      gap: var(--sp-xs);
+      flex-wrap: wrap;
+      flex: 1;
+    }
+    .result-card__meta {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    /* Sidebar: similar skills */
+    .side-section {
+      margin-bottom: var(--sp-xl);
+    }
+    .side-section__title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: var(--sp-md);
+      padding-bottom: var(--sp-xs);
+      border-bottom: 1px solid var(--border);
+    }
+    .similar-skill {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-sm);
+      padding: var(--sp-sm);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: background 0.15s;
+      margin-bottom: var(--sp-xs);
+    }
+    .similar-skill:hover { background: var(--bg-tertiary); }
+    .similar-skill__name {
+      flex: 1;
+      font-size: 0.8rem;
+    }
+    .similar-skill__score {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+    .similar-skill__dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* Recent searches */
+    .recent-item {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-sm);
+      padding: var(--sp-xs) 0;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+    .recent-item:hover { color: var(--text-primary); }
+    .recent-item__icon {
+      color: var(--text-muted);
+      font-size: 0.7rem;
+    }
+
+    @media (max-width: 1024px) {
+      .search-layout { grid-template-columns: 1fr; }
+      .search-side { display: none; }
+    }
+    @media (max-width: 768px) {
+      .search-main { padding: var(--sp-md); }
+      .search-hero__title { font-size: 1.3rem; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#search-input">Skip to search</a>
+
+  <div class="search-layout">
+    <!-- Topbar -->
+    <header class="topbar" role="banner">
+      <span class="topbar__brand" aria-label="HelixKnowledge">hx://skill-graph</span>
+      <nav aria-label="Primary navigation">
+        <ul class="topbar__nav">
+          <li><a href="index.html">Overview</a></li>
+          <li><a href="skill-tree.html">Skill Tree</a></li>
+          <li><a href="gap-dashboard.html">Gaps</a></li>
+          <li><a href="evidence-browser.html">Evidence</a></li>
+          <li><a href="skill-editor.html">Editor</a></li>
+          <li><a href="search.html" aria-current="page">Search</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <!-- Main search area -->
+    <div class="search-main">
+      <!-- Search hero -->
+      <div class="search-hero">
+        <h1 class="search-hero__title">Search <span>Skills</span></h1>
+
+        <div class="search-large">
+          <span class="search-large__icon" aria-hidden="true">[Q]</span>
+          <input id="search-input" class="input" type="search" placeholder="Search by name, domain, pattern, or description..." aria-label="Search skills" value="http server" autofocus>
+
+          <!-- Autocomplete dropdown -->
+          <div class="autocomplete" role="listbox" aria-label="Search suggestions">
+            <div class="autocomplete__section">Skills</div>
+            <div class="autocomplete__item autocomplete__item--active" role="option" aria-selected="true">
+              <span class="result-card__domain-dot" style="background:var(--domain-go)"></span>
+              <span class="autocomplete__item-name">go:<mark>http</mark>-<mark>server</mark></span>
+              <span class="autocomplete__item-meta">go &middot; v2.1.0</span>
+            </div>
+            <div class="autocomplete__item" role="option">
+              <span class="result-card__domain-dot" style="background:var(--domain-python)"></span>
+              <span class="autocomplete__item-name">python:<mark>http</mark>-client</span>
+              <span class="autocomplete__item-meta">python &middot; v1.4.0</span>
+            </div>
+            <div class="autocomplete__item" role="option">
+              <span class="result-card__domain-dot" style="background:var(--domain-kotlin)"></span>
+              <span class="autocomplete__item-name">kotlin:ktor-<mark>http</mark></span>
+              <span class="autocomplete__item-meta">kotlin &middot; v1.0.0</span>
+            </div>
+            <div class="autocomplete__section">Patterns</div>
+            <div class="autocomplete__item" role="option">
+              <span class="result-card__domain-dot" style="background:var(--text-muted)"></span>
+              <span class="autocomplete__item-name">pattern: <mark>http</mark>-middleware</span>
+              <span class="autocomplete__item-meta">evidence &middot; 8 snippets</span>
+            </div>
+            <div class="autocomplete__item" role="option">
+              <span class="result-card__domain-dot" style="background:var(--text-muted)"></span>
+              <span class="autocomplete__item-name">pattern: <mark>server</mark>-sent-events</span>
+              <span class="autocomplete__item-meta">evidence &middot; 3 snippets</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter chips -->
+      <div class="filter-bar" role="group" aria-label="Search filters">
+        <span class="filter-bar__label">Domain:</span>
+        <span class="chip chip--active">All</span>
+        <span class="chip">android</span>
+        <span class="chip">go</span>
+        <span class="chip">python</span>
+        <span class="chip">kotlin</span>
+        <span class="chip">linux</span>
+        <span class="filter-bar__label" style="margin-left:var(--sp-md)">Complexity:</span>
+        <span class="chip chip--active">All</span>
+        <span class="chip">beginner</span>
+        <span class="chip">intermediate</span>
+        <span class="chip">advanced</span>
+        <span class="filter-bar__label" style="margin-left:var(--sp-md)">Status:</span>
+        <span class="chip chip--active">All</span>
+        <span class="chip">validated</span>
+        <span class="chip">draft</span>
+      </div>
+
+      <!-- Results -->
+      <div class="results-header">
+        <span class="results-header__count"><strong>6 results</strong> for "http server"</span>
+        <div style="display:flex;gap:var(--sp-sm);align-items:center">
+          <span style="font-size:0.75rem;color:var(--text-muted)">Sort:</span>
+          <span class="chip chip--active">Relevance</span>
+          <span class="chip">Name</span>
+          <span class="chip">Domain</span>
+        </div>
+      </div>
+
+      <!-- Result card 1 -->
+      <article class="result-card">
+        <div class="result-card__top">
+          <span class="result-card__domain-dot" style="background:var(--domain-go)"></span>
+          <h2 class="result-card__title"><a href="skill-tree.html">go:http-server</a></h2>
+          <span class="result-card__score">0.97</span>
+        </div>
+        <p class="result-card__desc">
+          Build production-ready <mark>HTTP</mark> <mark>server</mark>s in Go using net/http and popular routers. Covers middleware patterns, graceful shutdown, request context, and health check endpoints.
+        </p>
+        <div class="result-card__footer">
+          <div class="result-card__tags">
+            <span class="badge badge--go">go</span>
+            <span class="badge badge--success">validated</span>
+            <span class="badge badge--warning">intermediate</span>
+            <span class="chip" style="font-size:0.65rem">middleware</span>
+            <span class="chip" style="font-size:0.65rem">graceful-shutdown</span>
+          </div>
+          <span class="result-card__meta">v2.1.0 &middot; 15 evidence</span>
+        </div>
+      </article>
+
+      <!-- Result card 2 -->
+      <article class="result-card">
+        <div class="result-card__top">
+          <span class="result-card__domain-dot" style="background:var(--domain-python)"></span>
+          <h2 class="result-card__title"><a href="skill-tree.html">python:fastapi</a></h2>
+          <span class="result-card__score">0.89</span>
+        </div>
+        <p class="result-card__desc">
+          Build high-performance async <mark>HTTP</mark> APIs with FastAPI. Covers path operations, dependency injection, Pydantic models, OpenAPI docs, and background tasks.
+        </p>
+        <div class="result-card__footer">
+          <div class="result-card__tags">
+            <span class="badge badge--python">python</span>
+            <span class="badge badge--success">validated</span>
+            <span class="badge badge--warning">intermediate</span>
+            <span class="chip" style="font-size:0.65rem">async</span>
+            <span class="chip" style="font-size:0.65rem">openapi</span>
+          </div>
+          <span class="result-card__meta">v3.2.1 &middot; 22 evidence</span>
+        </div>
+      </article>
+
+      <!-- Result card 3 -->
+      <article class="result-card">
+        <div class="result-card__top">
+          <span class="result-card__domain-dot" style="background:var(--domain-kotlin)"></span>
+          <h2 class="result-card__title"><a href="skill-tree.html">kotlin:ktor</a></h2>
+          <span class="result-card__score">0.82</span>
+        </div>
+        <p class="result-card__desc">
+          Build Kotlin <mark>server</mark>-side applications with Ktor framework. Covers routing, sessions, content negotiation, and coroutine-based request handling.
+        </p>
+        <div class="result-card__footer">
+          <div class="result-card__tags">
+            <span class="badge badge--kotlin">kotlin</span>
+            <span class="badge badge--success">validated</span>
+            <span class="badge badge--info">advanced</span>
+            <span class="chip" style="font-size:0.65rem">coroutines</span>
+            <span class="chip" style="font-size:0.65rem">routing</span>
+          </div>
+          <span class="result-card__meta">v1.0.0 &middot; 7 evidence</span>
+        </div>
+      </article>
+
+      <!-- Result card 4 -->
+      <article class="result-card">
+        <div class="result-card__top">
+          <span class="result-card__domain-dot" style="background:var(--domain-go)"></span>
+          <h2 class="result-card__title"><a href="skill-tree.html">go:grpc</a></h2>
+          <span class="result-card__score">0.68</span>
+        </div>
+        <p class="result-card__desc">
+          Build gRPC services in Go with protobuf. Covers <mark>server</mark> streaming, client streaming, interceptors, health checking, and reflection.
+        </p>
+        <div class="result-card__footer">
+          <div class="result-card__tags">
+            <span class="badge badge--go">go</span>
+            <span class="badge badge--success">validated</span>
+            <span class="badge badge--info">advanced</span>
+            <span class="chip" style="font-size:0.65rem">protobuf</span>
+            <span class="chip" style="font-size:0.65rem">streaming</span>
+          </div>
+          <span class="result-card__meta">v1.8.0 &middot; 11 evidence</span>
+        </div>
+      </article>
+
+      <!-- Result card 5 -->
+      <article class="result-card">
+        <div class="result-card__top">
+          <span class="result-card__domain-dot" style="background:var(--domain-linux)"></span>
+          <h2 class="result-card__title"><a href="skill-tree.html">linux:docker</a></h2>
+          <span class="result-card__score">0.54</span>
+        </div>
+        <p class="result-card__desc">
+          Containerize applications with Docker. Covers Dockerfile best practices, multi-stage builds, networking, volume management, and <mark>server</mark> deployment patterns.
+        </p>
+        <div class="result-card__footer">
+          <div class="result-card__tags">
+            <span class="badge badge--linux">linux</span>
+            <span class="badge badge--success">validated</span>
+            <span class="badge badge--warning">intermediate</span>
+            <span class="chip" style="font-size:0.65rem">containers</span>
+            <span class="chip" style="font-size:0.65rem">multi-stage</span>
+          </div>
+          <span class="result-card__meta">v2.0.0 &middot; 18 evidence</span>
+        </div>
+      </article>
+
+      <!-- Result card 6 -->
+      <article class="result-card">
+        <div class="result-card__top">
+          <span class="result-card__domain-dot" style="background:var(--domain-python)"></span>
+          <h2 class="result-card__title"><a href="skill-tree.html">python:http-client</a></h2>
+          <span class="result-card__score">0.51</span>
+        </div>
+        <p class="result-card__desc">
+          Make <mark>HTTP</mark> requests in Python using httpx and requests. Covers async clients, retry strategies, session management, and <mark>server</mark>-sent events.
+        </p>
+        <div class="result-card__footer">
+          <div class="result-card__tags">
+            <span class="badge badge--python">python</span>
+            <span class="badge badge--info">draft</span>
+            <span class="badge badge--success">beginner</span>
+            <span class="chip" style="font-size:0.65rem">httpx</span>
+            <span class="chip" style="font-size:0.65rem">retry</span>
+          </div>
+          <span class="result-card__meta">v1.4.0 &middot; 6 evidence</span>
+        </div>
+      </article>
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="search-side" role="complementary" aria-label="Similar skills and recent searches">
+      <div class="side-section">
+        <h3 class="side-section__title">Similar Skills</h3>
+        <p style="font-size:0.75rem;color:var(--text-muted);margin-bottom:var(--sp-md)">
+          Based on go:http-server
+        </p>
+        <div class="similar-skill">
+          <span class="similar-skill__dot" style="background:var(--domain-python)"></span>
+          <span class="similar-skill__name">python:fastapi</span>
+          <span class="similar-skill__score">0.89</span>
+        </div>
+        <div class="similar-skill">
+          <span class="similar-skill__dot" style="background:var(--domain-kotlin)"></span>
+          <span class="similar-skill__name">kotlin:ktor</span>
+          <span class="similar-skill__score">0.84</span>
+        </div>
+        <div class="similar-skill">
+          <span class="similar-skill__dot" style="background:var(--domain-go)"></span>
+          <span class="similar-skill__name">go:grpc</span>
+          <span class="similar-skill__score">0.76</span>
+        </div>
+        <div class="similar-skill">
+          <span class="similar-skill__dot" style="background:var(--domain-android)"></span>
+          <span class="similar-skill__name">android:retrofit</span>
+          <span class="similar-skill__score">0.71</span>
+        </div>
+        <div class="similar-skill">
+          <span class="similar-skill__dot" style="background:var(--domain-linux)"></span>
+          <span class="similar-skill__name">linux:nginx</span>
+          <span class="similar-skill__score">0.65</span>
+        </div>
+      </div>
+
+      <div class="side-section">
+        <h3 class="side-section__title">Recent Searches</h3>
+        <div class="recent-item">
+          <span class="recent-item__icon" aria-hidden="true">[R]</span>
+          <span>compose navigation</span>
+        </div>
+        <div class="recent-item">
+          <span class="recent-item__icon" aria-hidden="true">[R]</span>
+          <span>python async patterns</span>
+        </div>
+        <div class="recent-item">
+          <span class="recent-item__icon" aria-hidden="true">[R]</span>
+          <span>docker networking</span>
+        </div>
+        <div class="recent-item">
+          <span class="recent-item__icon" aria-hidden="true">[R]</span>
+          <span>grpc streaming</span>
+        </div>
+        <div class="recent-item">
+          <span class="recent-item__icon" aria-hidden="true">[R]</span>
+          <span>systemd timers</span>
+        </div>
+      </div>
+
+      <div class="side-section">
+        <h3 class="side-section__title">Trending Skills</h3>
+        <div class="similar-skill">
+          <span class="similar-skill__dot" style="background:var(--domain-python)"></span>
+          <span class="similar-skill__name">python:pydantic</span>
+          <span class="similar-skill__score" style="color:var(--success)">+42%</span>
+        </div>
+        <div class="similar-skill">
+          <span class="similar-skill__dot" style="background:var(--domain-go)"></span>
+          <span class="similar-skill__name">go:http-server</span>
+          <span class="similar-skill__score" style="color:var(--success)">+28%</span>
+        </div>
+        <div class="similar-skill">
+          <span class="similar-skill__dot" style="background:var(--domain-android)"></span>
+          <span class="similar-skill__name">android:compose-ui</span>
+          <span class="similar-skill__score" style="color:var(--success)">+19%</span>
+        </div>
+        <div class="similar-skill">
+          <span class="similar-skill__dot" style="background:var(--domain-linux)"></span>
+          <span class="similar-skill__name">linux:docker</span>
+          <span class="similar-skill__score" style="color:var(--success)">+15%</span>
+        </div>
+      </div>
+    </aside>
+  </div>
+</body>
+</html>

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HelixKnowledge — Skill Graph System Wireframes</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .wireframe-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: var(--sp-lg);
+      margin-top: var(--sp-xl);
+    }
+    .wireframe-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: var(--sp-xl);
+      transition: transform 0.2s, box-shadow 0.2s;
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-md);
+    }
+    .wireframe-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-elevated);
+    }
+    .wireframe-card__icon {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+    .wireframe-card__icon--tree    { background: rgba(46,204,113,0.15); color: var(--domain-android); }
+    .wireframe-card__icon--gap     { background: rgba(231,76,60,0.15); color: var(--error); }
+    .wireframe-card__icon--evidence{ background: rgba(52,152,219,0.15); color: var(--info); }
+    .wireframe-card__icon--editor  { background: rgba(155,89,182,0.15); color: var(--domain-kotlin); }
+    .wireframe-card__icon--search  { background: rgba(241,196,15,0.15); color: var(--domain-python); }
+    .wireframe-card__title {
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+    .wireframe-card__desc {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .wireframe-card__link {
+      margin-top: auto;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .hero {
+      text-align: center;
+      padding: var(--sp-2xl) 0;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: var(--sp-xl);
+    }
+    .hero h1 {
+      font-size: 2.2rem;
+      margin-bottom: var(--sp-sm);
+    }
+    .hero h1 span { color: var(--accent); }
+    .hero p {
+      color: var(--text-secondary);
+      font-size: 1rem;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .meta-info {
+      display: flex;
+      gap: var(--sp-lg);
+      justify-content: center;
+      margin-top: var(--sp-lg);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .meta-info span {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--sp-xs);
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="topbar" role="banner">
+    <span class="topbar__brand" aria-label="HelixKnowledge">hx://skill-graph</span>
+    <nav aria-label="Primary navigation">
+      <ul class="topbar__nav">
+        <li><a href="index.html" aria-current="page">Overview</a></li>
+        <li><a href="skill-tree.html">Skill Tree</a></li>
+        <li><a href="gap-dashboard.html">Gaps</a></li>
+        <li><a href="evidence-browser.html">Evidence</a></li>
+        <li><a href="skill-editor.html">Editor</a></li>
+        <li><a href="search.html">Search</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main id="main" class="main-content" role="main">
+    <section class="hero" aria-labelledby="hero-title">
+      <h1 id="hero-title">HelixKnowledge <span>Skill Graph</span></h1>
+      <p>Interactive wireframes for the skill dependency visualization, gap analysis, evidence browsing, and management interface.</p>
+      <div class="meta-info" aria-label="Project metadata">
+        <span><span class="status-dot status-dot--info"></span> Phase: DESIGN</span>
+        <span>v0.1.0-wireframe</span>
+        <span>6 screens</span>
+      </div>
+    </section>
+
+    <section aria-labelledby="screens-title">
+      <h2 id="screens-title">UI Surfaces</h2>
+      <div class="wireframe-grid" role="list">
+
+        <article class="wireframe-card" role="listitem">
+          <div class="wireframe-card__icon wireframe-card__icon--tree" aria-hidden="true">[DAG]</div>
+          <h3 class="wireframe-card__title">Skill Tree Visualizer</h3>
+          <p class="wireframe-card__desc">Interactive DAG visualization of the skill dependency graph. Force-directed, hierarchical, and circular layouts with domain-colored nodes and typed edges.</p>
+          <a href="skill-tree.html" class="wireframe-card__link" aria-label="Open Skill Tree Visualizer wireframe">Open wireframe &rarr;</a>
+        </article>
+
+        <article class="wireframe-card" role="listitem">
+          <div class="wireframe-card__icon wireframe-card__icon--gap" aria-hidden="true">[GAP]</div>
+          <h3 class="wireframe-card__title">Gap Dashboard</h3>
+          <p class="wireframe-card__desc">Coverage heatmap, gap counts by domain, auto-expand job status, and manual trigger controls for the gap analysis pipeline.</p>
+          <a href="gap-dashboard.html" class="wireframe-card__link" aria-label="Open Gap Dashboard wireframe">Open wireframe &rarr;</a>
+        </article>
+
+        <article class="wireframe-card" role="listitem">
+          <div class="wireframe-card__icon wireframe-card__icon--evidence" aria-hidden="true">[SRC]</div>
+          <h3 class="wireframe-card__title">Evidence Browser</h3>
+          <p class="wireframe-card__desc">Explore code evidence linked to skills. Syntax-highlighted snippets, pattern metadata, validation status, and source file navigation.</p>
+          <a href="evidence-browser.html" class="wireframe-card__link" aria-label="Open Evidence Browser wireframe">Open wireframe &rarr;</a>
+        </article>
+
+        <article class="wireframe-card" role="listitem">
+          <div class="wireframe-card__icon wireframe-card__icon--editor" aria-hidden="true">[EDT]</div>
+          <h3 class="wireframe-card__title">Skill Editor</h3>
+          <p class="wireframe-card__desc">Create and edit skills with a split TOML/JSON editor and live markdown preview. Dependency picker, resource URL management, and validation feedback.</p>
+          <a href="skill-editor.html" class="wireframe-card__link" aria-label="Open Skill Editor wireframe">Open wireframe &rarr;</a>
+        </article>
+
+        <article class="wireframe-card" role="listitem">
+          <div class="wireframe-card__icon wireframe-card__icon--search" aria-hidden="true">[QRY]</div>
+          <h3 class="wireframe-card__title">Search Interface</h3>
+          <p class="wireframe-card__desc">Hybrid vector+keyword search across all skills. Autocomplete, domain/complexity/status filters, relevance scoring, and similar skill recommendations.</p>
+          <a href="search.html" class="wireframe-card__link" aria-label="Open Search Interface wireframe">Open wireframe &rarr;</a>
+        </article>
+
+      </div>
+    </section>
+
+    <footer style="margin-top:var(--sp-2xl);padding-top:var(--sp-lg);border-top:1px solid var(--border);text-align:center;color:var(--text-muted);font-size:0.75rem;">
+      <p>HelixKnowledge Skill Graph System &mdash; OpenDesign UI/UX Wireframes &mdash; Status: DESIGN</p>
+      <p style="margin-top:var(--sp-xs);">WCAG 2.1 AA &middot; Dark Theme &middot; Static HTML &middot; No JS Frameworks</p>
+    </footer>
+  </main>
+</body>
+</html>
