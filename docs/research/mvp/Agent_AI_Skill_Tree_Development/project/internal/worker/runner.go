@@ -36,6 +36,7 @@ const (
 	JobTypeValidate       JobType = "validate"
 	JobTypeCodeAnalysis   JobType = "codeanalysis"
 	JobTypeRegistryReview JobType = "registry_review"
+	JobTypeBatchEmbed     JobType = "batch_embed"
 )
 
 // JobStatus represents the current state of a job.
@@ -582,6 +583,8 @@ func (r *Runner) executeJob(ctx context.Context, job Job) JobResult {
 			return r.handleCodeAnalysis(ctx, job)
 		case JobTypeRegistryReview:
 			return r.handleRegistryReview(ctx, job)
+		case JobTypeBatchEmbed:
+			return r.handleBatchEmbed(ctx, job)
 		default:
 			return JobResult{Success: false, Error: fmt.Sprintf("unknown job type: %s", job.Type)}
 		}
@@ -716,6 +719,41 @@ func (r *Runner) handleCodeAnalysis(ctx context.Context, job Job) JobResult {
 
 func (r *Runner) handleRegistryReview(ctx context.Context, job Job) JobResult {
 	r.logger.Info("registry review job")
+	return JobResult{Success: true}
+}
+
+// handleBatchEmbed processes a batch embedding job. It generates and stores
+// embeddings for all skills that don't yet have one, using the configured
+// embedding provider with rate limiting.
+//
+// §11.4.85 Batch embedding worker integration.
+func (r *Runner) handleBatchEmbed(ctx context.Context, job Job) JobResult {
+	r.logger.Info("batch embedding job started")
+
+	// Create the embedding provider from config.
+	embedder, err := db.NewEmbedderFromConfig(r.cfg.Embedding)
+	if err != nil {
+		return JobResult{Success: false, Error: fmt.Sprintf("create embedder: %v", err)}
+	}
+
+	// Configure batch embedding with sensible defaults.
+	batchCfg := db.BatchEmbedConfig{
+		BatchSize:         100,
+		RequestsPerSecond: 10,
+		OnProgress: func(succeeded, failed, total int) {
+			r.logger.Info("batch embedding progress",
+				zap.Int("succeeded", succeeded),
+				zap.Int("failed", failed),
+				zap.Int("total", total))
+		},
+	}
+
+	// Run batch embedding for all skills without embeddings.
+	if err := db.BatchEmbedAllSkills(ctx, r.pool, embedder, batchCfg); err != nil {
+		return JobResult{Success: false, Error: fmt.Sprintf("batch embed: %v", err)}
+	}
+
+	r.logger.Info("batch embedding job completed")
 	return JobResult{Success: true}
 }
 

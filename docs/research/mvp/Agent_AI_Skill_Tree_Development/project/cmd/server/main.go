@@ -392,6 +392,15 @@ func buildRouter(cfg *config.Config, pool *db.Pool, store *skill.Store, reg *reg
 		v1.Use(authMW)
 	}
 
+	// Tenant context middleware (§11.4.84, 004_enterprise). Injects the db.Pool
+	// into the request context first, then resolves the tenant from the request.
+	// When cfg.Tenant.Required is false (default), unscoped requests pass through
+	// for backward compatibility with single-tenant deployments.
+	v1.Use(api.WithDBPoolMiddleware(pool))
+	if cfg.Tenant.Required || cfg.Tenant.DefaultTenant != "" {
+		v1.Use(api.TenantMiddleware(cfg.Tenant))
+	}
+
 	// Skills CRUD (served via inline closures — these replace the previous
 	// api.Server.SetupRoutes path that was removed during G01 consolidation.
 	// The Server struct's Pool interface is satisfied across db.Pool +

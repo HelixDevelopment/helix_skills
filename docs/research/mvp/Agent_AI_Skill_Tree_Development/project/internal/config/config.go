@@ -44,6 +44,7 @@ type Config struct {
 	Logging      LoggingConfig       `toml:"logging"`
 	Cache        CacheConfig        `toml:"cache"`
 	Metrics      MetricsConfig      `toml:"metrics"`
+	Tenant       TenantConfig       `toml:"tenant"`
 }
 
 // ---------------------------------------------------------------------------
@@ -260,6 +261,21 @@ type CacheConfig struct {
 	SearchTTL time.Duration `toml:"search_ttl"`
 	// TreeTTL is the TTL for cached dependency trees.
 	TreeTTL time.Duration `toml:"tree_ttl"`
+}
+
+// TenantConfig controls multi-tenant isolation (§11.4.84, 004_enterprise).
+type TenantConfig struct {
+	// Required makes tenant resolution mandatory. When true, requests without
+	// a resolvable tenant are rejected with 403. When false, unscoped requests
+	// pass through (single-tenant backward compatibility).
+	Required bool `toml:"required"`
+	// DefaultTenant is the UUID of the fallback tenant used when no explicit
+	// tenant is provided via header or API key mapping. Empty disables the
+	// fallback.
+	DefaultTenant string `toml:"default_tenant"`
+	// APIKeyTenants maps API key strings to tenant UUIDs. When an authenticated
+	// request's API key appears in this map, the corresponding tenant is used.
+	APIKeyTenants map[string]string `toml:"api_key_tenants"`
 }
 
 // MetricsConfig controls the Prometheus metrics endpoint.
