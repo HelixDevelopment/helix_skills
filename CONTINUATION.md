@@ -1,7 +1,7 @@
 # CONTINUATION.md — Helix Skills
 
-**Revision:** 1
-**Last modified:** 2026-07-17T22:00:00Z
+**Revision:** 2
+**Last modified:** 2026-07-17T22:15:00Z
 
 ---
 
@@ -16,7 +16,7 @@ development with 96 open findings (3 CRITICAL, 63 HIGH, 25 MEDIUM,
 
 ## §2 — Session State
 
-- **HEAD:** (current working tree)
+- **HEAD:** `93636fc` (perf: fix critical N+1 query in GetTree + bound recursive CTE depth)
 - **Branch:** `main`
 - **Constitution submodule:** present at `constitution/`
 - **Skills installed:** 7 active (action-prefix-system, media-validator,
@@ -29,12 +29,19 @@ development with 96 open findings (3 CRITICAL, 63 HIGH, 25 MEDIUM,
 ## §3 — Active Work
 
 ### Just completed (this session)
-- DOC-SYNC: README.md expanded with full package inventory
-- DOC-SYNC: docs/skills/INDEX.md links fixed (was pointing to nonexistent
-  `skill/` subdir, now points to `../repos/skills/`)
-- DOC-SYNC: GAPS_AND_RISKS_REGISTER.md summary counts verified correct
-  (3+64+25+4+39+1=136)
-- DOC-SYNC: CONTINUATION.md created
+- MERGE: `feature/deep-research` merged into main (845c750) — CodeGraph
+  integration, batch embedding, connection pool, metrics, enterprise
+  migration, wireframes (24 files, +7339 lines research/reference code)
+- PERF: N+1 query fix in GetTree + recursive CTE depth bound (93636fc)
+- CONSTITUTION: §11.4.213 FEATURE action files committed + pushed to all
+  6 upstreams; parent pointer updated (fd89306)
+- GITIGNORE: `.ws_state/` added (multitrack workspace state, ephemeral)
+- PUSH: all branches (main + feature/deep-research + feature/testing-infra
+  + feature/catalog-docs) pushed to all 4 upstreams (gitflic, github,
+  gitlab, gitverse)
+- AUDIT: register summary counts verified correct (3+64+25+4+39+1=136)
+- AUDIT: all 39 FIXED items have matching per-item STATUS annotations
+- AUDIT: G58 remains placeholder (TBD, UNCONFIRMED) — needs real finding
 
 ### Queued — CRITICAL (G01, G03, G04)
 - **G01** — Dead `internal/api.Server` consolidation (runtime security hole
