@@ -7,23 +7,26 @@
 
 ## Overview
 
-A library for managing conversation context in AI agent systems. Implements infinite context compression techniques and event-sourced conversation state, enabling agents to maintain coherent long-running dialogues without hitting context window limits.
+conversation provides a comprehensive library for managing conversation context in AI agent systems. It implements infinite context compression techniques that allow agents to maintain coherent long-running dialogues without hitting context window limits, and uses event sourcing to preserve full conversation history for replay and analysis. Designed as the context backbone for any agent that needs to sustain multi-turn interactions across extended sessions.
 
 ## Tech Stack
 
-- Language: Multiple
+- Language: Go
+- Module: digital.vasic.conversation
 
 ## Key Features
 
-- Conversation context window management
-- Infinite context compression and summarisation
-- Event-sourced conversation history and replay
+- Conversation context window management with configurable retention strategies
+- Infinite context compression and summarisation for long-running dialogues
+- Event-sourced conversation history with full replay capability
+- Context segmentation and prioritisation for relevance-aware truncation
+- Integration hooks for memory, tool calls, and provider adapters
 
 ## Related Repos
 
-- [Memory](../Memory/README.md) — memory abstractions used for conversation state
-- [Normalize](../Normalize/README.md) — input normalisation applied before conversation processing
-- [LLMProvider](../LLMProvider/README.md) — provider adapters powering conversation generation
+- [Memory](../Memory/README.md) — long-term memory abstractions used for conversation state persistence
+- [LLMProvider](../LLMProvider/README.md) — provider adapters powering conversation generation and summarisation
+- [TOON](../TOON/README.md) — token-efficient serialisation for compact conversation context payloads
 
 ---
 *Part of the [vasic-digital catalogue](../README.md)*
