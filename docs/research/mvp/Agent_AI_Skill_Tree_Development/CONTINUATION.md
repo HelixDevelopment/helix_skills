@@ -1,7 +1,7 @@
 # CONTINUATION — HelixKnowledge Skill Graph System (MVP)
 
-**Revision:** 8
-**Last modified:** 2026-07-15T18:24:57Z
+**Revision:** 9
+**Last modified:** 2026-07-17T15:30:00Z
 **Purpose:** §12.10 / §11.4.131 standing session-resumption file. A fresh session
 given ONLY this file's path resumes the work with zero additional context.
 Keep in sync on every material state change.
@@ -19,6 +19,15 @@ Read this file + `REQUIREMENTS.md` + `IMPLEMENTATION_PLAN.md` + `GAPS_AND_RISKS_
 correctness gaps from the R17 register) as a single serialized Go-mutator lane with a
 mandatory **§11.4.209 Fable-xhigh review before every commit**, keeping 2–3
 design-research streams one step ahead in parallel (3–4 total per operator mandate).
+
+## LATE-SESSION DELTA — Rev 9 (2026-07-17T15:30Z) — T3 testing-infra branch
+
+- **G12 tree-sitter: INTERIM COMPLETED** — all 13 tests enumerated in `g12_treesitter_design.md §4` are GREEN: #1 (kotlin compilePatterns), #2 (csharp compilePatterns), #3 (ErrNoPatternsForLanguage), #4 (Fidelity populated), #5 (normalizeLanguage aliases), #6 (CGO native — SKIP-with-reason, grammars not vendored), #7 (Kotlin real-fixture pipeline), #8 (C# real-fixture pipeline), #9 (fuzz — 12 malformed inputs no panic), #10-#13 (mutation tests documented). CGO split (`treesitter_native.go` / `treesitter_native_stub.go`) deferred — requires vendor of tree-sitter grammars.
+- **G20 autoexpand: COMPLETED** — all three defects CLOSED: (1) placeholder persist deleted (DraftSkill returns error when p.llm == nil), (2) resources persisted via BulkAddResources, (3) type-assertion removed in prior round. Anti-bluff regression tests GREEN.
+- **Worker embedder seam wired (G03/G29)** — `NewRunner` now calls `db.NewEmbedderFromConfig(cfg.Embedding)` and passes the embedder to `store.WithEmbedder(emb)` + `autoexpand.NewPipeline(store, aeEmbedder, ...)`. Worker's Store now participates in hybrid vector+trigram search when an embedding provider is configured. Matches MCP server wiring pattern.
+- **Stress+chaos tests: IN PROGRESS** — 3 parallel subagents dispatched to expand coverage to 11 packages: api, autoexpand, db, config, ingest/pipeline, mcp, registry, validation, source/skillmd, source/mapper, toon, skillscatalog. Existing coverage: codeanalysis (stress+chaos), skill (stress+chaos), worker (chaos).
+- **HelixQA bank entries created** — `project/test/helixqa/skill_system.yaml` with 20 test_cases covering G12 tree-sitter (7 cases), G20 autoexpand (2), G11 worker lifecycle (4), G03 worker seam (2), G29 embedder (1), full-suite regression (1), stress+chaos (2).
+- **Merge origin/main: current** — no new upstream commits since last merge (9c560d9).
 
 ## LATE-SESSION DELTA — Rev 8 (2026-07-15T18:24Z) — supersedes Rev 7 where they conflict
 
