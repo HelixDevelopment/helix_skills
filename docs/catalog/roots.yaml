@@ -1,0 +1,20 @@
+# catalog-engine roots — helix_skills PROJECT INJECTION (§11.4.28).
+# Scans all test scripts under tests/ and constitution/tests/.
+# Cross-ref: docs/research/test_catalog/P0_design.md §1 corpus enumeration.
+
+roots:
+  - root: tests
+    type: pre_build
+    glob: "*.sh"
+
+  - root: constitution/tests
+    type: constitution_gate
+    glob: "*.sh"
+
+  - root: constitution/scripts/hooks
+    type: hook_test
+    glob: "test_*.sh"
+
+  - root: constitution/scripts/gates
+    type: meta-test-mutation
+    glob: "*_mutation_test.sh"
