@@ -485,9 +485,9 @@ PASS (real run).
 - **Constitution references:** §11.4.161, §11.4.76, §11.4.173.
 
 ### G40 — No SQLite workable_items.db single-source-of-truth
-- **Type:** Task. **Severity:** HIGH. **Status:** FILED; adoption plan finalized; Phase 1 READY.
-- **Evidence:** 39 findings tracked in this markdown register instead. The constitution's own Go workable-items engine (`constitution/scripts/workable-items/`) exists + is unused → adoption-only.
-- **Constitution references:** §11.4.93, §11.4.95.
+- **Type:** Task. **Severity:** HIGH. **Status:** FILED; adoption plan FINALIZED (`research/g40_adoption_plan_FINAL.md`); design doc at `research/g40_workable_items_db_adoption_design.md`; Phase 1 READY (awaiting G47 operator decision or proceed-on-default). Recommended path: Option (a) — literal Gxx/Rxx as atm_id, zero schema change.
+- **Evidence:** 49 findings (G01–G49) tracked in this markdown register instead. The constitution's own Go workable-items engine (`constitution/scripts/workable-items/`) exists, builds cleanly, and is unused → adoption-only. Engine schema version `'6'` (`schema_embed.sql`); `add --id <id>` accepts arbitrary TEXT for `atm_id` (no format CHECK). Coupled: G45 (closed-vocabulary not applied) resolved by Phase 1 import; G47 (id scheme tension) resolved by Option (a) recommendation (operator decision PENDING).
+- **Constitution references:** §11.4.93, §11.4.95, §11.4.74, §11.4.28, §11.4.108, §11.4.6.
 
 ### G41 — Zero hooks wired in settings.local.json
 - **Type:** Task. **Severity:** HIGH. **Status:** `Completed (→ Fixed.md)` — `0438d7e`.
@@ -510,8 +510,8 @@ PASS (real run).
 - **Constitution references:** §11.4.44.
 
 ### G45 — Status/type/reopens closed-vocabulary not enforced
-- **Type:** Task. **Severity:** MEDIUM. **Status:** FILED (couples with G40 DB adoption).
-- **Evidence:** status/type/reopens closed-vocabulary not applied to the G0x findings.
+- **Type:** Task. **Severity:** MEDIUM. **Status:** FILED; RESOLVED by G40 adoption plan Phase 1 (closed-vocabulary enforced at import time via `workable-items validate`). Closes when G40 Phase 1 lands.
+- **Evidence:** status/type/reopens closed-vocabulary not applied to the G0x findings; G40 adoption plan's Phase 1 import applies the closed set mechanically.
 - **Constitution references:** §11.4.15, §11.4.16, §11.4.34.
 
 ### G46 — Shell scripts lack companion docs
