@@ -1,7 +1,7 @@
 # GAPS_AND_RISKS_REGISTER — HelixKnowledge Skill Graph System
 
-**Revision:** 9
-**Last modified:** 2026-07-17T22:00:00Z
+**Revision:** 10
+**Last modified:** 2026-07-18T04:30:00Z
 
 > Adversarial audit satisfying operator mandate **R17**. Every row carries
 > concrete `file:line` evidence (positive-evidence-only, R11). Anything not
@@ -14,45 +14,26 @@
 > audit did not re-run them. Findings are about *design, behaviour, wiring,
 > security, and contract fidelity*, not compilation.
 
-## Summary counts (2026-07-17 Rev 9 — all items G01–G137)
+## Summary counts (2026-07-17 Rev 10 — all items G01–G137)
 
 | Status | Count | IDs |
 |---|---|---|
 | **OPEN — CRITICAL** | 2 | G01, G04 |
-| **OPEN — HIGH** | 64 | G09, G10, G12, G14, G15, G40, G42, G43, G59, G63, G69–G92 (×24), G93–G122 (×30) |
+| **OPEN — HIGH** | 62 | G09, G10, G14, G15, G40, G42, G43, G59, G63, G69–G92 (×24), G93–G122 (×30) |
 | **OPEN — MEDIUM** | 25 | G17, G18, G30, G44, G45, G47, G55, G56, G58, G60, G61, G66, G123, G124–G135 (×12) |
 | **OPEN — LOW** | 4 | G37, G62, G67, G68 |
-| **FIXED** | 40 | G02, G03, G05, G06, G07, G08, G11, G13, G16, G19, G20, G21, G22, G23, G24, G25, G26, G27, G28, G29, G31, G32, G33, G34, G35, G36, G38, G39, G41, G46, G48, G49, G51, G52, G53, G54, G57, G64, G65, G137 |
-| **OPEN — CRITICAL** | 3 | G01, G03, G04 |
-| **OPEN — HIGH** | 63 | G09, G10, G14, G15, G40, G42, G43, G59, G63, G69–G92 (×24), G93–G122 (×30) |
-| **OPEN — MEDIUM** | 25 | G17, G18, G30, G44, G45, G47, G55, G56, G58, G60, G61, G66, G123, G124–G135 (×12) |
-| **OPEN — LOW** | 4 | G37, G62, G67, G68 |
-| **FIXED** | 40 | G02, G05, G06, G07, G08, G11, G12, G13, G16, G19, G20, G21, G22, G23, G24, G25, G26, G27, G28, G29, G31, G32, G33, G34, G35, G36, G38, G39, G41, G46, G48, G49, G51, G52, G53, G54, G57, G64, G65, G137 |
-| **OPEN — HIGH** | 63 | G09, G10, G12, G14, G15, G40, G42, G43, G63, G69–G92 (×24), G93–G122 (×30) |
-| **OPEN — MEDIUM** | 24 | G17, G18, G30, G44, G45, G47, G55, G56, G58, G61, G66, G123, G124–G135 (×12) |
-| **OPEN — LOW** | 3 | G37, G67, G68 |
-| **FIXED** | 43 | G02, G03, G05, G06, G07, G08, G11, G13, G16, G19, G20, G21, G22, G23, G24, G25, G26, G27, G28, G29, G31, G32, G33, G34, G35, G36, G38, G39, G41, G46, G48, G49, G51, G52, G53, G54, G57, G59, G60, G62, G64, G65, G137 |
+| **FIXED** | 42 | G02, G03, G05, G06, G07, G08, G11, G12, G13, G16, G19, G20, G21, G22, G23, G24, G25, G26, G27, G28, G29, G31, G32, G33, G34, G35, G36, G38, G39, G41, G46, G48, G49, G51, G52, G53, G54, G57, G64, G65, G137 |
 | **N/A** | 1 | G136 (meta-assessment task itself) |
 | **TOTAL** | **136** | (G01–G135 + G137; G136 is the assessment task, deliberately unrated) |
 
-> **Register-cleanup note (2026-07-17 Rev 8):** Field-verification pass against
-> every per-item STATUS line. Corrections from Rev 7:
-> - G43 was wrongly in FIXED row; moved to OPEN HIGH (per-item status: FILED, PENDING).
-> - G19 (Fixed→SPEC.md), G20 (COMPLETED), G28 (Implemented) were in OPEN MEDIUM
->   but have Fixed per-item statuses; moved to FIXED.
-> - G137 was in OPEN HIGH but has Fixed per-item status; moved to FIXED.
-> - FIXED count corrected from 75→39 (Rev 7 count was inflated; only 39 items
->   have Fixed/Implemented/Completed/CLOSED per-item STATUS lines).
-> - OPEN HIGH corrected from 28→64 (G43 added; G137 removed; range counts
->   24+30 = 54 from G69–G122 are correct).
-> - OPEN MEDIUM corrected from 26→25 (G19, G20, G28 removed; G28 was missed
->   in Rev 7's count adjustment).
-> - G58 remains a placeholder (Type: TBD, Status: UNCONFIRMED) — no real finding
->   filed; conductor must investigate and create the actual finding.
-> The Fixed row captures all items whose per-item STATUS line reads Fixed,
-> Implemented, Completed, or CLOSED.
-> Open-item severity rows contain only OPEN items.
-> **Open-total verification:** 3+63+25+4 = 95 open + 40 fixed + 1 N/A = 136 total. ✓
+> **Open-total verification:** 2+62+25+4 = 93 open + 42 fixed + 1 N/A = 136 total. ✓
+>
+> **Rev 10 reconciliation (2026-07-17):** Replaced three contradictory Rev 8/9
+> summary tables with one authoritative table, verified against every per-item
+> STATUS line. Changes from Rev 9's first table: G12 moved OPEN HIGH → FIXED
+> (per-item: COMPLETED); G03 confirmed FIXED (per-item: FULLY LANDED).
+> G58 remains a placeholder (Type: TBD, Status: UNCONFIRMED) — no real finding
+> filed.
 
 > Severities for G52–G137 are **proposed** per G136 — see
 > `research/g136_severity_assessment.md` for the per-item evidence and

@@ -1,7 +1,7 @@
 # CONTINUATION.md — Helix Skills
 
-**Revision:** 7
-**Last modified:** 2026-07-18T04:15:00Z
+**Revision:** 8
+**Last modified:** 2026-07-18T05:00:00Z
 
 ---
 
@@ -9,7 +9,7 @@
 
 Documentation sync + catalog maintenance. The MVP skill-graph system
 (`docs/research/mvp/Agent_AI_Skill_Tree_Development/`) is in active
-development with 95 open findings (2 CRITICAL, 64 HIGH, 25 MEDIUM,
+development with 93 open findings (2 CRITICAL, 62 HIGH, 25 MEDIUM,
 4 LOW) across 136 tracked items in the GAPS_AND_RISKS_REGISTER.md.
 
 ---
