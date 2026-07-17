@@ -237,3 +237,855 @@ test_cases:
     required_evidence:
       - test_exit_zero
       - captured_output_contains "PASS"
+
+  # ------------------------------------------------------------------
+  # Security — CORS, rate limiting, auth wiring
+  # ------------------------------------------------------------------
+  - id: CME-SECURITY-001
+    name: "CORS empty allowlist fails closed (no origin reflected)"
+    feature_class: api_security
+    related_issue: G22
+    dispatches_to: "go test ./internal/api/ -run TestCORS_EmptyAllowlistFailsClosed -v"
+    category: unit
+    priority: critical
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-SECURITY-002
+    name: "CORS non-allowlisted origin is never reflected"
+    feature_class: api_security
+    related_issue: G22
+    dispatches_to: "go test ./internal/api/ -run TestCORS_NonAllowlistedOriginIsNeverReflected -v"
+    category: unit
+    priority: critical
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-SECURITY-003
+    name: "Rate limiter per-key isolation (one key cannot exhaust another)"
+    feature_class: api_security
+    related_issue: G22
+    dispatches_to: "go test ./internal/api/ -run TestRateLimiter_PerKeyIsolation -v"
+    category: unit
+    priority: critical
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-SECURITY-004
+    name: "Rate limiter hard cap bounds map under distinct-key flood"
+    feature_class: api_security
+    related_issue: G22
+    dispatches_to: "go test ./internal/api/ -run TestRateLimiter_HardCapBoundsMapUnderDistinctKeyFlood -v"
+    category: stress
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-SECURITY-005
+    name: "API key auth fails closed when unconfigured"
+    feature_class: api_security
+    related_issue: G22
+    dispatches_to: "go test ./internal/api/ -run TestResolveAPIKeyAuth_FailsClosedWhenUnconfigured -v"
+    category: unit
+    priority: critical
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-SECURITY-006
+    name: "No wildcard CORS on live server paths"
+    feature_class: api_security
+    related_issue: G22
+    dispatches_to: "go test ./cmd/server/ -run TestNoWildcardCORSOnLivePaths -v"
+    category: integration
+    priority: critical
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-SECURITY-007
+    name: "MCP write requires auth when keys configured"
+    feature_class: api_security
+    related_issue: G22
+    dispatches_to: "go test ./cmd/server/ -run TestSingleRouter_MCPWriteRequiresAuth_KeysConfigured -v"
+    category: integration
+    priority: critical
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-SECURITY-008
+    name: "Router fails closed when auth unconfigured"
+    feature_class: api_security
+    related_issue: G22
+    dispatches_to: "go test ./cmd/server/ -run TestSingleRouter_FailsClosed_WhenUnconfigured -v"
+    category: integration
+    priority: critical
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  # ------------------------------------------------------------------
+  # Security stress — concurrent API response format + auth
+  # ------------------------------------------------------------------
+  - id: CME-SECURITY-009
+    name: "Concurrent API response format integrity under load"
+    feature_class: api_security
+    related_issue: G22
+    dispatches_to: "go test ./internal/api/ -run TestStress_ConcurrentResponseFormat -race -v"
+    category: stress
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-SECURITY-010
+    name: "Concurrent error response format integrity under load"
+    feature_class: api_security
+    related_issue: G22
+    dispatches_to: "go test ./internal/api/ -run TestStress_ConcurrentErrorResponse -race -v"
+    category: stress
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  # ------------------------------------------------------------------
+  # Server — live router rate limit + body cap + security fix
+  # ------------------------------------------------------------------
+  - id: CME-SERVER-001
+    name: "Live router rate limit burst is throttled"
+    feature_class: server_router
+    related_issue: G22
+    dispatches_to: "go test ./cmd/server/ -run TestLiveRouter_RateLimit_BurstThrottled -v"
+    category: integration
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-SERVER-002
+    name: "Live router rate limit per-socket isolation"
+    feature_class: server_router
+    related_issue: G22
+    dispatches_to: "go test ./cmd/server/ -run TestLiveRouter_RateLimit_PerSocketIsolation -v"
+    category: integration
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-SERVER-003
+    name: "Live router body cap over and under limits"
+    feature_class: server_router
+    related_issue: G22
+    dispatches_to: "go test ./cmd/server/ -run TestLiveRouter_BodyCap_OverAndUnder -v"
+    category: integration
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-SERVER-004
+    name: "Forged key rotation throttled by socket"
+    feature_class: server_security
+    related_issue: G22
+    dispatches_to: "go test ./cmd/server/ -run TestLiveRouter_ForgedKeyRotationThrottledBySocket -v"
+    category: integration
+    priority: critical
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-SERVER-005
+    name: "Spoofed X-Forwarded-For header ignored"
+    feature_class: server_security
+    related_issue: G22
+    dispatches_to: "go test ./cmd/server/ -run TestLiveRouter_SpoofedForwardedForIgnored -v"
+    category: integration
+    priority: critical
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-SERVER-006
+    name: "Rate limited 429 carries Retry-After header"
+    feature_class: server_security
+    related_issue: G22
+    dispatches_to: "go test ./cmd/server/ -run TestLiveRouter_RateLimited429CarriesRetryAfter -v"
+    category: integration
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  # ------------------------------------------------------------------
+  # Database — embedding config, vector validation, pool
+  # ------------------------------------------------------------------
+  - id: CME-DB-001
+    name: "Embedder config: OpenAI requires API key"
+    feature_class: database
+    related_issue: G10
+    dispatches_to: "go test ./internal/db/ -run TestG29_NewEmbedderFromConfig_OpenAIRequiresAPIKey -v"
+    category: unit
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-DB-002
+    name: "Embedder config: rejects non-positive dimensions"
+    feature_class: database
+    related_issue: G10
+    dispatches_to: "go test ./internal/db/ -run TestG10_NewEmbedderFromConfig_RejectsNonPositiveDimensions -v"
+    category: unit
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-DB-003
+    name: "ValidateTableName rejects SQL injection patterns"
+    feature_class: database
+    related_issue: G04
+    dispatches_to: "go test ./internal/db/ -run TestValidateTableName_RejectsInjectionUnchanged -v"
+    category: unit
+    priority: critical
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-DB-004
+    name: "Connection pool: unhealthy replica falls back to primary"
+    feature_class: database
+    related_issue: G04
+    dispatches_to: "go test ./internal/db/ -run TestReadWritePool_UnhealthyReplica_FallsBackToPrimary -v"
+    category: unit
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-DB-005
+    name: "Embedded migrations are FS-based and deterministic"
+    feature_class: database
+    related_issue: G23
+    dispatches_to: "go test ./internal/db/ -run TestDiscoverMigrationsFS_IsFsBasedAndDeterministic -v"
+    category: unit
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-DB-006
+    name: "Vector table name validation accepts valid names"
+    feature_class: database
+    related_issue: G10
+    dispatches_to: "go test ./internal/db/ -run TestValidateTableName_AcceptsValid -v"
+    category: unit
+    priority: medium
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  # ------------------------------------------------------------------
+  # Database stress — concurrent embedder config
+  # ------------------------------------------------------------------
+  - id: CME-DB-007
+    name: "Concurrent embedder config construction (no races)"
+    feature_class: database
+    related_issue: G10
+    dispatches_to: "go test ./internal/db/ -run TestStress_ConcurrentNewEmbedderFromConfig -race -v"
+    category: stress
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  # ------------------------------------------------------------------
+  # Ingest pipeline — candidate, extract, chaos
+  # ------------------------------------------------------------------
+  - id: CME-INGEST-001
+    name: "Candidate builder: happy path produces valid skill"
+    feature_class: ingest_pipeline
+    related_issue: G04
+    dispatches_to: "go test ./internal/ingest/pipeline/ -run TestBuildCandidate_HappyPath -v"
+    category: unit
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-INGEST-002
+    name: "Extract text: unsupported content type rejected"
+    feature_class: ingest_pipeline
+    related_issue: G04
+    dispatches_to: "go test ./internal/ingest/pipeline/ -run TestExtractText_UnsupportedContentType_Rejected -v"
+    category: unit
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-INGEST-003
+    name: "Extract text: invalid UTF-8 rejected"
+    feature_class: ingest_pipeline
+    related_issue: G04
+    dispatches_to: "go test ./internal/ingest/pipeline/ -run TestExtractText_InvalidUTF8_Rejected -v"
+    category: unit
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-INGEST-004
+    name: "Chaos: binary content does not panic normalizer"
+    feature_class: ingest_pipeline
+    related_issue: G04
+    dispatches_to: "go test ./internal/ingest/pipeline/ -run TestChaos_NormalizeContent_Binary -v"
+    category: chaos
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  # ------------------------------------------------------------------
+  # Ingest pipeline stress — concurrent normalize + description
+  # ------------------------------------------------------------------
+  - id: CME-INGEST-005
+    name: "Concurrent content normalization (no races)"
+    feature_class: ingest_pipeline
+    related_issue: G04
+    dispatches_to: "go test ./internal/ingest/pipeline/ -run TestStress_ConcurrentNormalizeContent -race -v"
+    category: stress
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-INGEST-006
+    name: "Concurrent description extraction (no races)"
+    feature_class: ingest_pipeline
+    related_issue: G04
+    dispatches_to: "go test ./internal/ingest/pipeline/ -run TestStress_ConcurrentDescriptionFrom -race -v"
+    category: stress
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  # ------------------------------------------------------------------
+  # GitHub client — leak detection + API calls
+  # ------------------------------------------------------------------
+  - id: CME-GITHUB-001
+    name: "FieldStringValue detects byte-string leak in API response"
+    feature_class: source_github
+    related_issue: G04
+    dispatches_to: "go test ./internal/source/github/ -run TestFieldStringValue_DetectsByteStringLeak -v"
+    category: unit
+    priority: critical
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-GITHUB-002
+    name: "FieldStringValue detects error leak in API response"
+    feature_class: source_github
+    related_issue: G04
+    dispatches_to: "go test ./internal/source/github/ -run TestFieldStringValue_DetectsErrorLeak -v"
+    category: unit
+    priority: critical
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-GITHUB-003
+    name: "GetHeadSHA parses success response correctly"
+    feature_class: source_github
+    related_issue: G04
+    dispatches_to: "go test ./internal/source/github/ -run TestGetHeadSHA_Success -v"
+    category: unit
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-GITHUB-004
+    name: "FetchBlob caching flow reaches 304 on second call"
+    feature_class: source_github
+    related_issue: G04
+    dispatches_to: "go test ./internal/source/github/ -run TestFetchBlob_CachingFlow_TwoCallsReach304 -v"
+    category: unit
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-GITHUB-005
+    name: "RateLimitStatus reports exhausted correctly"
+    feature_class: source_github
+    related_issue: G04
+    dispatches_to: "go test ./internal/source/github/ -run TestRateLimitStatus_Exhausted -v"
+    category: unit
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  # ------------------------------------------------------------------
+  # Skills catalog — golden tests + injection + fingerprint
+  # ------------------------------------------------------------------
+  - id: CME-CATALOG-001
+    name: "Skills catalog golden-good fixture passes"
+    feature_class: skill_catalog
+    related_issue: G04
+    dispatches_to: "go test ./internal/skillscatalog/ -run TestSkillsCatalog_GoldenGood -v"
+    category: unit
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-CATALOG-002
+    name: "Skills catalog golden-bad: empty skill name detected"
+    feature_class: skill_catalog
+    related_issue: G04
+    dispatches_to: "go test ./internal/skillscatalog/ -run TestSkillsCatalog_GoldenBad_EmptySkillName -v"
+    category: unit
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-CATALOG-003
+    name: "Skills catalog golden-bad: dangling dependency edge detected"
+    feature_class: skill_catalog
+    related_issue: G04
+    dispatches_to: "go test ./internal/skillscatalog/ -run TestSkillsCatalog_GoldenBad_DanglingDependencyEdge -v"
+    category: unit
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-CATALOG-004
+    name: "Markdown injection on skill name/title surfaces is escaped"
+    feature_class: skill_catalog
+    related_issue: G04
+    dispatches_to: "go test ./internal/skillscatalog/ -run TestSkillsCatalog_MarkdownInjection_NameAndTitleSurfaces_Escaped -v"
+    category: unit
+    priority: critical
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-CATALOG-005
+    name: "Raw HTML injection on name surfaces is escaped"
+    feature_class: skill_catalog
+    related_issue: G04
+    dispatches_to: "go test ./internal/skillscatalog/ -run TestSkillsCatalog_RawHTMLInjection_NameSurfaces_Escaped -v"
+    category: unit
+    priority: critical
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-CATALOG-006
+    name: "Fingerprint NUL separator prevents forged roster collision"
+    feature_class: skill_catalog
+    related_issue: G04
+    dispatches_to: "go test ./internal/skillscatalog/ -run TestFingerprint_NULSeparator_PreventsForgedRosterCollision -v"
+    category: unit
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-CATALOG-007
+    name: "Fingerprint drift: add/modify/remove detected correctly"
+    feature_class: skill_catalog
+    related_issue: G04
+    dispatches_to: "go test ./internal/skillscatalog/ -run TestSkillsCatalog_FingerprintDrift_AddModifyRemove_StableOtherwise -v"
+    category: unit
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  # ------------------------------------------------------------------
+  # Skills catalog stress — concurrent config
+  # ------------------------------------------------------------------
+  - id: CME-CATALOG-008
+    name: "Concurrent default config construction (no races)"
+    feature_class: skill_catalog
+    related_issue: G04
+    dispatches_to: "go test ./internal/skillscatalog/ -run TestStress_ConcurrentDefaultConfig -race -v"
+    category: stress
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  # ------------------------------------------------------------------
+  # Worker — additional seam + lifecycle tests
+  # ------------------------------------------------------------------
+  - id: CME-WORKER-007
+    name: "CodeAnalysis missing project path fails closed"
+    feature_class: worker_seam
+    related_issue: G03
+    dispatches_to: "go test ./internal/worker/ -run TestHandleCodeAnalysis_MissingProjectPath_FailsClosedWithoutCallingAnalyzer -v"
+    category: unit
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-WORKER-008
+    name: "CodeAnalysis propagates analyzer error"
+    feature_class: worker_seam
+    related_issue: G03
+    dispatches_to: "go test ./internal/worker/ -run TestHandleCodeAnalysis_PropagatesAnalyzerError -v"
+    category: unit
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-WORKER-009
+    name: "Validate blank payload fails closed"
+    feature_class: worker_seam
+    related_issue: G03
+    dispatches_to: "go test ./internal/worker/ -run TestHandleValidate_BlankPayload_FailsClosedWithoutCallingValidator -v"
+    category: unit
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-WORKER-010
+    name: "AutoExpand invokes pipeline with payload args"
+    feature_class: worker_seam
+    related_issue: G20
+    dispatches_to: "go test ./internal/worker/ -run TestHandleAutoExpand_InvokesPipelineWithPayloadArgs -v"
+    category: unit
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-WORKER-011
+    name: "AutoExpand missing skill name fails closed"
+    feature_class: worker_seam
+    related_issue: G20
+    dispatches_to: "go test ./internal/worker/ -run TestHandleAutoExpand_MissingSkillName_FailsClosedWithoutCallingPipeline -v"
+    category: unit
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-WORKER-012
+    name: "RegistryReview invokes review logic on every tick"
+    feature_class: worker_lifecycle
+    related_issue: G04
+    dispatches_to: "go test ./internal/worker/ -run TestRunRegistryReview_InvokesReviewLogicOnEveryTick -v"
+    category: unit
+    priority: medium
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  # ------------------------------------------------------------------
+  # MCP server — chaos + stress + transport shutdown
+  # ------------------------------------------------------------------
+  - id: CME-MCP-001
+    name: "MCP nil dependencies panic safety"
+    feature_class: mcp_server
+    related_issue: G04
+    dispatches_to: "go test ./internal/mcp/ -run TestChaos_NilDependencies_PanicSafety -v"
+    category: chaos
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-MCP-002
+    name: "Concurrent MCP server construction (no races)"
+    feature_class: mcp_server
+    related_issue: G04
+    dispatches_to: "go test ./internal/mcp/ -run TestStress_ConcurrentMCPServerConstruction -race -v"
+    category: stress
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-MCP-003
+    name: "ACP adapter shutdown is idempotent (no double-close panic)"
+    feature_class: mcp_server
+    related_issue: G04
+    dispatches_to: "go test ./internal/mcp/ -run TestACPAdapter_Shutdown_IsIdempotent_NoDoubleClosePanic -v"
+    category: chaos
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-MCP-004
+    name: "Stdio transport shutdown is idempotent (no double-close panic)"
+    feature_class: mcp_server
+    related_issue: G04
+    dispatches_to: "go test ./internal/mcp/ -run TestStdioTransport_Shutdown_IsIdempotent_NoDoubleClosePanic -v"
+    category: chaos
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  # ------------------------------------------------------------------
+  # Config — chaos + stress
+  # ------------------------------------------------------------------
+  - id: CME-CONFIG-001
+    name: "Invalid TOML recovered gracefully (no panic)"
+    feature_class: configuration
+    related_issue: G04
+    dispatches_to: "go test ./internal/config/ -run TestChaos_InvalidTOML_Recovered -v"
+    category: chaos
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-CONFIG-002
+    name: "Missing config file does not panic"
+    feature_class: configuration
+    related_issue: G04
+    dispatches_to: "go test ./internal/config/ -run TestChaos_MissingFile_NoPanic -v"
+    category: chaos
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-CONFIG-003
+    name: "Concurrent config load (no races)"
+    feature_class: configuration
+    related_issue: G04
+    dispatches_to: "go test ./internal/config/ -run TestStress_ConcurrentLoad -race -v"
+    category: stress
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  # ------------------------------------------------------------------
+  # TOON codec — chaos + stress
+  # ------------------------------------------------------------------
+  - id: CME-TOON-001
+    name: "TOON corrupt input does not panic"
+    feature_class: serialization
+    related_issue: G04
+    dispatches_to: "go test ./internal/toon/ -run TestChaos_CorruptInput_NoPanic -v"
+    category: chaos
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-TOON-002
+    name: "Concurrent TOON marshal (no races)"
+    feature_class: serialization
+    related_issue: G04
+    dispatches_to: "go test ./internal/toon/ -run TestStress_ConcurrentMarshal -race -v"
+    category: stress
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-TOON-003
+    name: "Concurrent TOON round-trip (no races)"
+    feature_class: serialization
+    related_issue: G04
+    dispatches_to: "go test ./internal/toon/ -run TestStress_ConcurrentRoundTrip -race -v"
+    category: stress
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  # ------------------------------------------------------------------
+  # Mapper — chaos + stress
+  # ------------------------------------------------------------------
+  - id: CME-MAPPER-001
+    name: "Mapper nil parsed skill does not panic"
+    feature_class: source_mapper
+    related_issue: G04
+    dispatches_to: "go test ./internal/source/mapper/ -run TestChaos_NilParsedSkill_NoPanic -v"
+    category: chaos
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-MAPPER-002
+    name: "Concurrent mapper operations (no races)"
+    feature_class: source_mapper
+    related_issue: G04
+    dispatches_to: "go test ./internal/source/mapper/ -run TestStress_ConcurrentMap -race -v"
+    category: stress
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  # ------------------------------------------------------------------
+  # Skillmd parser — chaos + stress
+  # ------------------------------------------------------------------
+  - id: CME-SKILLMD-001
+    name: "Skillmd malformed input does not panic"
+    feature_class: source_skillmd
+    related_issue: G04
+    dispatches_to: "go test ./internal/source/skillmd/ -run TestChaos_MalformedInput_NoPanic -v"
+    category: chaos
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-SKILLMD-002
+    name: "Skillmd recovery after bad input (parser not poisoned)"
+    feature_class: source_skillmd
+    related_issue: G04
+    dispatches_to: "go test ./internal/source/skillmd/ -run TestChaos_RecoveryAfterBadInput -v"
+    category: chaos
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-SKILLMD-003
+    name: "Concurrent skillmd parse (no races)"
+    feature_class: source_skillmd
+    related_issue: G04
+    dispatches_to: "go test ./internal/source/skillmd/ -run TestStress_ConcurrentParse -race -v"
+    category: stress
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  # ------------------------------------------------------------------
+  # Validation — chaos + stress
+  # ------------------------------------------------------------------
+  - id: CME-VALIDATION-001
+    name: "Validation nil store pipeline construction safety"
+    feature_class: validation
+    related_issue: G04
+    dispatches_to: "go test ./internal/validation/ -run TestChaos_NilStore_PipelineConstruction -v"
+    category: chaos
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-VALIDATION-002
+    name: "Concurrent validation pipeline construction (no races)"
+    feature_class: validation
+    related_issue: G04
+    dispatches_to: "go test ./internal/validation/ -run TestStress_ConcurrentPipelineConstruction -race -v"
+    category: stress
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  # ------------------------------------------------------------------
+  # Skill store — chaos + stress
+  # ------------------------------------------------------------------
+  - id: CME-SKILL-001
+    name: "Skill concurrent read/write (no races)"
+    feature_class: skill_store
+    related_issue: G04
+    dispatches_to: "go test ./internal/skill/ -run TestChaos_ConcurrentReadWrite -race -v"
+    category: chaos
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-SKILL-002
+    name: "Skill concurrent create and search (no races)"
+    feature_class: skill_store
+    related_issue: G04
+    dispatches_to: "go test ./internal/skill/ -run TestStress_ConcurrentCreateAndSearch -race -v"
+    category: stress
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-SKILL-003
+    name: "Skill concurrent graph operations (no races)"
+    feature_class: skill_store
+    related_issue: G04
+    dispatches_to: "go test ./internal/skill/ -run TestStress_ConcurrentGraphOperations -race -v"
+    category: stress
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  # ------------------------------------------------------------------
+  # Registry — chaos + stress
+  # ------------------------------------------------------------------
+  - id: CME-REGISTRY-001
+    name: "Registry zero-value review scheduler safety"
+    feature_class: registry
+    related_issue: G04
+    dispatches_to: "go test ./internal/registry/ -run TestChaos_ZeroValueReviewScheduler -v"
+    category: chaos
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-REGISTRY-002
+    name: "Concurrent review scheduler (no races)"
+    feature_class: registry
+    related_issue: G04
+    dispatches_to: "go test ./internal/registry/ -run TestStress_ConcurrentReviewScheduler -race -v"
+    category: stress
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  # ------------------------------------------------------------------
+  # DB chaos — unknown provider, empty config, local embedder
+  # ------------------------------------------------------------------
+  - id: CME-DB-CHAOS-001
+    name: "DB unknown provider returns error (fails closed)"
+    feature_class: database
+    related_issue: G04
+    dispatches_to: "go test ./internal/db/ -run TestChaos_UnknownProvider_ReturnsError -v"
+    category: chaos
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-DB-CHAOS-002
+    name: "DB empty config returns error (fails closed)"
+    feature_class: database
+    related_issue: G04
+    dispatches_to: "go test ./internal/db/ -run TestChaos_EmptyConfig_ReturnsError -v"
+    category: chaos
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"

@@ -158,6 +158,10 @@ func NewPipeline(store *skill.Store, cfg config.ValidationConfig, logger *zap.Lo
 // default SKIP into this fail-closed aggregate would force every validation
 // to FAIL. This is a documented, intentional gap, not silent dead state.
 func (p *Pipeline) Validate(ctx context.Context, s *models.Skill) (*ValidationResult, error) {
+	if p.store == nil {
+		return nil, fmt.Errorf("validation pipeline: store is nil (fail-closed)")
+	}
+
 	p.logger.Info("starting validation pipeline",
 		zap.String("skill", s.Name),
 		zap.String("skill_id", s.ID.String()),
