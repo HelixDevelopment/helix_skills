@@ -114,10 +114,10 @@ func (ts *TenantStore) ListSkills(ctx context.Context, opts ListOpts) ([]models.
 	tenantID, hasTenant := TenantFromContext(ctx)
 
 	var (
-		sqlStr   string
-		args     []interface{}
-		argIdx   int
-		conds    []string
+		sqlStr string
+		args   []interface{}
+		argIdx int
+		conds  []string
 	)
 
 	if hasTenant {

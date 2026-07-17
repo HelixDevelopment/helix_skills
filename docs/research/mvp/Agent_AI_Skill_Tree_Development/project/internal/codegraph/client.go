@@ -69,20 +69,20 @@ type Symbol struct {
 
 // Dependency represents a single dependency edge from CodeGraph.
 type Dependency struct {
-	Source     string `json:"source"`
-	Target     string `json:"target"`
-	Kind       string `json:"kind"` // "import", "call", "inherit", "implement"
-	File       string `json:"file"`
-	Line       int    `json:"line"`
+	Source string `json:"source"`
+	Target string `json:"target"`
+	Kind   string `json:"kind"` // "import", "call", "inherit", "implement"
+	File   string `json:"file"`
+	Line   int    `json:"line"`
 }
 
 // IndexResult is the response from an index-project call.
 type IndexResult struct {
-	ProjectPath string   `json:"project_path"`
-	FilesIndexed int     `json:"files_indexed"`
-	SymbolsFound int     `json:"symbols_found"`
-	Languages   []string `json:"languages"`
-	DurationMs  int64    `json:"duration_ms"`
+	ProjectPath  string   `json:"project_path"`
+	FilesIndexed int      `json:"files_indexed"`
+	SymbolsFound int      `json:"symbols_found"`
+	Languages    []string `json:"languages"`
+	DurationMs   int64    `json:"duration_ms"`
 }
 
 // ChangeEvent represents a file-level change detected by CodeGraph.
@@ -113,9 +113,9 @@ type MCPClient struct {
 	httpClient *http.Client
 
 	// JSON-RPC bookkeeping
-	mu       sync.Mutex
-	nextID   int
-	avail    bool // false when CodeGraph is unreachable
+	mu     sync.Mutex
+	nextID int
+	avail  bool // false when CodeGraph is unreachable
 }
 
 // NewMCPClient creates a new CodeGraph MCP client from the application

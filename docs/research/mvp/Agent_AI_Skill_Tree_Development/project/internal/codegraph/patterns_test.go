@@ -40,8 +40,8 @@ func (m *mockSkillSearcher) SearchByKeyword(_ context.Context, keyword string, l
 // the IndexManager.
 func mockMCPClientForPatterns() *MCPClient {
 	return &MCPClient{
-		logger:  zap.NewNop(),
-		avail:   false,
+		logger: zap.NewNop(),
+		avail:  false,
 	}
 }
 

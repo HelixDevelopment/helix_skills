@@ -24,6 +24,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/helixdevelopment/skill-system/internal/db"
+	"github.com/helixdevelopment/skill-system/internal/metrics"
 )
 
 // ---------------------------------------------------------------------------
@@ -297,11 +298,13 @@ var skipAuditPaths = map[string]bool{
 // request via the provided AuditLogger. Health, readiness, and metrics
 // endpoints are skipped.
 //
+// The tm parameter is optional — pass nil to skip tenant metrics recording.
+//
 // The middleware MUST run AFTER TenantMiddleware so that the tenant context is
 // available. Requests without a resolved tenant are logged with uuid.Nil.
 //
 // §11.4.84 Tenant audit logging middleware.
-func TenantAuditMiddleware(logger AuditLogger) gin.HandlerFunc {
+func TenantAuditMiddleware(logger AuditLogger, tm *metrics.TenantMetrics) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		path := c.Request.URL.Path
 
@@ -335,5 +338,10 @@ func TenantAuditMiddleware(logger AuditLogger) gin.HandlerFunc {
 		}
 
 		logger.Log(entry)
+
+		// Record tenant audit metric.
+		if tm != nil && tm.Enabled() {
+			tm.RecordAuditEntry(tenantID.String(), entry.Action)
+		}
 	}
 }

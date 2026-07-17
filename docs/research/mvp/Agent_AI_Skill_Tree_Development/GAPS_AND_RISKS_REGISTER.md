@@ -19,10 +19,10 @@
 | Status | Count | IDs |
 |---|---|---|
 | **OPEN — CRITICAL** | 2 | G01, G04 |
-| **OPEN — HIGH** | 64 | G09, G10, G12, G14, G15, G40, G42, G43, G59, G63, G69–G92 (×24), G93–G122 (×30) |
-| **OPEN — MEDIUM** | 25 | G17, G18, G30, G44, G45, G47, G55, G56, G58, G60, G61, G66, G123, G124–G135 (×12) |
-| **OPEN — LOW** | 4 | G37, G62, G67, G68 |
-| **FIXED** | 40 | G02, G03, G05, G06, G07, G08, G11, G13, G16, G19, G20, G21, G22, G23, G24, G25, G26, G27, G28, G29, G31, G32, G33, G34, G35, G36, G38, G39, G41, G46, G48, G49, G51, G52, G53, G54, G57, G64, G65, G137 |
+| **OPEN — HIGH** | 63 | G09, G10, G12, G14, G15, G40, G42, G43, G63, G69–G92 (×24), G93–G122 (×30) |
+| **OPEN — MEDIUM** | 24 | G17, G18, G30, G44, G45, G47, G55, G56, G58, G61, G66, G123, G124–G135 (×12) |
+| **OPEN — LOW** | 3 | G37, G67, G68 |
+| **FIXED** | 43 | G02, G03, G05, G06, G07, G08, G11, G13, G16, G19, G20, G21, G22, G23, G24, G25, G26, G27, G28, G29, G31, G32, G33, G34, G35, G36, G38, G39, G41, G46, G48, G49, G51, G52, G53, G54, G57, G59, G60, G62, G64, G65, G137 |
 | **N/A** | 1 | G136 (meta-assessment task itself) |
 | **TOTAL** | **136** | (G01–G135 + G137; G136 is the assessment task, deliberately unrated) |
 
@@ -608,12 +608,12 @@ that was read during this audit; the two UNCONFIRMED sub-points (MCP
 ### New findings this round (G59–G68)
 
 ### G59 — Embedding ingestion never wired; StoreSkillEmbedding is dead code
-- **Type:** Bug. **Severity:** HIGH. **Status:** Queued.
+- **Type:** Bug. **Severity:** HIGH. **Status:** Fixed (2026-07-17) — `Store.Create` now calls `embedWriteThrough` (store.go:897-899) which invokes `db.StoreSkillEmbedding` (store.go:1031); `ClearSkillEmbedding` called on all failure/skip branches (store.go:1131); stale-vector-on-update handled via clearStaleEmbedding. G59's original evidence ("zero non-test callers") is stale — the write-through path is fully wired with proper degradation posture.
 - **Evidence:** `Store.Create`/`Store.Update` never write `skills.embedding`; the DB-layer embed function — confirmed as `db.StoreSkillEmbedding` at `internal/db/vector.go:180` — and `EmbedAsync` have zero non-test callers, so post-`G29` hybrid search degrades to keyword/trigram-only in practice.
 - **Composes with:** G29, G10, G111.
 
 ### G60 — Search conflict-oracle uses ranked Search instead of exact GetByName
-- **Type:** Bug. **Severity:** MEDIUM. **Status:** Queued.
+- **Type:** Bug. **Severity:** MEDIUM. **Status:** Fixed (2026-07-17) — `pipeline.go:555,564` uses `GetByName` (exact `WHERE name = $1`), not `Search`. The comment at line 535-546 documents why: Search's RRF scoring makes limit=1 non-deterministic.
 - **Evidence:** `internal/validation/pipeline.go`'s existence/conflict oracle uses ranked `Search(name,1)` instead of exact `Store.GetByName` — latent until `G59` AND `G29` fully land.
 - **Composes with:** G29; sequenced to land WITH or AFTER G59.
 
@@ -623,7 +623,7 @@ that was read during this audit; the two UNCONFIRMED sub-points (MCP
 - **Composes with:** G01 (O3 sub-scope), G09, G96. The conductor must resolve G61/G96/G01-O3 as ONE piece of work (§11.4.186 anti-divergence).
 
 ### G62 — 20 files with gofmt drift project-wide
-- **Type:** Task. **Severity:** LOW. **Status:** Queued.
+- **Type:** Task. **Severity:** LOW. **Status:** Fixed (2026-07-17) — `gofmt -w` applied to all 13 drifted files; `gofmt -l` returns empty; build/vet/test all green post-fix.
 - **Evidence:** 20 files project-wide carry pre-existing `gofmt` drift. Fix scope is 18 standalone-hygiene files (minus `embedding.go` and `pipeline.go` tracked under G29/G54).
 
 ### G63 — 4th divergent route-contract surface (registry CLI/TUI)

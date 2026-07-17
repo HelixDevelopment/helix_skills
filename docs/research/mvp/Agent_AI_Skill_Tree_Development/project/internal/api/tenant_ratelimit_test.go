@@ -203,7 +203,7 @@ func rateLimitTestMiddlewareRouter(rl *TenantRateLimiter) *gin.Engine {
 		c.Request = c.Request.WithContext(WithTenant(c.Request.Context(), tc))
 		c.Next()
 	})
-	r.Use(TenantRateLimitMiddleware(rl))
+	r.Use(TenantRateLimitMiddleware(rl, nil))
 	r.GET("/api/v1/test", func(c *gin.Context) {
 		c.String(http.StatusOK, "ok")
 	})
@@ -276,7 +276,7 @@ func TestTenantRateLimitMiddleware_PassesThroughWithoutTenant(t *testing.T) {
 
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-	r.Use(TenantRateLimitMiddleware(rl))
+	r.Use(TenantRateLimitMiddleware(rl, nil))
 	r.GET("/api/v1/test", func(c *gin.Context) {
 		c.String(http.StatusOK, "ok")
 	})
@@ -319,7 +319,7 @@ func TestTenantRateLimitMiddleware_MultipleTenantPaths(t *testing.T) {
 		c.Request = c.Request.WithContext(WithTenant(c.Request.Context(), tc))
 		c.Next()
 	})
-	r.Use(TenantRateLimitMiddleware(rl))
+	r.Use(TenantRateLimitMiddleware(rl, nil))
 	r.GET("/api/v1/test", func(c *gin.Context) {
 		c.String(http.StatusOK, "ok")
 	})

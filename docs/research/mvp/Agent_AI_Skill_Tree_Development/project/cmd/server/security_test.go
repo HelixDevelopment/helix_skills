@@ -50,7 +50,8 @@ func newTestRouter(keys []string, authDisabled bool) *gin.Engine {
 	mcpServer := mcp.NewMCPServer(pool, store, reg, cfg, zap.NewNop())
 	mcpServer.RegisterTools()
 
-	return buildRouter(cfg, pool, store, reg, mcpServer, zap.NewNop())
+	router, _ := buildRouter(cfg, pool, store, reg, mcpServer, zap.NewNop())
+	return router
 }
 
 func doReq(r *gin.Engine, method, path string, headers map[string]string) *httptest.ResponseRecorder {

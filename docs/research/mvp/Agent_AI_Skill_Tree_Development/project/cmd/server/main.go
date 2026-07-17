@@ -20,6 +20,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io/fs"
@@ -35,6 +36,7 @@ import (
 	"github.com/helixdevelopment/skill-system/internal/config"
 	"github.com/helixdevelopment/skill-system/internal/db"
 	"github.com/helixdevelopment/skill-system/internal/mcp"
+	"github.com/helixdevelopment/skill-system/internal/models"
 	"github.com/helixdevelopment/skill-system/internal/registry"
 	"github.com/helixdevelopment/skill-system/internal/skill"
 	"go.uber.org/zap"
@@ -146,19 +148,19 @@ func main() {
 		// auth-guarded) PLUS stdio in the foreground (blocking). There is no
 		// second HTTP listener: the MCP HTTP surface lives on the same router as
 		// /api/v1 under the same fail-closed policy.
-		srv := setupAPI(cfg, pool, skillStore, skillRegistry, mcpServer, logger)
+		srv, tenantCleanup := setupAPI(cfg, pool, skillStore, skillRegistry, mcpServer, logger)
 		if err := mcpServer.RunStdio(); err != nil {
 			logger.Fatal("MCP stdio server failed", zap.Error(err))
 		}
 		// stdio ended (EOF/stop): drain the HTTP server and the MCP server.
-		gracefulShutdown(ctx, logger, mcpServer, srv)
+		gracefulShutdown(ctx, logger, mcpServer, srv, tenantCleanup)
 
 	default:
 		// "http" and the standard API mode both serve a SINGLE hardened HTTP
 		// listener with the MCP routes mounted and auth-guarded, then block
 		// until a shutdown signal. Exactly one server binds the port.
-		srv := setupAPI(cfg, pool, skillStore, skillRegistry, mcpServer, logger)
-		waitForShutdown(ctx, logger, mcpServer, srv)
+		srv, tenantCleanup := setupAPI(cfg, pool, skillStore, skillRegistry, mcpServer, logger)
+		waitForShutdown(ctx, logger, mcpServer, srv, tenantCleanup)
 	}
 }
 
@@ -304,7 +306,7 @@ func newHealthHandler(pool healthPinger, transport string, logger *zap.Logger) g
 // mounted MCP /mcp/v1 routes with that same middleware. /health and / are the
 // only open routes. No listener is started here (see setupAPI) so this assembly
 // is directly unit-testable.
-func buildRouter(cfg *config.Config, pool *db.Pool, store *skill.Store, reg *registry.Registry, mcpServer *mcp.MCPServer, logger *zap.Logger) *gin.Engine {
+func buildRouter(cfg *config.Config, pool *db.Pool, store *skill.Store, reg *registry.Registry, mcpServer *mcp.MCPServer, logger *zap.Logger) (*gin.Engine, func()) {
 	if cfg.Server.EnableBrotli {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -401,6 +403,38 @@ func buildRouter(cfg *config.Config, pool *db.Pool, store *skill.Store, reg *reg
 		v1.Use(api.TenantMiddleware(cfg.Tenant))
 	}
 
+	// Per-tenant rate limiting (§11.4.84). Each tenant identified by
+	// TenantMiddleware receives an independent token-bucket limiter. Disabled
+	// by default — operators enable it via [tenant.rate_limit] in config.
+	var tenantRateLimiter *api.TenantRateLimiter
+	if cfg.Tenant.RateLimit.Enabled {
+		tenantRateLimiter = api.NewTenantRateLimiter(api.TenantRateLimitConfig{
+			RequestsPerMinute: cfg.Tenant.RateLimit.RequestsPerMinute,
+			BurstSize:         cfg.Tenant.RateLimit.BurstSize,
+		})
+		v1.Use(api.TenantRateLimitMiddleware(tenantRateLimiter, nil))
+	}
+
+	// Tenant audit logging (§11.4.84). Records every tenant-scoped API request
+	// into the tenant_audit_log table. Runs whenever tenant resolution is
+	// active (Required or DefaultTenant configured).
+	var auditLogger api.AuditLogger
+	if cfg.Tenant.Required || cfg.Tenant.DefaultTenant != "" {
+		auditLogger = api.NewDBAuditLogger(pool, logger)
+		v1.Use(api.TenantAuditMiddleware(auditLogger, nil))
+	}
+
+	// tenantSkillStore returns a *skill.TenantStore when the request carries a
+	// resolved tenant context, nil otherwise.  Handlers call this once at the
+	// top and branch: tenant-scoped queries when non-nil, existing unscoped
+	// queries when nil (single-tenant backward compat).
+	tenantSkillStore := func(c *gin.Context) *skill.TenantStore {
+		if _, ok := skill.TenantFromContext(c.Request.Context()); ok {
+			return skill.NewTenantStore(pool, logger)
+		}
+		return nil
+	}
+
 	// Skills CRUD (served via inline closures — these replace the previous
 	// api.Server.SetupRoutes path that was removed during G01 consolidation.
 	// The Server struct's Pool interface is satisfied across db.Pool +
@@ -412,6 +446,15 @@ func buildRouter(cfg *config.Config, pool *db.Pool, store *skill.Store, reg *reg
 	{
 		skills.GET("", func(c *gin.Context) {
 			ctx := c.Request.Context()
+			if ts := tenantSkillStore(c); ts != nil {
+				skills, err := ts.ListSkills(ctx, skill.ListOpts{Limit: 100})
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+					return
+				}
+				c.JSON(http.StatusOK, gin.H{"skills": skills, "count": len(skills)})
+				return
+			}
 			skills, err := store.ListSkills(ctx, "", 100, 0)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -427,6 +470,19 @@ func buildRouter(cfg *config.Config, pool *db.Pool, store *skill.Store, reg *reg
 				c.JSON(http.StatusBadRequest, gin.H{"error": "Query parameter 'q' is required"})
 				return
 			}
+			if ts := tenantSkillStore(c); ts != nil {
+				tenantSkills, err := ts.SearchSkills(ctx, query, skill.ListOpts{Limit: 50})
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+					return
+				}
+				results := make([]models.SearchResult, len(tenantSkills))
+				for i, sk := range tenantSkills {
+					results[i] = models.SearchResult{Skill: sk}
+				}
+				c.JSON(http.StatusOK, gin.H{"results": results, "query": query})
+				return
+			}
 			results, err := store.Search(ctx, query, 10)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -438,17 +494,44 @@ func buildRouter(cfg *config.Config, pool *db.Pool, store *skill.Store, reg *reg
 		skills.GET("/:name", func(c *gin.Context) {
 			ctx := c.Request.Context()
 			name := c.Param("name")
-			skill, err := store.GetByName(ctx, name)
+			if ts := tenantSkillStore(c); ts != nil {
+				sk, err := ts.GetSkill(ctx, name)
+				if err != nil {
+					if errors.Is(err, skill.ErrSkillNotFound) {
+						c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+					} else {
+						c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+					}
+					return
+				}
+				c.JSON(http.StatusOK, sk)
+				return
+			}
+			sk, err := store.GetByName(ctx, name)
 			if err != nil {
 				c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 				return
 			}
-			c.JSON(http.StatusOK, skill)
+			c.JSON(http.StatusOK, sk)
 		})
 
 		skills.GET("/:name/tree", func(c *gin.Context) {
 			ctx := c.Request.Context()
 			name := c.Param("name")
+			// When a tenant is active, validate access via TenantStore.GetSkill
+			// before building the tree. TenantStore has no GetTree method, so we
+			// fall through to the unscoped store for tree construction — the
+			// tenant check above ensures the skill belongs to the tenant.
+			if ts := tenantSkillStore(c); ts != nil {
+				if _, err := ts.GetSkill(ctx, name); err != nil {
+					if errors.Is(err, skill.ErrSkillNotFound) {
+						c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+					} else {
+						c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+					}
+					return
+				}
+			}
 			depth := 5
 			tree, err := store.GetTree(ctx, name, depth)
 			if err != nil {
@@ -519,7 +602,18 @@ func buildRouter(cfg *config.Config, pool *db.Pool, store *skill.Store, reg *reg
 		})
 	})
 
-	return router
+	// Cleanup function for graceful shutdown — stops background goroutines
+	// started by per-tenant middleware (rate limiter reaper, audit flusher).
+	tenantCleanup := func() {
+		if tenantRateLimiter != nil {
+			tenantRateLimiter.Stop()
+		}
+		if auditLogger != nil {
+			auditLogger.Stop()
+		}
+	}
+
+	return router, tenantCleanup
 }
 
 // setupAPI builds the single hardened router and starts the ONE HTTP listener,
@@ -527,8 +621,8 @@ func buildRouter(cfg *config.Config, pool *db.Pool, store *skill.Store, reg *reg
 // failure is FATAL: a server that cannot bind its port is NOT serving, and the
 // process must not continue as if it were (that is exactly the silent
 // "fixed-but-not-live" failure this remediation closes).
-func setupAPI(cfg *config.Config, pool *db.Pool, store *skill.Store, reg *registry.Registry, mcpServer *mcp.MCPServer, logger *zap.Logger) *http.Server {
-	router := buildRouter(cfg, pool, store, reg, mcpServer, logger)
+func setupAPI(cfg *config.Config, pool *db.Pool, store *skill.Store, reg *registry.Registry, mcpServer *mcp.MCPServer, logger *zap.Logger) (*http.Server, func()) {
+	router, tenantCleanup := buildRouter(cfg, pool, store, reg, mcpServer, logger)
 
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.HTTPPort)
 	srv := &http.Server{
@@ -550,12 +644,12 @@ func setupAPI(cfg *config.Config, pool *db.Pool, store *skill.Store, reg *regist
 		}
 	}()
 
-	return srv
+	return srv, tenantCleanup
 }
 
 // waitForShutdown blocks until a shutdown signal is received, then drains both
 // the HTTP server and the MCP server.
-func waitForShutdown(ctx context.Context, logger *zap.Logger, mcpServer *mcp.MCPServer, srv *http.Server) {
+func waitForShutdown(ctx context.Context, logger *zap.Logger, mcpServer *mcp.MCPServer, srv *http.Server, tenantCleanup func()) {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
 
@@ -563,12 +657,12 @@ func waitForShutdown(ctx context.Context, logger *zap.Logger, mcpServer *mcp.MCP
 	sig := <-sigCh
 	logger.Info("Received shutdown signal", zap.String("signal", sig.String()))
 
-	gracefulShutdown(ctx, logger, mcpServer, srv)
+	gracefulShutdown(ctx, logger, mcpServer, srv, tenantCleanup)
 }
 
 // gracefulShutdown drains the HTTP listener (triggering ListenAndServe to return
 // http.ErrServerClosed) and then the MCP server, within a bounded timeout.
-func gracefulShutdown(ctx context.Context, logger *zap.Logger, mcpServer *mcp.MCPServer, srv *http.Server) {
+func gracefulShutdown(ctx context.Context, logger *zap.Logger, mcpServer *mcp.MCPServer, srv *http.Server, tenantCleanup func()) {
 	shutdownCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -579,6 +673,9 @@ func gracefulShutdown(ctx context.Context, logger *zap.Logger, mcpServer *mcp.MC
 	}
 	if err := mcpServer.Shutdown(shutdownCtx); err != nil {
 		logger.Error("MCP shutdown error", zap.Error(err))
+	}
+	if tenantCleanup != nil {
+		tenantCleanup()
 	}
 
 	logger.Info("Graceful shutdown complete")

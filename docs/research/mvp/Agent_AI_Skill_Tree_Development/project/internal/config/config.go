@@ -37,11 +37,11 @@ type Config struct {
 	Embedding    EmbeddingConfig    `toml:"embedding"`
 	Validation   ValidationConfig   `toml:"validation"`
 	AutoExpand   AutoExpandConfig   `toml:"autoexpand"`
-	CodeAnalysis CodeAnalysisConfig  `toml:"codeanalysis"`
-	CodeGraph    CodeGraphConfig     `toml:"codegraph"`
-	MCP          MCPConfig           `toml:"mcp"`
-	Registry     RegistryConfig      `toml:"registry"`
-	Logging      LoggingConfig       `toml:"logging"`
+	CodeAnalysis CodeAnalysisConfig `toml:"codeanalysis"`
+	CodeGraph    CodeGraphConfig    `toml:"codegraph"`
+	MCP          MCPConfig          `toml:"mcp"`
+	Registry     RegistryConfig     `toml:"registry"`
+	Logging      LoggingConfig      `toml:"logging"`
 	Cache        CacheConfig        `toml:"cache"`
 	Metrics      MetricsConfig      `toml:"metrics"`
 	Tenant       TenantConfig       `toml:"tenant"`
@@ -215,12 +215,12 @@ type MCPConfig struct {
 // CodeGraphConfig controls the CodeGraph MCP integration for code indexing
 // and sync automation (§11.4.78/§11.4.79/§11.4.80).
 type CodeGraphConfig struct {
-	Enabled            bool   `toml:"enabled"`
-	Transport          string `toml:"transport"`           // "stdio" | "http"
-	Endpoint           string `toml:"endpoint"`            // HTTP endpoint (if transport=http)
-	SyncIntervalSeconds int   `toml:"sync_interval_seconds"`
-	AutoIndexOnLearn   bool   `toml:"auto_index_on_learn"`
-	WatchEnabled       bool   `toml:"watch_enabled"`       // requires fsnotify
+	Enabled             bool   `toml:"enabled"`
+	Transport           string `toml:"transport"` // "stdio" | "http"
+	Endpoint            string `toml:"endpoint"`  // HTTP endpoint (if transport=http)
+	SyncIntervalSeconds int    `toml:"sync_interval_seconds"`
+	AutoIndexOnLearn    bool   `toml:"auto_index_on_learn"`
+	WatchEnabled        bool   `toml:"watch_enabled"` // requires fsnotify
 }
 
 // RegistryConfig controls skill-registry behaviour.
@@ -276,6 +276,20 @@ type TenantConfig struct {
 	// APIKeyTenants maps API key strings to tenant UUIDs. When an authenticated
 	// request's API key appears in this map, the corresponding tenant is used.
 	APIKeyTenants map[string]string `toml:"api_key_tenants"`
+	// RateLimit controls per-tenant rate limiting (§11.4.84). When enabled,
+	// each tenant receives an independent token-bucket rate limiter.
+	RateLimit TenantRateLimitConfig `toml:"rate_limit"`
+}
+
+// TenantRateLimitConfig controls per-tenant rate limiting (§11.4.84).
+type TenantRateLimitConfig struct {
+	// Enabled installs the per-tenant rate limiter on the API router.
+	Enabled bool `toml:"enabled"`
+	// RequestsPerMinute is the steady-state refill rate per tenant.
+	RequestsPerMinute int `toml:"requests_per_minute"`
+	// BurstSize is the maximum instantaneous number of requests a tenant
+	// may make before being throttled (token-bucket depth).
+	BurstSize int `toml:"burst_size"`
 }
 
 // MetricsConfig controls the Prometheus metrics endpoint.
@@ -364,14 +378,21 @@ func defaultConfig() Config {
 			Format: "json",
 		},
 		Cache: CacheConfig{
-			Enabled:  false, // disabled by default — opt-in
-			SkillTTL: 5 * time.Minute,
+			Enabled:   false, // disabled by default — opt-in
+			SkillTTL:  5 * time.Minute,
 			SearchTTL: 1 * time.Minute,
 			TreeTTL:   10 * time.Minute,
 		},
 		Metrics: MetricsConfig{
 			Enabled: false, // disabled by default — opt-in
 			Path:    "/metrics",
+		},
+		Tenant: TenantConfig{
+			RateLimit: TenantRateLimitConfig{
+				Enabled:           false, // disabled by default — opt-in
+				RequestsPerMinute: 60,
+				BurstSize:         10,
+			},
 		},
 	}
 }

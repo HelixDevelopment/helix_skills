@@ -129,7 +129,7 @@ func auditTestRouter(logger AuditLogger, tenantID uuid.UUID) *gin.Engine {
 		}
 		c.Next()
 	})
-	r.Use(TenantAuditMiddleware(logger))
+	r.Use(TenantAuditMiddleware(logger, nil))
 	r.GET("/api/v1/skills", func(c *gin.Context) {
 		c.String(http.StatusOK, "ok")
 	})
@@ -321,7 +321,7 @@ func TestTenantAuditMiddleware_CapturesRequestID(t *testing.T) {
 		c.Request = c.Request.WithContext(WithTenant(c.Request.Context(), tc))
 		c.Next()
 	})
-	r.Use(TenantAuditMiddleware(logger))
+	r.Use(TenantAuditMiddleware(logger, nil))
 	r.GET("/api/v1/test", func(c *gin.Context) {
 		c.String(http.StatusOK, "ok")
 	})
