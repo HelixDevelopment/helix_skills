@@ -1,7 +1,7 @@
 # CONTINUATION — HelixKnowledge Skill Graph System (MVP)
 
-**Revision:** 12
-**Last modified:** 2026-07-17T23:15:00Z
+**Revision:** 13
+**Last modified:** 2026-07-18T00:00:00Z
 **Purpose:** §12.10 / §11.4.131 standing session-resumption file. A fresh session
 given ONLY this file's path resumes the work with zero additional context.
 Keep in sync on every material state change.
@@ -19,6 +19,29 @@ Read this file + `REQUIREMENTS.md` + `IMPLEMENTATION_PLAN.md` + `GAPS_AND_RISKS_
 correctness gaps from the R17 register) as a single serialized Go-mutator lane with a
 mandatory **§11.4.209 Fable-xhigh review before every commit**, keeping 2–3
 design-research streams one step ahead in parallel (3–4 total per operator mandate).
+
+## LATE-SESSION DELTA — Rev 13 (2026-07-18T00:00Z) — T2 deep-research enterprise wiring
+
+- **Build/vet/test: ALL GREEN** — 29 Go packages pass. `go build ./...`=0, `go vet ./...`=0, `go test ./...`=0.
+- **Enterprise middleware FULLY WIRED** — three previously-dead-code components now live in cmd/server/main.go:
+  1. **TenantRateLimitMiddleware** — per-tenant token-bucket rate limiter wired after TenantMiddleware (cfg.Tenant.RateLimit.Enabled gate).
+  2. **TenantAuditMiddleware** — async DB-backed audit logger wired for all tenant-scoped requests.
+  3. **TenantMetrics** — per-tenant counters (requests, rate limit rejections, audit entries) in internal/metrics.
+- **TenantStore wired in skill handlers** — buildRouter now creates tenant-scoped store when tenant context present.
+- **Source ingestion pipeline LANDED (G69 sub-items):**
+  - **G74** internal/skillsource package — source registry CRUD (source.go, store.go + tests).
+  - **G73** Audit event constants (events.go).
+  - **G79** internal/source/dedup — NEW/DUPLICATE/VARIANT classifier (classifier.go + tests).
+  - **G82** internal/skillsource/sync.go — per-source scan orchestrator (fetch→parse→map→dedup→import).
+  - **G84** REST routes — /sources CRUD + /sources/:id/sync trigger in buildRouter.
+  - **G86** MCP tools — source_register, source_list, source_sync in internal/mcp/source_tools.go.
+- **GAPS register updated** — G59, G60, G62 moved to FIXED (code verified); summary counts corrected.
+- **gofmt drift fixed** — 13 files cleaned (G62 CLOSED).
+- **Commits landed:**
+  - `0ae98f1` feat(enterprise): wire tenant rate limiter, audit logger, and metrics middleware
+  - `bde0dec` feat(enterprise): add skillsource registry + MCP source tools (G74, G86)
+  - `3c83b0b` feat(enterprise): add source sync orchestrator, dedup classifier, REST routes, audit events
+- **origin/main: current** — no merge needed.
 
 ## LATE-SESSION DELTA — Rev 12 (2026-07-17T23:15Z) — T3 testing-infra register cleanup
 

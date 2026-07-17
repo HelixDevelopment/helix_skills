@@ -10,23 +10,26 @@ package mcp
 // Each source is registered with a unique name, a type (github, filesystem,
 // or url), and a type-specific configuration blob. The source_list tool
 // enumerates registered sources, and source_sync triggers a rescan of a
-// single source's SKILL.md files.
+// single source's SKILL.md files via the sync orchestrator (G82).
 //
-// The sourceStore is an in-memory registry (analogous to codeGraphStore in
-// codegraph_tools.go). Persistence to a database table (skill_sources) is a
-// separate, later integration step — these tools expose the management
-// surface now so agents can begin registering and syncing sources
-// immediately.
+// All state is persisted in the skill_sources database table via
+// internal/skillsource.Store (G74). The sync pipeline
+// (fetch → parse → map → dedup → import) is coordinated by
+// internal/skillsource.Orchestrator (G82).
 // ============================================================================
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/helixdevelopment/skill-system/internal/skillsource"
 	mcp_go "github.com/mark3labs/mcp-go/mcp"
 	"go.uber.org/zap"
 )
@@ -197,11 +200,8 @@ func (s *MCPServer) registerSourceRegister() {
 		}
 
 		sourceTypeRaw, _ := request.GetArguments()["source_type"].(string)
-		sourceType := SourceType(strings.ToLower(strings.TrimSpace(sourceTypeRaw)))
-		switch sourceType {
-		case SourceTypeGitHub, SourceTypeFilesystem, SourceTypeURL:
-			// valid
-		default:
+		sourceType := skillsource.SourceType(strings.ToLower(strings.TrimSpace(sourceTypeRaw)))
+		if !sourceType.IsValid() {
 			return s.newToolError(
 				fmt.Sprintf("source_type must be one of 'github', 'filesystem', 'url'; got %q", sourceTypeRaw),
 			), nil
@@ -217,44 +217,44 @@ func (s *MCPServer) registerSourceRegister() {
 		}
 
 		// Type-specific config validation.
-		if err := validateSourceConfig(sourceType, configMap); err != nil {
+		if err := validateSourceConfig(SourceType(sourceType), configMap); err != nil {
 			return s.newToolError(fmt.Sprintf("invalid config: %v", err)), nil
 		}
 
-		// Uniqueness check.
-		if existing := s.sourceStore.getByName(name); existing != nil {
-			return s.newToolError(
-				fmt.Sprintf("a source named %q already exists (id: %s)", name, existing.ID),
-			), nil
+		// Marshal config to JSON for DB storage.
+		configJSON, err := json.Marshal(configMap)
+		if err != nil {
+			return s.newToolError(fmt.Sprintf("failed to marshal config: %v", err)), nil
 		}
 
-		now := time.Now().UTC()
-		src := &SkillSource{
-			ID:         s.sourceStore.nextID(),
+		src := &skillsource.SkillSource{
 			Name:       name,
 			SourceType: sourceType,
-			Config:     configMap,
-			Status:     SourceStatusActive,
+			Config:     configJSON,
 			Enabled:    true,
-			CreatedAt:  now,
-			UpdatedAt:  now,
 		}
-		s.sourceStore.insert(src)
+
+		if err := s.skillSourceStore.Create(ctx, src); err != nil {
+			if errors.Is(err, skillsource.ErrSourceExists) {
+				return s.newToolError(fmt.Sprintf("a source named %q already exists", name)), nil
+			}
+			return s.newToolError(fmt.Sprintf("failed to create source: %v", err)), nil
+		}
 
 		s.logger.Info("source registered",
-			zap.String("id", src.ID),
+			zap.String("id", src.ID.String()),
 			zap.String("name", src.Name),
 			zap.String("type", string(src.SourceType)),
 		)
 
 		return s.newToolResult(map[string]interface{}{
-			"success":    true,
-			"message":    fmt.Sprintf("Source %q registered successfully", name),
-			"source_id":  src.ID,
-			"name":       src.Name,
+			"success":     true,
+			"message":     fmt.Sprintf("Source %q registered successfully", name),
+			"source_id":   src.ID.String(),
+			"name":        src.Name,
 			"source_type": string(src.SourceType),
-			"status":     string(src.Status),
-			"created_at": src.CreatedAt,
+			"status":      string(src.SyncStatus),
+			"created_at":  src.CreatedAt,
 		}), nil
 	})
 }
@@ -285,7 +285,10 @@ func (s *MCPServer) registerSourceList() {
 
 		s.logger.Debug("source_list", zap.Bool("enabled_only", enabledOnly))
 
-		sources := s.sourceStore.list(enabledOnly)
+		sources, err := s.skillSourceStore.List(ctx, enabledOnly)
+		if err != nil {
+			return s.newToolError(fmt.Sprintf("failed to list sources: %v", err)), nil
+		}
 
 		type sourceInfo struct {
 			ID         string `json:"id"`
@@ -293,28 +296,26 @@ func (s *MCPServer) registerSourceList() {
 			SourceType string `json:"source_type"`
 			Status     string `json:"status"`
 			Enabled    bool   `json:"enabled"`
-			SkillCount int    `json:"skill_count"`
 			LastSyncAt string `json:"last_sync_at,omitempty"`
-			LastError  string `json:"last_error,omitempty"`
+			ErrorMsg   string `json:"error_message,omitempty"`
 			CreatedAt  string `json:"created_at"`
 		}
 
 		items := make([]sourceInfo, 0, len(sources))
 		for _, src := range sources {
 			si := sourceInfo{
-				ID:         src.ID,
+				ID:         src.ID.String(),
 				Name:       src.Name,
 				SourceType: string(src.SourceType),
-				Status:     string(src.Status),
+				Status:     string(src.SyncStatus),
 				Enabled:    src.Enabled,
-				SkillCount: src.SkillCount,
 				CreatedAt:  src.CreatedAt.Format(time.RFC3339),
 			}
-			if src.LastSyncAt != nil {
-				si.LastSyncAt = src.LastSyncAt.Format(time.RFC3339)
+			if src.LastSync != nil {
+				si.LastSyncAt = src.LastSync.Format(time.RFC3339)
 			}
-			if src.LastError != "" {
-				si.LastError = src.LastError
+			if src.ErrorMessage != "" {
+				si.ErrorMsg = src.ErrorMessage
 			}
 			items = append(items, si)
 		}
@@ -350,134 +351,73 @@ func (s *MCPServer) registerSourceSync() {
 			return s.newToolError("source_id parameter is required"), nil
 		}
 
-		src := s.sourceStore.get(sourceID)
-		if src == nil {
-			return s.newToolError(fmt.Sprintf("source %q not found", sourceID)), nil
+		id, err := uuid.Parse(sourceID)
+		if err != nil {
+			return s.newToolError(fmt.Sprintf("invalid source_id %q: %v", sourceID, err)), nil
+		}
+
+		// Load source to get its name for the response.
+		src, err := s.skillSourceStore.GetByID(ctx, id)
+		if err != nil {
+			if errors.Is(err, skillsource.ErrSourceNotFound) {
+				return s.newToolError(fmt.Sprintf("source %q not found", sourceID)), nil
+			}
+			return s.newToolError(fmt.Sprintf("failed to load source: %v", err)), nil
 		}
 
 		if !src.Enabled {
 			return s.newToolError(fmt.Sprintf("source %q (%s) is disabled; enable it before syncing", src.Name, sourceID)), nil
 		}
 
-		if src.Status == SourceStatusSyncing {
+		if src.SyncStatus == skillsource.SyncStatusSyncing {
 			return s.newToolError(fmt.Sprintf("source %q (%s) is already syncing", src.Name, sourceID)), nil
 		}
 
 		s.logger.Info("source_sync started",
-			zap.String("id", src.ID),
+			zap.String("id", src.ID.String()),
 			zap.String("name", src.Name),
 			zap.String("type", string(src.SourceType)),
 		)
 
-		// Mark as syncing.
-		s.sourceStore.mu.Lock()
-		src.Status = SourceStatusSyncing
-		src.UpdatedAt = time.Now().UTC()
-		s.sourceStore.mu.Unlock()
-
-		// Perform the sync based on source type. This is a synchronous
-		// placeholder — a production implementation would run in a
-		// goroutine and update status asynchronously.
-		skillCount, syncErr := s.executeSync(ctx, src)
+		// Run the full sync pipeline via the orchestrator (G82).
+		result, syncErr := s.sourceOrchestrator.SyncSource(ctx, id)
 
 		if syncErr != nil {
-			s.sourceStore.updateSync(sourceID, false, syncErr.Error(), 0)
 			s.logger.Error("source_sync failed",
-				zap.String("id", src.ID),
+				zap.String("id", src.ID.String()),
 				zap.String("name", src.Name),
 				zap.Error(syncErr),
 			)
 			return s.newToolResult(map[string]interface{}{
-				"success":    false,
-				"source_id":  sourceID,
-				"name":       src.Name,
-				"error":      syncErr.Error(),
-				"status":     string(SourceStatusError),
+				"success":   false,
+				"source_id": sourceID,
+				"name":      src.Name,
+				"error":     syncErr.Error(),
+				"status":    string(skillsource.SyncStatusFailed),
 			}), nil
 		}
 
-		s.sourceStore.updateSync(sourceID, true, "", skillCount)
 		s.logger.Info("source_sync completed",
-			zap.String("id", src.ID),
+			zap.String("id", src.ID.String()),
 			zap.String("name", src.Name),
-			zap.Int("skills_synced", skillCount),
+			zap.Int("fetched", result.Fetched),
+			zap.Int("parsed", result.Parsed),
+			zap.Int("imported", result.Imported),
 		)
 
 		return s.newToolResult(map[string]interface{}{
 			"success":      true,
 			"source_id":    sourceID,
 			"name":         src.Name,
-			"skills_synced": skillCount,
-			"status":       string(SourceStatusActive),
-			"synced_at":    time.Now().UTC().Format(time.RFC3339),
+			"fetched":      result.Fetched,
+			"parsed":       result.Parsed,
+			"imported":     result.Imported,
+			"skipped":      result.Skipped,
+			"errors":       result.Errors,
+			"status":       string(skillsource.SyncStatusCompleted),
+			"duration_ms":  result.Duration.Milliseconds(),
 		}), nil
 	})
-}
-
-// executeSync performs the actual sync for a source. This is a synchronous
-// placeholder — the production implementation will delegate to the
-// source/github, source/skillmd, and source/mapper packages. Returns the
-// number of skills synced.
-func (s *MCPServer) executeSync(ctx context.Context, src *SkillSource) (int, error) {
-	switch src.SourceType {
-	case SourceTypeGitHub:
-		return s.syncGitHubSource(ctx, src)
-	case SourceTypeFilesystem:
-		return s.syncFilesystemSource(ctx, src)
-	case SourceTypeURL:
-		return s.syncURLSource(ctx, src)
-	default:
-		return 0, fmt.Errorf("unsupported source type %q", src.SourceType)
-	}
-}
-
-// syncGitHubSource syncs a GitHub-hosted skill source. This is a
-// placeholder — the production implementation will use
-// internal/source/github.Client to list/fetch SKILL.md files and
-// internal/source/skillmd.Parse + mapper.Map to import them.
-func (s *MCPServer) syncGitHubSource(ctx context.Context, src *SkillSource) (int, error) {
-	owner, _ := src.Config["owner"].(string)
-	repo, _ := src.Config["repo"].(string)
-	if owner == "" || repo == "" {
-		return 0, fmt.Errorf("github source requires 'owner' and 'repo' in config")
-	}
-	ref, _ := src.Config["ref"].(string)
-	if ref == "" {
-		ref = "main"
-	}
-	s.logger.Debug("syncGitHubSource",
-		zap.String("owner", owner),
-		zap.String("repo", repo),
-		zap.String("ref", ref),
-	)
-	// TODO(G86): wire actual GitHub fetch → parse → map → import pipeline.
-	return 0, fmt.Errorf("github source sync not yet implemented (owner=%s, repo=%s, ref=%s)", owner, repo, ref)
-}
-
-// syncFilesystemSource syncs a local-filesystem skill source. This is a
-// placeholder — the production implementation will walk the directory for
-// SKILL.md files and import them via skillmd.Parse + mapper.Map.
-func (s *MCPServer) syncFilesystemSource(ctx context.Context, src *SkillSource) (int, error) {
-	rootPath, _ := src.Config["root_path"].(string)
-	if rootPath == "" {
-		return 0, fmt.Errorf("filesystem source requires 'root_path' in config")
-	}
-	s.logger.Debug("syncFilesystemSource", zap.String("root_path", rootPath))
-	// TODO(G86): wire actual filesystem walk → parse → map → import pipeline.
-	return 0, fmt.Errorf("filesystem source sync not yet implemented (root_path=%s)", rootPath)
-}
-
-// syncURLSource syncs a URL-hosted skill source. This is a placeholder —
-// the production implementation will fetch SKILL.md files from the URL and
-// import them.
-func (s *MCPServer) syncURLSource(ctx context.Context, src *SkillSource) (int, error) {
-	baseURL, _ := src.Config["base_url"].(string)
-	if baseURL == "" {
-		return 0, fmt.Errorf("url source requires 'base_url' in config")
-	}
-	s.logger.Debug("syncURLSource", zap.String("base_url", baseURL))
-	// TODO(G86): wire actual URL fetch → parse → map → import pipeline.
-	return 0, fmt.Errorf("url source sync not yet implemented (base_url=%s)", baseURL)
 }
 
 // ---------------------------------------------------------------------------
