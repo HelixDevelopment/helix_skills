@@ -14,11 +14,13 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/helixdevelopment/skill-system/internal/autoexpand"
+	"github.com/helixdevelopment/skill-system/internal/codeanalysis"
 	"github.com/helixdevelopment/skill-system/internal/config"
 	"github.com/helixdevelopment/skill-system/internal/db"
 	"github.com/helixdevelopment/skill-system/internal/models"
 	"github.com/helixdevelopment/skill-system/internal/registry"
 	"github.com/helixdevelopment/skill-system/internal/skill"
+	"github.com/helixdevelopment/skill-system/internal/validation"
 	"go.uber.org/zap"
 )
 
@@ -91,6 +93,28 @@ type autoExpander interface {
 	Run(ctx context.Context, skillName string, maxDepth int) (*autoexpand.ExpansionResult, error)
 }
 
+// validator is the minimal seam the validate job handler (handleValidate,
+// below) needs: run the full validation pipeline for a skill and report the
+// outcome. It is satisfied in production by *validation.Pipeline (Validate,
+// wired in NewRunner) and, in unit tests, by a spy that never touches a real
+// database or remote resource (TODO: validate_unit_test.go) -- mirrors
+// autoExpander for the identical reason (§11.4.27: mocks/spies are permitted
+// ONLY in unit tests).
+type validator interface {
+	Validate(ctx context.Context, s *models.Skill) (*validation.ValidationResult, error)
+}
+
+// codeAnalyzer is the minimal seam the code-analysis job handler
+// (handleCodeAnalysis, below) needs: scan a project directory and extract
+// patterns, imports, and language statistics. It is satisfied in production
+// by *codeanalysis.Analyzer (AnalyzeProject, wired in NewRunner) and, in unit
+// tests, by a spy that never touches a real filesystem (TODO:
+// codeanalysis_unit_test.go) -- mirrors autoExpander for the identical reason
+// (§11.4.27: mocks/spies are permitted ONLY in unit tests).
+type codeAnalyzer interface {
+	AnalyzeProject(ctx context.Context, projectPath string) (*codeanalysis.AnalysisResult, error)
+}
+
 // Runner manages background job execution for the skill graph system.
 // It coordinates multiple worker goroutines, handles graceful shutdown,
 // and persists job state to the database for API status endpoints.
@@ -113,6 +137,18 @@ type Runner struct {
 	// draft fallback in that case (DraftSkill), it does not need a nil
 	// Runner-level seam to express "no LLM configured".
 	autoexpand autoExpander
+	// validator is the seam handleValidate and runValidationCycle dispatch
+	// through (G03). It is wired in NewRunner via validation.NewPipeline.
+	// Unlike autoexpand, there is no degraded "no validation" fallback:
+	// validation.Pipeline.Validate always produces a verdict for every one of
+	// its four stages -- even with no resources, no code blocks, and no jury
+	// members (hard BLOCK, not a silent pass, per its fail-closed contract).
+	validator validator
+	// codeAnalyzer is the seam handleCodeAnalysis dispatches through (G03).
+	// It is wired in NewRunner via codeanalysis.NewAnalyzer. The analyzer
+	// uses its own Config-led Language / AllowedRoot / ExcludePatterns, so
+	// it requires no per-call arguments beyond the project path.
+	codeAnalyzer codeAnalyzer
 	// restartBackoffBase is the initial delay before a panicked worker
 	// goroutine is restarted by supervise (doubling up to a 30s cap). It is a
 	// field (not a const) purely so tests can shrink it for deterministic,
@@ -210,6 +246,9 @@ func NewRunner(pool *db.Pool, store *skill.Store, cfg config.Config, logger *zap
 			"skills via the minimal no-LLM fallback until one is configured (§G03)", zap.Error(err))
 	}
 
+	v := validation.NewPipeline(store, cfg.Validation, logger)
+	ca := codeanalysis.NewAnalyzer(cfg.CodeAnalysis, logger)
+
 	return &Runner{
 		pool:               pool,
 		store:              store,
@@ -218,6 +257,8 @@ func NewRunner(pool *db.Pool, store *skill.Store, cfg config.Config, logger *zap
 		jobChan:            make(chan Job, 100),
 		registry:           registry.NewRegistry(pool),
 		autoexpand:         autoexpand.NewPipeline(store, nil, cfg.AutoExpand, logger, aeOpts...),
+		validator:          v,
+		codeAnalyzer:       ca,
 		restartBackoffBase: time.Second,
 	}
 }
@@ -588,30 +629,69 @@ func (r *Runner) handleAutoExpand(ctx context.Context, job Job) JobResult {
 
 func (r *Runner) handleValidate(ctx context.Context, job Job) JobResult {
 	var payload struct {
-		SkillID uuid.UUID `json:"skill_id"`
+		SkillName string `json:"skill_name"`
 	}
 	if err := json.Unmarshal(job.Payload, &payload); err != nil {
 		return JobResult{Success: false, Error: fmt.Sprintf("unmarshal payload: %v", err)}
 	}
 
-	r.logger.Info("validation job", zap.String("skill_id", payload.SkillID.String()))
+	if strings.TrimSpace(payload.SkillName) == "" {
+		return JobResult{Success: false, Error: "skill_name is required"}
+	}
 
-	// Actual validation is done by the validationWorker
-	return JobResult{Success: true, Data: json.RawMessage(fmt.Sprintf(`{"skill_id":"%s"}`, payload.SkillID))}
+	r.logger.Info("validation job", zap.String("skill", payload.SkillName))
+
+	if r.validator == nil {
+		return JobResult{Success: false, Error: "validation pipeline not configured"}
+	}
+
+	skill, err := r.store.GetByName(ctx, payload.SkillName)
+	if err != nil {
+		return JobResult{Success: false, Error: fmt.Sprintf("lookup skill: %v", err)}
+	}
+
+	vResult, err := r.validator.Validate(ctx, skill)
+	if err != nil {
+		return JobResult{Success: false, Error: fmt.Sprintf("validation: %v", err)}
+	}
+
+	data, err := json.Marshal(vResult)
+	if err != nil {
+		return JobResult{Success: false, Error: fmt.Sprintf("marshal validation result: %v", err)}
+	}
+
+	return JobResult{Success: true, Data: data}
 }
 
 func (r *Runner) handleCodeAnalysis(ctx context.Context, job Job) JobResult {
 	var payload struct {
-		ProjectPath string   `json:"project_path"`
-		Languages   []string `json:"languages"`
+		ProjectPath string `json:"project_path"`
 	}
 	if err := json.Unmarshal(job.Payload, &payload); err != nil {
 		return JobResult{Success: false, Error: fmt.Sprintf("unmarshal payload: %v", err)}
 	}
 
+	if strings.TrimSpace(payload.ProjectPath) == "" {
+		return JobResult{Success: false, Error: "project_path is required"}
+	}
+
 	r.logger.Info("code analysis job", zap.String("project", payload.ProjectPath))
 
-	return JobResult{Success: true, Data: json.RawMessage(fmt.Sprintf(`{"project":"%s"}`, payload.ProjectPath))}
+	if r.codeAnalyzer == nil {
+		return JobResult{Success: false, Error: "code analyzer not configured"}
+	}
+
+	result, err := r.codeAnalyzer.AnalyzeProject(ctx, payload.ProjectPath)
+	if err != nil {
+		return JobResult{Success: false, Error: fmt.Sprintf("code analysis: %v", err)}
+	}
+
+	data, err := json.Marshal(result)
+	if err != nil {
+		return JobResult{Success: false, Error: fmt.Sprintf("marshal analysis result: %v", err)}
+	}
+
+	return JobResult{Success: true, Data: data}
 }
 
 func (r *Runner) handleRegistryReview(ctx context.Context, job Job) JobResult {
@@ -744,6 +824,11 @@ func (r *Runner) runValidationCycle(ctx context.Context) {
 		return
 	}
 
+	if r.validator == nil {
+		r.logger.Warn("validation: pipeline not configured, skipping cycle")
+		return
+	}
+
 	for _, sk := range skills {
 		select {
 		case <-ctx.Done():
@@ -755,6 +840,31 @@ func (r *Runner) runValidationCycle(ctx context.Context) {
 			zap.String("skill", sk.Name),
 			zap.String("status", string(sk.Status)),
 		)
+
+		vResult, err := r.validator.Validate(ctx, &sk)
+		if err != nil {
+			r.logger.Error("validation: skill validation failed",
+				zap.String("skill", sk.Name),
+				zap.Error(err),
+			)
+			continue
+		}
+
+		if vResult.Passed {
+			r.logger.Info("validation: skill passed all stages",
+				zap.String("skill", sk.Name),
+				zap.Int("jury_approvals", vResult.ApprovedBy),
+			)
+			// TODO: Promote skill to validated/active status.
+			// This requires a store.UpdateStatus method, which does not yet
+			// exist on *skill.Store. Current scope (G03) wires the validation
+			// call; the promotion step is tracked as a follow-up.
+		} else {
+			r.logger.Warn("validation: skill failed validation",
+				zap.String("skill", sk.Name),
+				zap.String("stage", vResult.Stage),
+			)
+		}
 	}
 }
 
