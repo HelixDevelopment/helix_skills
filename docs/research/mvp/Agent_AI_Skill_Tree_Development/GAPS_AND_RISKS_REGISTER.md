@@ -584,31 +584,31 @@ that was read during this audit; the two UNCONFIRMED sub-points (MCP
 - Full detail pointers: `gh_skills_research/CATALOG.md` (12-repo research corpus), `gh_skills_research/DESIGN.md` (architecture), `gh_skills_research/WIRING_PLAN.md` (exact file:line wiring), `gh_skills_research/TRACKED_ITEMS.md` (the 23 sub-items below).
 - Depends on `G06`/`G07` (DAG correctness, both landed `186e047`/`073192f`) — confirmed satisfied. `G80` and `G86` (sub-items touching the `internal/skill` package / `internal/mcp/server.go` respectively) MUST serialize behind the in-flight `G29` lane (§11.4.119 single-resource-owner + §11.4.191 work-to-track binding). `G123` (below) must resolve BEFORE `G70`'s migration (`004_skill_sources`) lands, since `G95` (the `G93` umbrella's own schema item) independently claims the SAME migration number.
 
-| Sub-item | Type | Title | Depends on |
+| Sub-item | Type | Sev. | Title | Depends on |
 |---|---|---|---|
-| G70 | Task | Migration: `skill_sources` + `skill_source_mappings` + `skills.origin` | G69; conflicts with G95 pending G123 |
-| G71 | Task | Migration: `skill_enhancement_proposals` | G70 |
-| G72 | Task | `SourceSyncConfig` + env overrides + `config.toml` example | G69; overlaps G94 pending G123 |
-| G73 | Task | New `AuditEvent*` constants for skill-source events | G69 |
-| G74 | Feature | `internal/skillsource` package: source registry CRUD | G70; overlaps G97 pending G123 |
-| G75 | Feature | `internal/source/github`: hand-rolled REST fetch client | G74 |
-| G76 | Feature | `internal/source/github`: shallow-clone fallback | G75 |
-| G77 | Feature | `internal/source/skillmd`: SKILL.md parser | G69 |
-| G78 | Feature | `internal/source/mapper`: ParsedSkill → `models.Skill` + license gate | G77 |
-| G79 | Feature | `internal/source/dedup`: NEW/DUPLICATE/VARIANT classifier | G78 |
-| G80 | Feature | `Store.ImportSkillModel` (sibling to `ImportFromTOML`) | G79; serializes behind the G29 lane |
-| G81 | Feature | `internal/source/enhance`: delta extraction + proposal store | G71, G79 |
-| G82 | Feature | `internal/source/sync`: per-source scan orchestrator | G75, G76, G80, G81 |
-| G83 | Task | Worker wiring: `JobTypeSourceRescan` + `sourceRescanWorker` | G82 |
-| G84 | Feature | REST wiring: `cmd/server/skillsource_routes.go` + `buildRouter` | G83 |
-| G85 | Feature | CLI wiring: `cmd/cli/commands/source.go` | G84 |
-| G86 | Feature | MCP wiring: `internal/mcp/source_tools.go` | G84; serializes behind the G29 lane |
-| G87 | Feature | TUI wiring: `cmd/tui/sources.go` (read-only, lowest priority) | G84 |
-| G88 | Task | e2e/full-automation test: real `anthropics/skills` pipeline run | G85, G86, G87 |
-| G89 | Task | Stress + chaos test suite for the ingestion pipeline | G88 |
-| G90 | Task | Vendor Challenges + HelixQA constitution submodules (blocking dependency) | G69 |
-| G91 | Task | HelixQA Challenge bank entry for skill-source ingestion | G89, G90 |
-| G92 | Task | Docs: README/API/CLI reference sync for the new surfaces | G91 |
+| G70 | Task | MEDIUM | Migration: `skill_sources` + `skill_source_mappings` + `skills.origin` | G69; conflicts with G95 pending G123 |
+| G71 | Task | MEDIUM | Migration: `skill_enhancement_proposals` | G70 |
+| G72 | Task | MEDIUM | `SourceSyncConfig` + env overrides + `config.toml` example | G69; overlaps G94 pending G123 |
+| G73 | Task | LOW | New `AuditEvent*` constants for skill-source events | G69 |
+| G74 | Feature | MEDIUM | `internal/skillsource` package: source registry CRUD | G70; overlaps G97 pending G123 |
+| G75 | Feature | MEDIUM | `internal/source/github`: hand-rolled REST fetch client | G74 |
+| G76 | Feature | LOW | `internal/source/github`: shallow-clone fallback | G75 |
+| G77 | Feature | MEDIUM | `internal/source/skillmd`: SKILL.md parser | G69 |
+| G78 | Feature | MEDIUM | `internal/source/mapper`: ParsedSkill → `models.Skill` + license gate | G77 |
+| G79 | Feature | MEDIUM | `internal/source/dedup`: NEW/DUPLICATE/VARIANT classifier | G78 |
+| G80 | Feature | MEDIUM | `Store.ImportSkillModel` (sibling to `ImportFromTOML`) | G79; serializes behind the G29 lane |
+| G81 | Feature | MEDIUM | `internal/source/enhance`: delta extraction + proposal store | G71, G79 |
+| G82 | Feature | MEDIUM | `internal/source/sync`: per-source scan orchestrator | G75, G76, G80, G81 |
+| G83 | Task | MEDIUM | Worker wiring: `JobTypeSourceRescan` + `sourceRescanWorker` | G82 |
+| G84 | Feature | MEDIUM | REST wiring: `cmd/server/skillsource_routes.go` + `buildRouter` | G83 |
+| G85 | Feature | MEDIUM | CLI wiring: `cmd/cli/commands/source.go` | G84 |
+| G86 | Feature | MEDIUM | MCP wiring: `internal/mcp/source_tools.go` | G84; serializes behind the G29 lane |
+| G87 | Feature | LOW | TUI wiring: `cmd/tui/sources.go` (read-only, lowest priority) | G84 |
+| G88 | Task | MEDIUM | e2e/full-automation test: real `anthropics/skills` pipeline run | G85, G86, G87 |
+| G89 | Task | LOW | Stress + chaos test suite for the ingestion pipeline | G88 |
+| G90 | Task | LOW | Vendor Challenges + HelixQA constitution submodules (blocking dependency) | G69 |
+| G91 | Task | LOW | HelixQA Challenge bank entry for skill-source ingestion | G89, G90 |
+| G92 | Task | LOW | Docs: README/API/CLI reference sync for the new surfaces | G91 |
 
 *All sub-items above (`G70`–`G92`): **Status = Queued**.*
 
@@ -619,37 +619,37 @@ that was read during this audit; the two UNCONFIRMED sub-points (MCP
 - Full detail pointers: `skill_ingestion_research/CODEBASE_MAP.md` (integration-point map), `skill_ingestion_research/RESEARCH.md` (library research: `fsnotify`, `goquery`, `go-readability`, `html-to-markdown`, `ledongthuc/pdf`, `kin-openapi`, `jlaffaye/ftp`, `go-smb2`, `gowebdav`), `skill_ingestion_research/DESIGN.md` (architecture, 7 honest boundaries), `skill_ingestion_research/TRACKED_ITEMS.md` (the 25 non-deferred + 4 deferred sub-items below).
 - `G96` (router-duplication fix) — UNCONFIRMED: duplicates `G01`'s O3 sub-scope + `G61` above — conductor resolves as ONE item before any of `G94`-`G122` that assume "one canonical router" (namely `G115`) lands. `G111` (CREATE/EXTEND stage) should soft-serialize behind `G59` (embedding-population fix). Honest gaps already stated BY the source draft itself (never silently resolved here): no production-ready pure-Go NFS client exists (v1 = reuse the filesystem `Source` against an operator-mounted NFS export, `G105`); scanned/image-only PDF OCR has no clean permissively-licensed pure-Go path (`gen2brain/go-fitz` is AGPL-3.0 — an explicit operator license decision, not resolved here); only the filesystem source gets genuine real-time behaviour in v1 (the other four are one-shot bulk + deferred polling, `G119`).
 
-| Sub-item | Type | Title | Depends on |
+| Sub-item | Type | Sev. | Title | Depends on |
 |---|---|---|---|
-| G94 | Task | Add `config.IngestionConfig` section | G93; overlaps G72 pending G123 |
-| G95 | Task | Ingestion schema migration (`004_ingestion.up/down.sql`) | G93; migration-number collision with G70, see G123 |
-| G96 | Task | Resolve `internal/api.Server` vs `cmd/server/main.go` router duplication | G93; UNCONFIRMED: duplicates G01-O3 + G61, see G123 |
-| G97 | Feature | `Source` interface + `ItemRef`/`RawItem` types | G93 |
-| G98 | Feature | Filesystem `Source` (bulk one-shot) | G97 |
-| G99 | Feature | HTTP/website `Source` (single URL + bounded in-house crawl) | G97 |
-| G100 | Feature | PDF `Source` (upload-based) | G97 |
-| G101 | Feature | OpenAPI/API-schema `Source` | G97 |
-| G102 | Feature | FTP `Source` | G97 |
-| G103 | Feature | SMB `Source` | G97 |
-| G104 | Feature | WebDAV `Source` | G97 |
-| G105 | Task | NFS honest-gap documentation + mount-based workaround wiring | G98 |
-| G106 | Feature | HTML EXTRACT+NORMALIZE stage | G99 |
-| G107 | Feature | PDF EXTRACT+NORMALIZE stage | G100 |
-| G108 | Feature | OpenAPI EXTRACT+NORMALIZE stage | G101 |
-| G109 | Feature | LLM-REFINE stage (interface-only, provider-agnostic) | G106, G107, G108 |
-| G110 | Feature | DEDUP stage | G109 |
-| G111 | Feature | CREATE/EXTEND + WIRE GRAPH RELATIONS stage | G110; soft-serializes behind G59 |
-| G112 | Feature | Ingestion job orchestration (durable) | G111 |
-| G113 | Feature | Recursive directory watcher (fsnotify + debounce + bounded pool) | G98 |
-| G114 | Task | `worker.JobTypeIngestSource` + real handler | G112 |
-| G115 | Feature | REST `/api/v1/ingest/*` endpoints | G114; assumes G96 resolved |
-| G116 | Feature | CLI `ingest` command group | G115 |
-| G117 | Feature | MCP `skill_ingest_source` tool | G115 |
-| G118 | Task | Full anti-bluff test-suite execution + HelixQA Challenge bank wiring | G116, G117 |
-| G119 | Feature | Periodic polling for FTP/SMB/WebDAV/API sources (deferred) | G102, G103, G104, G101 |
-| G120 | Feature | Deep-research-extend stage activation (deferred) | G109 |
-| G121 | Feature | TUI ingestion pane (deferred) | G115 |
-| G122 | Feature | Source-removal → Skill staleness/deletion policy (deferred) | G118 |
+| G94 | Task | MEDIUM | Add `config.IngestionConfig` section | G93; overlaps G72 pending G123 |
+| G95 | Task | MEDIUM | Ingestion schema migration (`004_ingestion.up/down.sql`) | G93; migration-number collision with G70, see G123 |
+| G96 | Task | MEDIUM | Resolve `internal/api.Server` vs `cmd/server/main.go` router duplication | G93; UNCONFIRMED: duplicates G01-O3 + G61, see G123 |
+| G97 | Feature | MEDIUM | `Source` interface + `ItemRef`/`RawItem` types | G93 |
+| G98 | Feature | MEDIUM | Filesystem `Source` (bulk one-shot) | G97 |
+| G99 | Feature | MEDIUM | HTTP/website `Source` (single URL + bounded in-house crawl) | G97 |
+| G100 | Feature | MEDIUM | PDF `Source` (upload-based) | G97 |
+| G101 | Feature | LOW | OpenAPI/API-schema `Source` | G97 |
+| G102 | Feature | LOW | FTP `Source` | G97 |
+| G103 | Feature | LOW | SMB `Source` | G97 |
+| G104 | Feature | LOW | WebDAV `Source` | G97 |
+| G105 | Task | LOW | NFS honest-gap documentation + mount-based workaround wiring | G98 |
+| G106 | Feature | MEDIUM | HTML EXTRACT+NORMALIZE stage | G99 |
+| G107 | Feature | MEDIUM | PDF EXTRACT+NORMALIZE stage | G100 |
+| G108 | Feature | LOW | OpenAPI EXTRACT+NORMALIZE stage | G101 |
+| G109 | Feature | MEDIUM | LLM-REFINE stage (interface-only, provider-agnostic) | G106, G107, G108 |
+| G110 | Feature | MEDIUM | DEDUP stage | G109 |
+| G111 | Feature | MEDIUM | CREATE/EXTEND + WIRE GRAPH RELATIONS stage | G110; soft-serializes behind G59 |
+| G112 | Feature | MEDIUM | Ingestion job orchestration (durable) | G111 |
+| G113 | Feature | MEDIUM | Recursive directory watcher (fsnotify + debounce + bounded pool) | G98 |
+| G114 | Task | MEDIUM | `worker.JobTypeIngestSource` + real handler | G112 |
+| G115 | Feature | MEDIUM | REST `/api/v1/ingest/*` endpoints | G114; assumes G96 resolved |
+| G116 | Feature | MEDIUM | CLI `ingest` command group | G115 |
+| G117 | Feature | MEDIUM | MCP `skill_ingest_source` tool | G115 |
+| G118 | Task | LOW | Full anti-bluff test-suite execution + HelixQA Challenge bank wiring | G116, G117 |
+| G119 | Feature | LOW | Periodic polling for FTP/SMB/WebDAV/API sources (deferred) | G102, G103, G104, G101 |
+| G120 | Feature | LOW | Deep-research-extend stage activation (deferred) | G109 |
+| G121 | Feature | LOW | TUI ingestion pane (deferred) | G115 |
+| G122 | Feature | LOW | Source-removal → Skill staleness/deletion policy (deferred) | G118 |
 
 *All sub-items above (`G94`–`G122`): **Status = Queued**.*
 

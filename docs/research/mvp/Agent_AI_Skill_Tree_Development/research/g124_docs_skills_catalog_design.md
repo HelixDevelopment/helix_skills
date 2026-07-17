@@ -231,112 +231,28 @@ functionally verifiable until Docs Chain is incorporated.
 
 ## §6. Anti-bluff proof plan (§6 per DESIGN)
 
-| # | Test type | What it proves | Status |
-|---|-----------|----------------|--------|
-| P1 | Golden-good fixture | Deterministic generation: same input → same bytes | G125 done |
-| P2 | Golden-bad: dangling edge | Detecting a stale sidecar | G125 done |
-| P3 | Golden-bad: empty name | Defensive against G33-class export gaps | G125 done |
-| P4 | §1.1 paired mutation | Reintroduce a bug → test fails RED | G125 done |
-| P5 | 3x determinism re-run | Generate twice, byte-identical output | G125 done |
-| P6 | 10x determinism re-run (stress) | Same as P5 but 10× | G125 done |
-| P7 | Real-DB end-to-end | Generator works against a seeded pgvector DB | G125 done |
-| P8 | Verify no-write | Verify returns inSync=false after mutation | G125 done |
-| P9 | CLI integration | CLI exits 0/1 matching Verify | G126 PENDING |
-| P10 | Hook blocking test | Guard blocks commit when stale | G131 PENDING |
+| # | Test type | What it proves | Go test function | Status |
+|---|-----------|----------------|------------------|--------|
+| P1 | Golden-good fixture | Deterministic generation: same input -> same bytes | TestSkillsCatalog_GoldenGood (8 sub-tests) | G125 done |
+| P2 | Golden-bad: dangling edge | Detecting a stale sidecar | TestSkillsCatalog_GoldenBad_DanglingDependencyEdge | G125 done |
+| P3 | Golden-bad: empty name | Defensive against G33-class export gaps | TestSkillsCatalog_GoldenBad_EmptySkillName | G125 done |
+| P4 | Golden-bad: slug collision | Two names slugify to same filename | TestSkillsCatalog_GoldenBad_NameSlugCollision + DomainSlugCollision | G125 done |
+| P5 | Fingerprint drift (add/modify/remove) | Fingerprint changes on mutation, stable otherwise | TestSkillsCatalog_FingerprintDrift_AddModifyRemove_StableOtherwise | G125 done |
+| P6 | Fingerprint drift (title-only) | Title-only DB edit IS detected as drift (F1 fix) | TestSkillsCatalog_FingerprintDrift_TitleOnlyChange_Detected | G125 done |
+| P7 | Fingerprint drift (id-only) | Drop+recreate same content but new UUID detected | TestSkillsCatalog_FingerprintDrift_IDChange_SameContent_Detected | G125 done |
+| P8 | Timestamp churn guard | Touch-only updated_at bump does NOT trigger drift (F1 fix) | TestSkillsCatalog_TimestampChurn_TouchOnlyUpdatedAt_NoDrift | G125 done |
+| P9 | Real-DB end-to-end | Generator works against seeded pgvector DB w/ ImportFromTOML | TestSkillsCatalog_RealSeedImport_NoDanglingInternalLinks | G125 done |
+| P10 | Forged section heading sentinel | Sentinel distinguishes authentic footer from forged prose | TestSkillsCatalog_ForgedSectionHeading_SentinelDistinguishesAuthenticFooter | G125 done |
+| P11 | Markdown injection (detail pages) | Title/dep-name injection neutralized | TestSkillsCatalog_MarkdownInjection_SkillDetailSurfaces_Escaped | G125 done |
+| P12 | Markdown injection (domain pages) | Domain injection neutralized on by-domain + README | TestSkillsCatalog_MarkdownInjection_DomainSurfaces_Escaped | G125 done |
+| P13 | Raw HTML injection | <img> tags escaped at every render site | TestSkillsCatalog_RawHTMLInjection_NameSurfaces_Escaped | G125 done |
+| P14 | Table-cell escaping | Pipe/backslash/newline escaped | TestSkillsCatalog_TableCellEscaping_PipeBackslashNewline | G125 done |
+| P15 | Length-prefixed tuple integrity | Netstring prevents boundary-forgery collision (F-A fix) | TestFingerprint_LengthPrefix_PreventsBoundaryForgedCollision | G125 done |
+| P16 | Tags fingerprint coll. render equiv | Tags=[] vs Tags=[""] same output (R3-R1(b) fix) | TestSkillsCatalog_TagsFingerprintCollision_RenderEquivalence | G125 done |
+| P17 | CLI integration | CLI exits 0/1 matching Verify | G126 PENDING | G126 |
+| P18 | Hook blocking test | Guard blocks commit when catalog stale | G131 PENDING | G131 |
 
-G125 implements P1–P8 in `internal/skillscatalog/generate_test.go`
-(99,061 bytes of test code). P9–P10 will land with G126/G131.
+G125 implements P1-P16 in `project/internal/skillscatalog/generate_test.go`
+(~99KB of test code). P17-P18 will land with G126/G131.
 
----
 
-## §7. File layout (detail)
-
-### Generated tree
-```
-docs/skills/
-├── README.md              # Summary + links + fingerprint
-├── INDEX.md               # Full skill table
-├── .catalog_fingerprint   # sidecar (§11.4.86)
-├── by-domain/
-│   ├── android.md
-│   ├── build_system.md
-│   ├── languages.md
-│   └── _unclassified.md
-├── by-kind/
-│   ├── atomic.md
-│   ├── composite.md
-│   └── umbrella.md
-└── skill/
-    ├── android.md
-    ├── android_aosp.md
-    ├── cmake.md
-    ├── cpp.md
-    ├── java.md
-    ├── kotlin.md
-    ├── linux.md
-    ├── make.md
-    ├── python.md
-    └── (every skill gets one page)
-```
-
-### Skill detail page structure
-```markdown
-# <skill-name>
-
-> **GENERATED FILE — DO NOT HAND-EDIT.** ...
-
-**Title:** ...
-**Kind:** atomic | composite | umbrella
-**Domain:** ...
-**Complexity:** ...
-**Version:** ...
-
-## Description
-...
-
-## Dependencies
-### Requires
-- dep1 — description
-- dep2 — description
-
-### Extends
-...
-
-## Dependents
-- dep1 (something that depends on THIS skill)
-- dep2
-
-## Resources
-| Title | URL | Type |
-|---|---|---|
-| ... | ... | ... |
-
-## Content
-...
-```
-
----
-
-## §8. Composes-with map
-
-| ID | Relationship | Notes |
-|----|-------------|-------|
-| G125 | child | Generator implementation — DONE in `internal/skillscatalog/` |
-| G126 | child | CLI subcommand — wire the existing generator |
-| G127 | child | REST handler — wire catalog endpoints |
-| G128 | child | MCP tool — read-only status |
-| G129 | child | Worker reconciliation loop |
-| G130 | child | Write-path signal → worker |
-| G131 | child | Pre-commit guard hook |
-| G132 | child | Hook auto-propagation |
-| G133 | child | Docs Chain context (blocked on X1) |
-| G134 | child | Anti-bluff proof plan |
-| G135 | child | HelixQA Challenge bank entry |
-| G43 | sibling | Docs Chain incorporation (shared prerequisite) |
-| R18 | parent | Full documentation delivery mandate |
-| G01 | sibling | Write-tool auth consolidation gates G128 write tool |
-
----
-
-*End of design doc. See `GAPS_AND_RISKS_REGISTER.md` for status tracking
-of each sub-item.*
