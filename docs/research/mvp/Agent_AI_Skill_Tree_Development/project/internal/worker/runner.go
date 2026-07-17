@@ -20,6 +20,7 @@ import (
 	"github.com/helixdevelopment/skill-system/internal/models"
 	"github.com/helixdevelopment/skill-system/internal/registry"
 	"github.com/helixdevelopment/skill-system/internal/skill"
+	"github.com/helixdevelopment/skill-system/internal/skillsource"
 	"github.com/helixdevelopment/skill-system/internal/validation"
 	"go.uber.org/zap"
 )
@@ -37,6 +38,10 @@ const (
 	JobTypeCodeAnalysis   JobType = "codeanalysis"
 	JobTypeRegistryReview JobType = "registry_review"
 	JobTypeBatchEmbed     JobType = "batch_embed"
+	// JobTypeSourceRescan triggers a full rescan of a registered skill source
+	// (GitHub repo, filesystem path, or URL) through the source-ingestion
+	// pipeline: fetch -> parse -> map -> dedup -> import (G83).
+	JobTypeSourceRescan JobType = "source_rescan"
 )
 
 // JobStatus represents the current state of a job.
@@ -116,6 +121,17 @@ type codeAnalyzer interface {
 	AnalyzeProject(ctx context.Context, projectPath string) (*codeanalysis.AnalysisResult, error)
 }
 
+// sourceSyncer is the minimal seam the source-rescan job handler
+// (handleSourceRescan, below) needs: run the full source sync pipeline for a
+// registered skill source and report the outcome. It is satisfied in
+// production by *skillsource.Orchestrator (SyncSource, wired in NewRunner)
+// and, in unit tests, by a spy that never touches a real database or network
+// (source_rescan_unit_test.go) -- mirrors autoExpander for the identical
+// reason (section 11.4.27: mocks/spies are permitted ONLY in unit tests).
+type sourceSyncer interface {
+	SyncSource(ctx context.Context, sourceID uuid.UUID) (*skillsource.SyncResult, error)
+}
+
 // Runner manages background job execution for the skill graph system.
 // It coordinates multiple worker goroutines, handles graceful shutdown,
 // and persists job state to the database for API status endpoints.
@@ -150,6 +166,12 @@ type Runner struct {
 	// uses its own Config-led Language / AllowedRoot / ExcludePatterns, so
 	// it requires no per-call arguments beyond the project path.
 	codeAnalyzer codeAnalyzer
+	// sourceSyncer is the seam handleSourceRescan dispatches through (G83).
+	// It is wired in NewRunner via skillsource.NewOrchestrator. The
+	// orchestrator coordinates the full source-ingestion pipeline
+	// (fetch -> parse -> map -> dedup -> import) for a single registered
+	// skill source identified by UUID.
+	sourceSyncer sourceSyncer
 	// restartBackoffBase is the initial delay before a panicked worker
 	// goroutine is restarted by supervise (doubling up to a 30s cap). It is a
 	// field (not a const) purely so tests can shrink it for deterministic,
@@ -270,6 +292,14 @@ func NewRunner(pool *db.Pool, store *skill.Store, cfg config.Config, logger *zap
 	v := validation.NewPipeline(store, cfg.Validation, logger)
 	ca := codeanalysis.NewAnalyzer(cfg.CodeAnalysis, logger)
 
+	// Wire the source-rescan orchestrator (G83): a fresh
+	// *skillsource.Orchestrator over the same pool + store, reusing the
+	// runner's logger. The orchestrator is a pure coordination layer that
+	// delegates all I/O to injected interfaces, so constructing it here
+	// introduces no new goroutine or scheduling cadence.
+	srcStore := skillsource.NewStore(pool, logger)
+	srcOrch := skillsource.NewOrchestrator(srcStore, store, logger)
+
 	return &Runner{
 		pool:               pool,
 		store:              store,
@@ -280,6 +310,7 @@ func NewRunner(pool *db.Pool, store *skill.Store, cfg config.Config, logger *zap
 		autoexpand:         autoexpand.NewPipeline(store, aeEmbedder, cfg.AutoExpand, logger, aeOpts...),
 		validator:          v,
 		codeAnalyzer:       ca,
+		sourceSyncer:       srcOrch,
 		restartBackoffBase: time.Second,
 	}
 }
@@ -585,6 +616,8 @@ func (r *Runner) executeJob(ctx context.Context, job Job) JobResult {
 			return r.handleRegistryReview(ctx, job)
 		case JobTypeBatchEmbed:
 			return r.handleBatchEmbed(ctx, job)
+		case JobTypeSourceRescan:
+			return r.handleSourceRescan(ctx, job)
 		default:
 			return JobResult{Success: false, Error: fmt.Sprintf("unknown job type: %s", job.Type)}
 		}
@@ -755,6 +788,47 @@ func (r *Runner) handleBatchEmbed(ctx context.Context, job Job) JobResult {
 
 	r.logger.Info("batch embedding job completed")
 	return JobResult{Success: true}
+}
+
+// handleSourceRescan triggers a full rescan of a registered skill source
+// through the source-ingestion pipeline (G83): fetch -> parse -> map -> dedup
+// -> import. The source is identified by a UUID in the job payload. The
+// handler dispatches through the sourceSyncer seam so it stays unit-testable
+// per the autoExpander/registryReviewer pattern (section 11.4.27).
+func (r *Runner) handleSourceRescan(ctx context.Context, job Job) JobResult {
+	var payload struct {
+		SourceID string `json:"source_id"`
+	}
+	if err := json.Unmarshal(job.Payload, &payload); err != nil {
+		return JobResult{Success: false, Error: fmt.Sprintf("unmarshal payload: %v", err)}
+	}
+
+	if strings.TrimSpace(payload.SourceID) == "" {
+		return JobResult{Success: false, Error: "source_id is required"}
+	}
+
+	sourceID, err := uuid.Parse(payload.SourceID)
+	if err != nil {
+		return JobResult{Success: false, Error: fmt.Sprintf("invalid source_id: %v", err)}
+	}
+
+	r.logger.Info("source rescan job", zap.String("source_id", sourceID.String()))
+
+	if r.sourceSyncer == nil {
+		return JobResult{Success: false, Error: "source sync orchestrator not configured"}
+	}
+
+	syncResult, err := r.sourceSyncer.SyncSource(ctx, sourceID)
+	if err != nil {
+		return JobResult{Success: false, Error: fmt.Sprintf("source sync: %v", err)}
+	}
+
+	data, err := json.Marshal(syncResult)
+	if err != nil {
+		return JobResult{Success: false, Error: fmt.Sprintf("marshal sync result: %v", err)}
+	}
+
+	return JobResult{Success: true, Data: data}
 }
 
 // ---------------------------------------------------------------------------

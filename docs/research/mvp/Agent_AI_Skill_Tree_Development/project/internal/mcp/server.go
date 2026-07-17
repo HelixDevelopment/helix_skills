@@ -17,6 +17,7 @@ import (
 	"github.com/helixdevelopment/skill-system/internal/models"
 	"github.com/helixdevelopment/skill-system/internal/registry"
 	"github.com/helixdevelopment/skill-system/internal/skill"
+	"github.com/helixdevelopment/skill-system/internal/skillsource"
 	"github.com/helixdevelopment/skill-system/internal/validation"
 
 	mcp_go "github.com/mark3labs/mcp-go/mcp"
@@ -45,7 +46,9 @@ type MCPServer struct {
 	validator         skillValidator
 	validationEnabled bool
 	codeGraphResults  *codeGraphStore // in-memory cache for codegraph_analyze results
-	sourceStore       *sourceStore    // in-memory registry of skill sources (G86)
+	sourceStore       *sourceStore    // in-memory registry of skill sources (G86, legacy)
+	skillSourceStore  *skillsource.Store       // DB-backed skill source registry (G74)
+	sourceOrchestrator *skillsource.Orchestrator // source sync orchestrator (G82)
 }
 
 // NewMCPServer creates a new MCP server with all dependencies.
@@ -115,18 +118,24 @@ func NewMCPServer(pool *db.Pool, store *skill.Store, reg *registry.Registry, cfg
 		}
 	}
 
+	// Wire the DB-backed skill source store and sync orchestrator (G74/G82).
+	ssStore := skillsource.NewStore(pool, logger)
+	ssOrch := skillsource.NewOrchestrator(ssStore, store, logger)
+
 	return &MCPServer{
-		server:            mcpServer,
-		skillStore:        store,
-		registry:          reg,
-		pool:              pool,
-		cfg:               cfg,
-		logger:            logger,
-		transport:         cfg.MCP.Transport,
-		validator:         validation.NewPipeline(store, cfg.Validation, logger),
-		validationEnabled: cfg.Validation.Enabled,
-		codeGraphResults:  newCodeGraphStore(),
-		sourceStore:       newSourceStore(),
+		server:             mcpServer,
+		skillStore:         store,
+		registry:           reg,
+		pool:               pool,
+		cfg:                cfg,
+		logger:             logger,
+		transport:          cfg.MCP.Transport,
+		validator:          validation.NewPipeline(store, cfg.Validation, logger),
+		validationEnabled:  cfg.Validation.Enabled,
+		codeGraphResults:   newCodeGraphStore(),
+		sourceStore:        newSourceStore(),
+		skillSourceStore:   ssStore,
+		sourceOrchestrator: ssOrch,
 	}
 }
 
