@@ -2,31 +2,33 @@
 
 Back to [vasic-digital index](./README.md) | [Main index](../README.md)
 
+This group contains end-user applications, developer tools, firmware projects, media utilities, and experimental scaffolds. It spans Android AOSP builds, media collection managers, torrent clients, text editors, interprocess synchronization libraries, network bonding tools, and cross-platform media processing kits. These repos represent shipped products, internal tooling, and early-stage experiments that may graduate into reusable modules.
+
 | Repo | Description | Status |
 |---|---|---|
-| [ATMOSphere-Android-15](./ATMOSphere-Android-15/README.md) | (no description) | Active |
-| [ATMOSphere-Android-15-Main](./ATMOSphere-Android-15-Main/README.md) | Android 15 AOSP for Orange Pi 5 Max | Active |
-| [Asinka](./Asinka/README.md) | Interprocess Objects Syncrhronization Library: Asinka (Асинка) | Active |
-| [Assets](./Assets/README.md) | Generic, reusable Go module for lazy asset loading with strategy-based resolution | Active |
-| [Catalogizer](./Catalogizer/README.md) | Advanced Multi-Protocol Media Collection Management System | Active |
-| [Courses-Creator](./Courses-Creator/README.md) | Courses creator toolkit | Active |
-| [DocProcessor](./DocProcessor/README.md) | Documentation processing and feature map extraction for QA automation | Active |
-| [Entities](./Entities/README.md) | Generic media entity system: title parsing, media types, hierarchy detection, and aggregation primitives for Go | Active |
-| [Games](./Games/README.md) | Vasic Digital Games | Active |
-| [GrabTube](./GrabTube/README.md) | Tube services downloader | Active |
-| [HelixAgent](./HelixAgent/README.md) | (no description) | Active |
-| [Integrations](./Integrations/README.md) | Integrations | Active |
-| [Media](./Media/README.md) | digital.vasic.media - Reusable Go module | Active |
-| [Models](./Models/README.md) | (no description) | Active |
-| [Network-Binder](./Network-Binder/README.md) | Bind multiple internet connection endpoints into single one using mptcp. | Active |
-| [OOM-Protect](./OOM-Protect/README.md) | Workstation OOM hardening for systemd Linux | Active |
-| [PliniusCommon](./PliniusCommon/README.md) | Common types/errors library (shared foundation for the 8 sibling modules) | SCAFFOLD / WIP |
-| [Proxy](./Proxy/README.md) | Proxy server | Active |
-| [Pure_v2_Firmware](./Pure_v2_Firmware/README.md) | Firmware for BeagleBone | Active |
-| [SDK](./SDK/README.md) | SDK | Active |
-| [ShareConnect](./ShareConnect/README.md) | Share the downloadable URLs to remote (or local) processing endpoints | Active |
-| [TransmissionConnect](./TransmissionConnect/README.md) | Remote control for Transmission BitTorrent client and integration with ShareConnect | Active |
-| [Watcher](./Watcher/README.md) | digital.vasic.watcher - Reusable Go module | Active |
-| [Yole](./Yole/README.md) | Text editor, Notes & ToDo - Markdown, todo.txt, plaintext, math, and much more ... | Active |
-| [ffmpeg-kit](./ffmpeg-kit/README.md) | FFmpeg Kit for applications. Supports Android, Flutter, iOS, Linux, macOS, React Native and tvOS. Supersedes MobileFFmpeg, flutter_ffmpeg and react-native-ffmpeg. | Active |
-| [qBitConnect](./qBitConnect/README.md) | Control qBittorrent from any device and integrate with ShareConnect | Active |
+| [ATMOSphere-Android-15](./ATMOSphere-Android-15/README.md) | Android 15 AOSP-based custom ROM build targeting the Orange Pi 5 Max (RK3588) platform. Provides a full system image with custom HAL integrations, display/audio routing, and pre-installed media applications for the ATMOSphere hardware line. | Active |
+| [ATMOSphere-Android-15-Main](./ATMOSphere-Android-15-Main/README.md) | Primary Android 15 AOSP build for the Orange Pi 5 Max (RK3588). The main development branch for system-level customizations, driver integrations, and feature work targeting the ATMOSphere hardware platform. | Active |
+| [Asinka](./Asinka/README.md) | Interprocess Objects Synchronization Library (Asinka) -- a Kotlin/Go library for real-time bidirectional state synchronization between processes over gRPC and WebSocket transports. Used for keeping distributed UI components and background services in sync. | Active |
+| [Assets](./Assets/README.md) | Generic reusable Go module for lazy asset loading with strategy-based resolution. Provides deferred initialization of heavy resources (images, models, configs) with pluggable resolution strategies (filesystem, network, embedded) and automatic lifecycle management. | Active |
+| [Catalogizer](./Catalogizer/README.md) | Advanced multi-protocol media collection management system written in Kotlin/Go. Indexes, catalogs, and serves media libraries across SMB, NFS, HTTP, and local storage with metadata extraction, duplicate detection, and REST/GraphQL APIs. | Active |
+| [Courses-Creator](./Courses-Creator/README.md) | Courses creator toolkit for building structured educational content. Provides authoring tools, content templates, and export pipelines for generating course materials in multiple formats. | Active |
+| [DocProcessor](./DocProcessor/README.md) | Documentation processing and feature map extraction tool for QA automation. Parses project documentation to build feature dependency graphs, maps test coverage to documented features, and identifies gaps between docs and implementation. | Active |
+| [Entities](./Entities/README.md) | Generic media entity system written in Go providing title parsing, media type classification, hierarchy detection (series/season/episode), and aggregation primitives. Used as the data model layer by media cataloguing and playback applications. | Active |
+| [Games](./Games/README.md) | Vasic Digital Games -- a collection of game projects and prototypes built across various platforms and engines, serving as experimental playgrounds for graphics, input handling, and real-time networking techniques. | Active |
+| [GrabTube](./GrabTube/README.md) | Video and audio downloader for tube services. Provides a CLI and library interface for fetching media from supported platforms with format selection, quality options, and metadata extraction. | Active |
+| [HelixAgent](./HelixAgent/README.md) | Standalone AI agent runtime providing a self-contained execution environment for Helix-compatible agents. Handles agent lifecycle, tool dispatch, context management, and session persistence independent of any specific CLI host. | Active |
+| [Integrations](./Integrations/README.md) | Collection of integration adapters and connectors for third-party services. Provides standardized interfaces for connecting ecosystem applications to external APIs, cloud services, and platform-specific SDKs. | Active |
+| [Media](./Media/README.md) | Reusable Go module (`digital.vasic.media`) providing media type detection, codec identification, container parsing, and metadata extraction across audio, video, and image formats. Serves as the shared media analysis layer for downstream applications. | Active |
+| [Models](./Models/README.md) | Shared data model definitions and type libraries used across multiple ecosystem applications. Provides canonical entity schemas, serialization interfaces, and validation rules that ensure consistency between services. | Active |
+| [Network-Binder](./Network-Binder/README.md) | Network bonding tool that aggregates multiple internet connection endpoints (Ethernet, Wi-Fi, cellular) into a single logical interface using MPTCP (Multipath TCP). Increases throughput and provides automatic failover across heterogeneous network links. | Active |
+| [OOM-Protect](./OOM-Protect/README.md) | Workstation OOM (Out-of-Memory) hardening tool for systemd-based Linux. Monitors system memory pressure, identifies runaway processes, and applies configurable protection policies to prevent critical services from being killed by the OOM killer. | Active |
+| [PliniusCommon](./PliniusCommon/README.md) | Common types and errors library providing the shared foundation for 8 sibling Plinius modules. Defines canonical error hierarchies, shared value types, and cross-module interface contracts. | SCAFFOLD / WIP |
+| [Proxy](./Proxy/README.md) | HTTP/HTTPS/SOCKS proxy server written in Go with support for request interception, logging, TLS termination, and upstream chaining. Used for debugging, traffic analysis, and routing LLM API calls through controlled endpoints. | Active |
+| [Pure_v2_Firmware](./Pure_v2_Firmware/README.md) | Firmware project for the BeagleBone platform. Provides low-level hardware initialization, GPIO/SPI/I2C drivers, and application-layer services for the Pure v2 embedded device. | Active |
+| [SDK](./SDK/README.md) | Shared SDK providing client libraries and helper utilities for interacting with ecosystem backend services. Offers authentication, API wrappers, and common data transformations used by multiple applications. | Active |
+| [ShareConnect](./ShareConnect/README.md) | Android application that shares downloadable URLs to remote (or local) processing endpoints -- torrent clients, download managers, and media servers. Acts as a universal share-target that routes links to the appropriate handler based on content type. | Active |
+| [TransmissionConnect](./TransmissionConnect/README.md) | Remote control client for the Transmission BitTorrent client with deep integration into ShareConnect. Provides a native Android UI for managing torrents, monitoring transfers, and configuring Transmission daemon settings. | Active |
+| [Watcher](./Watcher/README.md) | Reusable Go module (`digital.vasic.watcher`) providing filesystem and resource change monitoring with debouncing, filtering, and event callbacks. Used by build systems, live-reload tools, and configuration watchers across the ecosystem. | Active |
+| [Yole](./Yole/README.md) | Cross-platform text editor supporting Markdown, todo.txt, plaintext, and math notation. Provides a clean writing environment with syntax highlighting, live preview, file management, and extensible plugin architecture. | Active |
+| [ffmpeg-kit](./ffmpeg-kit/README.md) | FFmpeg Kit for applications -- a prebuilt FFmpeg wrapper supporting Android, Flutter, iOS, Linux, macOS, React Native, and tvOS. Supersedes MobileFFmpeg, flutter_ffmpeg, and react-native-ffmpeg with a unified API for media transcoding, filtering, and format conversion. | Active |
+| [qBitConnect](./qBitConnect/README.md) | Remote control application for the qBittorrent client with ShareConnect integration. Provides a native Android interface for managing downloads, searching torrents, configuring preferences, and monitoring transfer statistics. | Active |

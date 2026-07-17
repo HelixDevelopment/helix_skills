@@ -2,26 +2,30 @@
 
 Back to [vasic-digital index](./README.md) | [Main index](../README.md)
 
+This group contains the foundational Go infrastructure modules that every backend service, agent runtime, and CLI tool in the ecosystem depends on. It covers event-driven messaging, caching, concurrency primitives, configuration management, database abstraction, service discovery, observability/metrics, fault tolerance, rate limiting, and network protocol support (HTTP/3, mDNS). These modules are designed as composable building blocks -- each is independently importable and follows the `digital.vasic.*` Go module naming convention.
+
 | Repo | Description | Status |
 |---|---|---|
-| [Document](./Document/README.md) | Go document model with format detection and change tracking | Active |
-| [EventBus](./EventBus/README.md) | Generic reusable Go module: digital.vasic.eventbus | Active |
-| [Filesystem](./Filesystem/README.md) | digital.vasic.filesystem - Reusable Go module | Active |
-| [Formatters](./Formatters/README.md) | Generic reusable Go module: digital.vasic.formatters | Active |
-| [I18n](./I18n/README.md) | digital.vasic.i18n - Generic internationalization Go module | Active |
-| [Lazy](./Lazy/README.md) | Generic reusable Go module: digital.vasic.lazy - Lazy loading with sync.Once generics | Active |
-| [MCP_Module](./MCP_Module/README.md) | Generic reusable Go module: digital.vasic.mcp | Active |
-| [Messaging](./Messaging/README.md) | Generic reusable Go module: digital.vasic.messaging | Active |
-| [Plugins](./Plugins/README.md) | Generic reusable Go module: digital.vasic.plugins | Active |
-| [Streaming](./Streaming/README.md) | Generic reusable Go module: digital.vasic.streaming | Active |
-| [cache](./cache/README.md) | Generic reusable Go module: digital.vasic.cache | Active |
-| [concurrency](./concurrency/README.md) | Generic reusable Go module: digital.vasic.concurrency | Active |
-| [config](./config/README.md) | digital.vasic.config - Reusable Go module | Active |
-| [database](./database/README.md) | Generic reusable Go module: digital.vasic.database | Active |
-| [discovery](./discovery/README.md) | digital.vasic.discovery - Reusable Go module | Active |
-| [http3](./http3/README.md) | Generic Go module wrapping quic-go/http3 for net/http.Handler servers -- drop-in HTTP/3 support | Active |
-| [mdns](./mdns/README.md) | Generic Go module for RFC 6762/6763 mDNS service announcement and discovery -- drop-in LAN service registration | Active |
-| [observability](./observability/README.md) | Generic reusable Go module: digital.vasic.observability | Active |
-| [ratelimiter](./ratelimiter/README.md) | digital.vasic.ratelimiter - Reusable Go module | Active |
-| [recovery](./recovery/README.md) | Generic reusable Go module: digital.vasic.recovery - Application-level fault tolerance | Active |
-| [tracker_sdk](./tracker_sdk/README.md) | Generic, tracker-agnostic SDK primitives: mirror manager, plugin registry, testing harness. Used by the Lava project (https://github.com/milos85vasic/Lava) to support multiple torrent trackers. | Active |
+| [Document](./Document/README.md) | Go document model with format detection and change tracking. Parses documents into structured trees, detects format (Markdown, HTML, plaintext, JSON), computes diffs between versions, and provides a unified API for document processing pipelines. | Active |
+| [EventBus](./EventBus/README.md) | Generic reusable Go module (`digital.vasic.eventbus`) providing a typed publish-subscribe event bus with synchronous and asynchronous delivery, topic filtering, dead-letter handling, and graceful shutdown. Used for decoupled intra-process communication. | Active |
+| [Filesystem](./Filesystem/README.md) | Reusable Go module (`digital.vasic.filesystem`) providing a virtual filesystem abstraction with adapters for local disk, S3-compatible object stores, and in-memory backends. Supports atomic writes, directory watching, and path normalization. | Active |
+| [Formatters](./Formatters/README.md) | Generic reusable Go module (`digital.vasic.formatters`) implementing text format detection, parsing, and serialization for JSON, YAML, XML, CSV, TOML, and Markdown. Provides a registry-based plugin system for adding custom formats. | Active |
+| [I18n](./I18n/README.md) | Generic internationalization Go module (`digital.vasic.i18n`) providing message catalog loading, locale-aware string interpolation, pluralization rules, and right-to-left text support. Used for localizing CLI output and web UI strings. | Active |
+| [Lazy](./Lazy/README.md) | Generic reusable Go module (`digital.vasic.lazy`) providing lazy initialization with `sync.Once` generics. Offers type-safe deferred values, lazy maps, and lazy slices that initialize exactly once on first access, with optional TTL expiration. | Active |
+| [MCP_Module](./MCP_Module/README.md) | Generic reusable Go module (`digital.vasic.mcp`) implementing the Model Context Protocol (MCP) server and client interfaces. Provides tool registration, request routing, and transport adapters for building MCP-compatible tool servers. | Active |
+| [Messaging](./Messaging/README.md) | Generic reusable Go module (`digital.vasic.messaging`) providing a unified messaging interface with adapters for NATS, RabbitMQ, Kafka, Redis Pub/Sub, and in-memory channels. Supports request-reply, fan-out, and competing-consumer patterns. | Active |
+| [Plugins](./Plugins/README.md) | Generic reusable Go module (`digital.vasic.plugins`) implementing a plugin loading and lifecycle management system. Supports Go plugin binaries, WASM modules, and gRPC-based remote plugins with hot-reload and health monitoring. | Active |
+| [Streaming](./Streaming/README.md) | Generic reusable Go module (`digital.vasic.streaming`) providing streaming data primitives -- backpressure-aware channels, windowed aggregations, stream joins, and exactly-once delivery guarantees for real-time data pipelines. | Active |
+| [cache](./cache/README.md) | Generic reusable Go module (`digital.vasic.cache`) providing a multi-layer caching system with L1 (in-memory LRU) and L2 (Redis/Memcached) tiers, cache-aside and write-through policies, and automatic invalidation via pub/sub. | Active |
+| [concurrency](./concurrency/README.md) | Generic reusable Go module (`digital.vasic.concurrency`) providing concurrency primitives -- bounded worker pools, semaphore, circuit breaker, retry with backoff, and structured concurrency helpers that compose with Go context cancellation. | Active |
+| [config](./config/README.md) | Reusable Go module (`digital.vasic.config`) providing hierarchical configuration loading from files (YAML, JSON, TOML), environment variables, and remote stores (Consul, etcd). Supports hot-reload, validation, and secret references. | Active |
+| [database](./database/README.md) | Generic reusable Go module (`digital.vasic.database`) providing a database abstraction layer with adapters for PostgreSQL, MySQL, SQLite, and MongoDB. Includes migration management, connection pooling, and query builder utilities. | Active |
+| [discovery](./discovery/README.md) | Reusable Go module (`digital.vasic.discovery`) implementing service discovery with adapters for Consul, etcd, mDNS, and static configuration. Provides health-checked service resolution with automatic failover and load balancing. | Active |
+| [http3](./http3/README.md) | Generic Go module wrapping `quic-go/http3` for `net/http.Handler` servers, providing drop-in HTTP/3 support. Enables existing Go HTTP servers to serve over QUIC with zero code changes beyond the listener setup. | Active |
+| [mdns](./mdns/README.md) | Generic Go module implementing RFC 6762/6763 mDNS (Multicast DNS) service announcement and discovery. Provides drop-in LAN service registration so services can find each other without centralized DNS infrastructure. | Active |
+| [observability](./observability/README.md) | Generic reusable Go module (`digital.vasic.observability`) providing metrics collection (Prometheus, OpenTelemetry), distributed tracing, structured logging, and health check endpoints. The standard observability layer for all backend services. | Active |
+| [ratelimiter](./ratelimiter/README.md) | Reusable Go module (`digital.vasic.ratelimiter`) implementing rate limiting algorithms -- token bucket, sliding window, leaky bucket, and adaptive throttling. Provides both local and distributed (Redis-backed) rate limiters for API protection. | Active |
+| [recovery](./recovery/README.md) | Generic reusable Go module (`digital.vasic.recovery`) providing application-level fault tolerance -- panic recovery, graceful degradation, bulkhead isolation, and fallback chains. Composes with the concurrency module for resilient service architectures. | Active |
+| [tracker_sdk](./tracker_sdk/README.md) | Generic, tracker-agnostic SDK primitives written in Go: mirror manager, plugin registry, and testing harness. Used by the Lava project to support multiple torrent trackers through a unified interface with pluggable tracker-specific adapters. | Active |
+
+**Related skills:** [mcp-module](../skills/mcp-module.md), [continuum](../skills/continuum.md)
