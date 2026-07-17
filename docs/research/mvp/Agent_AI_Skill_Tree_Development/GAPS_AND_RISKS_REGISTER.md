@@ -1,7 +1,7 @@
 # GAPS_AND_RISKS_REGISTER — HelixKnowledge Skill Graph System
 
-**Revision:** 8
-**Last modified:** 2026-07-17T20:30:00Z
+**Revision:** 9
+**Last modified:** 2026-07-17T22:00:00Z
 
 > Adversarial audit satisfying operator mandate **R17**. Every row carries
 > concrete `file:line` evidence (positive-evidence-only, R11). Anything not
@@ -19,10 +19,10 @@
 | Status | Count | IDs |
 |---|---|---|
 | **OPEN — CRITICAL** | 3 | G01, G03, G04 |
-| **OPEN — HIGH** | 64 | G09, G10, G12, G14, G15, G40, G42, G43, G59, G63, G69–G92 (×24), G93–G122 (×30) |
+| **OPEN — HIGH** | 63 | G09, G10, G14, G15, G40, G42, G43, G59, G63, G69–G92 (×24), G93–G122 (×30) |
 | **OPEN — MEDIUM** | 25 | G17, G18, G30, G44, G45, G47, G55, G56, G58, G60, G61, G66, G123, G124–G135 (×12) |
 | **OPEN — LOW** | 4 | G37, G62, G67, G68 |
-| **FIXED** | 39 | G02, G05, G06, G07, G08, G11, G13, G16, G19, G20, G21, G22, G23, G24, G25, G26, G27, G28, G29, G31, G32, G33, G34, G35, G36, G38, G39, G41, G46, G48, G49, G51, G52, G53, G54, G57, G64, G65, G137 |
+| **FIXED** | 40 | G02, G05, G06, G07, G08, G11, G12, G13, G16, G19, G20, G21, G22, G23, G24, G25, G26, G27, G28, G29, G31, G32, G33, G34, G35, G36, G38, G39, G41, G46, G48, G49, G51, G52, G53, G54, G57, G64, G65, G137 |
 | **N/A** | 1 | G136 (meta-assessment task itself) |
 | **TOTAL** | **136** | (G01–G135 + G137; G136 is the assessment task, deliberately unrated) |
 
@@ -43,7 +43,7 @@
 > The Fixed row captures all items whose per-item STATUS line reads Fixed,
 > Implemented, Completed, or CLOSED.
 > Open-item severity rows contain only OPEN items.
-> **Open-total verification:** 3+64+25+4 = 96 open + 39 fixed + 1 N/A = 136 total. ✓
+> **Open-total verification:** 3+63+25+4 = 95 open + 40 fixed + 1 N/A = 136 total. ✓
 
 > Severities for G52–G137 are **proposed** per G136 — see
 > `research/g136_severity_assessment.md` for the per-item evidence and
@@ -196,7 +196,7 @@ flow from this.
 - **Test coverage:** unit (cycle calls pipeline; coverage type-safety), integration (worker creates a real skill from a seeded gap), chaos (malformed coverage map ⇒ logged error not panic), mutation (reintroduce bare assertion → panic test fails). **Challenges:** yes. **HelixQA:** yes.
 
 ### G12 — tree-sitter is a stub: native parsing always fails; regex-only; Kotlin/C# unsupported despite being configured
-- **STATUS (2026-07-17):** INTERIM COMPLETED — `treesitter.go` updated with Kotlin and C# regex patterns in `compilePatterns` (+ `extractImports` switch cases); `Tree.Fidelity` field` implemented (FidelityNative/FidelityRegexFallback), populated on every Parse call; `ErrNoPatternsForLanguage` sentinel error prevents silent empty-success for unsupported languages; `parseFallback` now returns this error when pattern map is empty. Full test suite (13 tests enumerated in design doc): #1 (kotlin compilePatterns), #2 (csharp compilePatterns), #3 (ErrNoPatternsForLanguage), #4 (Fidelity populated), #5 (normalizeLanguage aliases), #7 (Kotlin real-fixture pipeline), #8 (C# real-fixture pipeline), #9 (fuzz — 12 malformed inputs no panic) all PASS. #6 (CGO native path) SKIP-with-reason (grammars not vendored — `/go:build cgo` split deferred). Mutation tests #10-#13 documented but not yet automated — verified manually that removing patterns causes test failure. CGO split (`treesitter_native.go` / `treesitter_native_stub.go`) NOT yet landed (requires vendor of tree-sitter grammars). Bash/Dart same-class defect (fact 9) tracked as follow-up per design doc §5.
+- **STATUS (2026-07-17):** COMPLETED — CGO/native tree-sitter split landed (`4f5fdd5`). `treesitter_native.go` (584 lines, `//go:build cgo`) implements real native parsing via `github.com/tree-sitter/go-tree-sitter` with grammars for Go, Python, Java, JavaScript, C, C++, Rust, C#, and Kotlin. `treesitter_native_stub.go` (`//go:build !cgo`) preserves the regex-only fallback. `cgoAvailable` package-level var replaces the old `cgoEnabled()` stub. `initNativeParser` now constructs real `sitter.Parser` + sets language via grammar module's `Language()`. `parseNative` builds real AST (`Tree.Root` with `TSNode` tree). `extractImportsNative`/`extractFunctionsNative`/`extractClassesNative` walk the real AST via tree-sitter queries. `FidelityNative` set on all native-parse results. All 13 tests pass (including #6 CGO native path — now exercises real tree-sitter). Full suite GREEN (24 packages, CGO_ENABLED=1). Bash/Dart same-class defect tracked as follow-up per design doc §5.
 - **Category:** gap
 - **Severity:** high — R2 requires tree-sitter as a *working POC, not a stub*; learn-from-codebase (R2/R6/P5) rests on it.
 - **Evidence:** `initNativeParser` **always** returns an error (`internal/codeanalysis/treesitter.go:106-131`); `parseNative`/`extractImportsNative`/`extractFunctionsNative`/`extractClassesNative` all return `"not implemented"` (`treesitter.go:160, 230, 235, 240`). Only regex fallback runs. `compilePatterns` has **no `kotlin` or `csharp` case** (`treesitter.go:264-296`), yet `kotlin` is in the default analysis languages (`config.go:194`) and normalizeLanguage maps `kt`→`kotlin` (`treesitter.go:558-559`) — Kotlin files yield an empty pattern set ⇒ zero extraction.
