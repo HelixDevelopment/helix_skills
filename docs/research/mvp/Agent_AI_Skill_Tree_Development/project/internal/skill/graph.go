@@ -479,20 +479,22 @@ func (s *Store) GetDependents(ctx context.Context, skillID uuid.UUID) ([]models.
 }
 
 // GetAllDependencies returns a flat list of all transitive dependencies for a skill.
+// Depth is capped at 50 levels to prevent runaway queries on large/cyclic graphs.
 func (s *Store) GetAllDependencies(ctx context.Context, skillID uuid.UUID) ([]models.Skill, error) {
 	rows, err := s.pool.Query(ctx, `
 		WITH RECURSIVE all_deps AS (
-			SELECT depends_on AS id
+			SELECT depends_on AS id, 1 AS depth
 			FROM skill_dependencies
 			WHERE skill_id = $1
 
 			UNION
 
-			SELECT sd.depends_on
+			SELECT sd.depends_on, ad.depth + 1
 			FROM skill_dependencies sd
 			INNER JOIN all_deps ad ON ad.id = sd.skill_id
+			WHERE ad.depth < 50
 		)
-		SELECT s.id, s.name, s.version, s.title, s.description, s.content, s.metadata, s.status, s.kind, s.created_at, s.updated_at
+		SELECT DISTINCT s.id, s.name, s.version, s.title, s.description, s.content, s.metadata, s.status, s.kind, s.created_at, s.updated_at
 		FROM all_deps ad
 		JOIN skills s ON s.id = ad.id
 		ORDER BY s.name

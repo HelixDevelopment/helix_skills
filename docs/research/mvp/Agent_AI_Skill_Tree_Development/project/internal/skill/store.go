@@ -607,92 +607,204 @@ func (s *Store) GetByName(ctx context.Context, name string) (*models.Skill, erro
 }
 
 // GetTree returns the dependency tree for a skill up to the specified depth.
+// Uses a single recursive CTE to fetch all reachable skills and edges,
+// then assembles the tree in Go — O(1) queries instead of O(N) (§11.4.82).
 func (s *Store) GetTree(ctx context.Context, name string, maxDepth int) (*models.SkillTreeNode, error) {
-	skill, err := s.GetByName(ctx, name)
+	if maxDepth <= 0 {
+		maxDepth = 10
+	}
+	if maxDepth > 50 {
+		maxDepth = 50 // Hard cap to prevent runaway queries
+	}
+
+	// Fetch the root skill
+	rootSkill, err := s.GetByName(ctx, name)
 	if err != nil {
 		return nil, err
 	}
 
+	// Single recursive CTE: fetch all reachable skills + their dependency edges
+	// in one round-trip, eliminating the N+1 pattern.
+	rows, err := s.pool.Query(ctx, `
+		WITH RECURSIVE dep_tree AS (
+			SELECT
+				s.id, s.name, s.version, s.title, s.description, s.content,
+				s.metadata, s.status, s.kind, s.created_at, s.updated_at,
+				sd.relation_type, sd.optional, sd.sort_order,
+				0 AS depth
+			FROM skill_dependencies sd
+			JOIN skills s ON s.id = sd.depends_on
+			WHERE sd.skill_id = $1
+
+			UNION ALL
+
+			SELECT
+				s.id, s.name, s.version, s.title, s.description, s.content,
+				s.metadata, s.status, s.kind, s.created_at, s.updated_at,
+				sd.relation_type, sd.optional, sd.sort_order,
+				dt.depth + 1
+			FROM skill_dependencies sd
+			JOIN skills s ON s.id = sd.depends_on
+			JOIN dep_tree dt ON dt.id = sd.skill_id
+			WHERE dt.depth + 1 < $2
+		)
+		SELECT id, name, version, title, description, content, metadata,
+		       status, kind, created_at, updated_at,
+		       relation_type, optional, sort_order, depth
+		FROM dep_tree
+		ORDER BY depth, name
+	`, rootSkill.ID, maxDepth)
+	if err != nil {
+		return nil, fmt.Errorf("recursive tree query: %w", err)
+	}
+	defer rows.Close()
+
+	// Collect all reachable nodes and their edges
+	type nodeInfo struct {
+		skill models.Skill
+		depth int
+	}
+	nodeMap := make(map[uuid.UUID]*nodeInfo)
+	// parentID -> []childID (ordered)
+	childMap := make(map[uuid.UUID][]uuid.UUID)
+	// Track which edges we've seen to avoid duplicates in the childMap
+	seenEdges := make(map[string]bool)
+
+	for rows.Next() {
+		var sk models.Skill
+		var metadata []byte
+		var relType models.DependencyType
+		var optional bool
+		var sortOrder *int
+		var depth int
+		if err := rows.Scan(
+			&sk.ID, &sk.Name, &sk.Version, &sk.Title,
+			&sk.Description, &sk.Content, &metadata,
+			&sk.Status, &sk.Kind, &sk.CreatedAt, &sk.UpdatedAt,
+			&relType, &optional, &sortOrder, &depth,
+		); err != nil {
+			return nil, fmt.Errorf("scan tree node: %w", err)
+		}
+		sk.Metadata = metadata
+
+		if _, exists := nodeMap[sk.ID]; !exists {
+			nodeMap[sk.ID] = &nodeInfo{skill: sk, depth: depth}
+		}
+
+		// Record the edge: we need to figure out the parent from the CTE.
+		// The CTE joins on sd.skill_id -> sd.depends_on, so for each row
+		// the parent is the skill_id that led to this depends_on.
+		// We'll reconstruct edges from the dependency data below.
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate tree rows: %w", err)
+	}
+
+	// Now fetch edges among the closure nodes to build parent->child relationships
+	if len(nodeMap) > 0 {
+		ids := make([]uuid.UUID, 0, len(nodeMap))
+		for id := range nodeMap {
+			ids = append(ids, id)
+		}
+
+		edgeRows, err := s.pool.Query(ctx, `
+			SELECT skill_id, depends_on, relation_type, optional, sort_order,
+			       ds.name as depends_on_name, ds.title as depends_on_title
+			FROM skill_dependencies sd
+			JOIN skills ds ON ds.id = sd.depends_on
+			WHERE sd.skill_id = $1
+			ORDER BY sd.relation_type, sd.sort_order NULLS LAST, ds.name
+		`, rootSkill.ID)
+		if err != nil {
+			return nil, fmt.Errorf("query root edges: %w", err)
+		}
+
+		// Collect root's direct edges
+		rootSkill.Dependencies = nil
+		for edgeRows.Next() {
+			var d models.SkillDependency
+			if err := edgeRows.Scan(&d.SkillID, &d.DependsOn, &d.RelationType, &d.Optional, &d.SortOrder, &d.DependsOnName, &d.DependsOnTitle); err != nil {
+				edgeRows.Close()
+				return nil, fmt.Errorf("scan root edge: %w", err)
+			}
+			if _, ok := nodeMap[d.DependsOn]; ok {
+				rootSkill.Dependencies = append(rootSkill.Dependencies, d)
+				edgeKey := fmt.Sprintf("%s:%s:%s", d.SkillID, d.DependsOn, d.RelationType)
+				if !seenEdges[edgeKey] {
+					childMap[d.SkillID] = append(childMap[d.SkillID], d.DependsOn)
+					seenEdges[edgeKey] = true
+				}
+			}
+		}
+		edgeRows.Close()
+
+		// Fetch edges for all non-root nodes in the closure
+		if len(ids) > 1 {
+			// Include root ID so we get its edges too (already handled above, but
+			// this covers non-root nodes' edges)
+			allEdgeRows, err := s.pool.Query(ctx, `
+				SELECT skill_id, depends_on, relation_type, optional, sort_order,
+				       ds.name as depends_on_name, ds.title as depends_on_title
+				FROM skill_dependencies sd
+				JOIN skills ds ON ds.id = sd.depends_on
+				WHERE sd.skill_id = ANY($1)
+				ORDER BY sd.skill_id, sd.relation_type, sd.sort_order NULLS LAST, ds.name
+			`, ids)
+			if err != nil {
+				return nil, fmt.Errorf("query all edges: %w", err)
+			}
+			for allEdgeRows.Next() {
+				var d models.SkillDependency
+				if err := allEdgeRows.Scan(&d.SkillID, &d.DependsOn, &d.RelationType, &d.Optional, &d.SortOrder, &d.DependsOnName, &d.DependsOnTitle); err != nil {
+					allEdgeRows.Close()
+					return nil, fmt.Errorf("scan edge: %w", err)
+				}
+				if _, ok := nodeMap[d.DependsOn]; ok {
+					edgeKey := fmt.Sprintf("%s:%s:%s", d.SkillID, d.DependsOn, d.RelationType)
+					if !seenEdges[edgeKey] {
+						childMap[d.SkillID] = append(childMap[d.SkillID], d.DependsOn)
+						seenEdges[edgeKey] = true
+					}
+				}
+			}
+			if err := allEdgeRows.Err(); err != nil {
+				allEdgeRows.Close()
+				return nil, fmt.Errorf("iterate all edges: %w", err)
+			}
+			allEdgeRows.Close()
+		}
+	}
+
+	// Assemble the tree recursively from the closure
 	root := &models.SkillTreeNode{
-		Skill: *skill,
-		Depth: 0,
+		Skill:    *rootSkill,
+		Depth:    0,
+		Children: []models.SkillTreeNode{},
 	}
 
-	visited := make(map[uuid.UUID]bool)
-	visited[skill.ID] = true
-
-	if err := s.buildTree(ctx, root, 1, maxDepth, visited); err != nil {
-		return nil, fmt.Errorf("build tree: %w", err)
+	seen := map[uuid.UUID]bool{rootSkill.ID: true}
+	var attach func(parent *models.SkillTreeNode, parentID uuid.UUID, depth int)
+	attach = func(parent *models.SkillTreeNode, parentID uuid.UUID, depth int) {
+		for _, childID := range childMap[parentID] {
+			if seen[childID] {
+				continue
+			}
+			ni, ok := nodeMap[childID]
+			if !ok {
+				continue
+			}
+			seen[childID] = true
+			parent.Children = append(parent.Children, models.SkillTreeNode{
+				Skill:    ni.skill,
+				Depth:    depth,
+				Children: []models.SkillTreeNode{},
+			})
+			attach(&parent.Children[len(parent.Children)-1], childID, depth+1)
+		}
 	}
+	attach(root, rootSkill.ID, 1)
 
 	return root, nil
-}
-
-func (s *Store) buildTree(ctx context.Context, node *models.SkillTreeNode, depth, maxDepth int, visited map[uuid.UUID]bool) error {
-	if depth > maxDepth {
-		return nil
-	}
-
-	for _, dep := range node.Skill.Dependencies {
-		if visited[dep.DependsOn] {
-			continue
-		}
-		visited[dep.DependsOn] = true
-
-		childSQL := `
-			SELECT s.id, s.name, s.version, s.title, s.description, s.content,
-			       s.metadata, s.status, s.kind, s.created_at, s.updated_at
-			FROM skills s WHERE s.id = $1
-		`
-		var child models.Skill
-		var metadata []byte
-		err := s.pool.QueryRow(ctx, childSQL, dep.DependsOn).Scan(
-			&child.ID, &child.Name, &child.Version, &child.Title,
-			&child.Description, &child.Content, &metadata,
-			&child.Status, &child.Kind, &child.CreatedAt, &child.UpdatedAt,
-		)
-		if err != nil {
-			if err == pgx.ErrNoRows {
-				continue // skip missing dependencies
-			}
-			return err
-		}
-		child.Metadata = metadata
-
-		// Load child's dependencies
-		depsSQL := `
-			SELECT sd.skill_id, sd.depends_on, sd.relation_type, sd.optional, sd.sort_order,
-			       ds.name, ds.title
-			FROM skill_dependencies sd
-			JOIN skills ds ON sd.depends_on = ds.id
-			WHERE sd.skill_id = $1
-		`
-		depRows, err := s.pool.Query(ctx, depsSQL, child.ID)
-		if err != nil {
-			return err
-		}
-		for depRows.Next() {
-			var d models.SkillDependency
-			if err := depRows.Scan(&d.SkillID, &d.DependsOn, &d.RelationType, &d.Optional, &d.SortOrder, &d.DependsOnName, &d.DependsOnTitle); err != nil {
-				depRows.Close()
-				return err
-			}
-			child.Dependencies = append(child.Dependencies, d)
-		}
-		depRows.Close()
-
-		childNode := models.SkillTreeNode{
-			Skill: child,
-			Depth: depth,
-		}
-		node.Children = append(node.Children, childNode)
-
-		if err := s.buildTree(ctx, &node.Children[len(node.Children)-1], depth+1, maxDepth, visited); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 // Create inserts a new skill into the database.
