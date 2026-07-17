@@ -246,6 +246,26 @@ func NewRunner(pool *db.Pool, store *skill.Store, cfg config.Config, logger *zap
 			"skills via the minimal no-LLM fallback until one is configured (§G03)", zap.Error(err))
 	}
 
+	// Wire the query-side embedder onto the shared skill Store so its Search
+	// becomes a genuine hybrid (vector KNN + trigram) search, matching the
+	// MCP server wiring pattern (mcp/server.go §G29). The embedder is also
+	// passed to the autoexpand pipeline for gap-detection semantic recall.
+	// "Is the provider configured" is derived SOLELY from
+	// db.NewEmbedderFromConfig's own error return — no second, hand-maintained
+	// per-provider check that could drift from the factory's policy.
+	var aeEmbedder db.Embedder
+	if store != nil {
+		store.WithLogger(logger)
+		if emb, err := db.NewEmbedderFromConfig(cfg.Embedding); err == nil {
+			store.WithEmbedder(emb)
+			aeEmbedder = emb
+			logger.Info("worker: hybrid skill search wired (§G29)",
+				zap.String("embedding_provider", cfg.Embedding.Provider))
+		} else {
+			logger.Debug("worker: no embedding provider configured, using keyword-only search (§G29)", zap.Error(err))
+		}
+	}
+
 	v := validation.NewPipeline(store, cfg.Validation, logger)
 	ca := codeanalysis.NewAnalyzer(cfg.CodeAnalysis, logger)
 
@@ -256,7 +276,7 @@ func NewRunner(pool *db.Pool, store *skill.Store, cfg config.Config, logger *zap
 		logger:             logger,
 		jobChan:            make(chan Job, 100),
 		registry:           registry.NewRegistry(pool),
-		autoexpand:         autoexpand.NewPipeline(store, nil, cfg.AutoExpand, logger, aeOpts...),
+		autoexpand:         autoexpand.NewPipeline(store, aeEmbedder, cfg.AutoExpand, logger, aeOpts...),
 		validator:          v,
 		codeAnalyzer:       ca,
 		restartBackoffBase: time.Second,

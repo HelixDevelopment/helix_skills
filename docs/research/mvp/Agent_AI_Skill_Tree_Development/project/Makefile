@@ -179,6 +179,35 @@ coverage-html: test ## Generate HTML coverage report
 	@echo -e "$(GREEN)Report: coverage.html$(NC)"
 
 # ---------------------------------------------------------------------------
+# Gates (local CI)
+# ---------------------------------------------------------------------------
+.PHONY: gate-pre
+gate-pre: ## Run pre-build gate checks
+	@scripts/gates/pre_build.sh
+
+.PHONY: gate-post
+gate-post: ## Run post-build gate checks
+	@scripts/gates/post_build.sh
+
+.PHONY: gate-runtime
+gate-runtime: ## Run runtime signature gate checks
+	@scripts/gates/runtime_signature.sh
+
+.PHONY: gate-coverage
+gate-coverage: ## Run coverage gate against configured floor
+	@scripts/gates/coverage_gate.sh
+
+.PHONY: mutation
+mutation: ## Mutation runner — not yet wired
+	@echo "Mutation runner — not yet wired"
+	@echo "Run: scripts/mutation/run_all.sh (once mutation pairs are defined)"
+
+.PHONY: qa
+qa: ## QA runner — not yet wired
+	@echo "QA runner — not yet wired"
+	@echo "Runs test/challenges/ and test/helixqa/ banks against live stack"
+
+# ---------------------------------------------------------------------------
 # Linting & Quality
 # ---------------------------------------------------------------------------
 .PHONY: lint

@@ -5,9 +5,29 @@ package codeanalysis
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
+)
+
+// ErrNoPatternsForLanguage is returned when the regex-based parser has no
+// compiled patterns for a given language. Before this sentinel existed
+// (G12, §2.3), an unsupported language silently returned an empty
+// FallbackParse, making a Kotlin/C# file indistinguishable from a
+// genuinely-empty file.
+var ErrNoPatternsForLanguage = errors.New("no regex patterns compiled for language (unsupported or misconfigured)")
+
+// Fidelity describes the parser path that produced a parse result.
+type Fidelity string
+
+const (
+	// FidelityNative indicates parsing was performed by the CGO-backed
+	// tree-sitter native parser (real AST, accurate).
+	FidelityNative Fidelity = "native"
+	// FidelityRegexFallback indicates parsing was performed by the regex
+	// fallback parser (heuristic, reduced accuracy).
+	FidelityRegexFallback Fidelity = "regex-fallback"
 )
 
 // ---------------------------------------------------------------------------
@@ -28,6 +48,10 @@ type TreeSitterParser struct {
 type Tree struct {
 	Language string
 	Content  []byte
+	// Fidelity indicates the parser path used: "native" (CGO tree-sitter)
+	// or "regex-fallback" (§2.3, G12). Never left blank for a successfully
+	// parsed file.
+	Fidelity Fidelity
 	// When using native parsing, Root holds the tree-sitter root node.
 	// When using fallback, Parsed holds regex-extracted entities.
 	Root   *TSNode
@@ -136,7 +160,8 @@ func (p *TreeSitterParser) initNativeParser(language string) error {
 
 // Parse parses source code content and returns an AST representation.
 // It uses the native tree-sitter parser when available, otherwise falls
-// back to regex-based parsing.
+// back to regex-based parsing. Fidelity is always set for a successfully
+// parsed result.
 func (p *TreeSitterParser) Parse(content []byte, language string) (*Tree, error) {
 	language = normalizeLanguage(language)
 
@@ -161,10 +186,17 @@ func (p *TreeSitterParser) parseNative(content []byte, language string) (*Tree, 
 }
 
 // parseFallback uses regex-based heuristics to extract code structure.
+// It sets Fidelity to FidelityRegexFallback and returns
+// ErrNoPatternsForLanguage if the regex parser has no compiled patterns
+// for the given language (G12, §2.3 — never silent).
 func (p *TreeSitterParser) parseFallback(content []byte, language string) (*Tree, error) {
 	parser, ok := p.fallbackParsers[language]
 	if !ok {
 		parser = newRegexParser(language)
+	}
+
+	if len(parser.patterns) == 0 {
+		return nil, ErrNoPatternsForLanguage
 	}
 
 	parsed := parser.Parse(content)
@@ -172,6 +204,7 @@ func (p *TreeSitterParser) parseFallback(content []byte, language string) (*Tree
 	return &Tree{
 		Language: language,
 		Content:  content,
+		Fidelity: FidelityRegexFallback,
 		Parsed:   parsed,
 	}, nil
 }
@@ -292,6 +325,15 @@ func (p *RegexParser) compilePatterns() {
 		p.patterns["func"] = regexp.MustCompile(`(?m)^\s*(?:pub\s+)?fn\s+(\w+)\s*\(([^)]*)\)`)
 		p.patterns["struct"] = regexp.MustCompile(`(?m)^\s*(?:pub\s+)?struct\s+(\w+)`)
 		p.patterns["trait"] = regexp.MustCompile(`(?m)^\s*(?:pub\s+)?trait\s+(\w+)`)
+	case "kotlin":
+		p.patterns["import"] = regexp.MustCompile(`(?m)^\s*import\s+([\w.*]+)`)
+		p.patterns["func"] = regexp.MustCompile(`(?m)^\s*(?:fun\s+)(\w+)\s*\(([^)]*)\)`)
+		p.patterns["class"] = regexp.MustCompile(`(?m)^\s*(?:class|object|interface)\s+(\w+)`)
+	case "csharp":
+		p.patterns["import"] = regexp.MustCompile(`(?m)^\s*using\s+([\w.]+)\s*;`)
+		p.patterns["func"] = regexp.MustCompile(`(?m)^\s*(?:public|private|protected|internal|static|\s)+(?:[\w<>\[\],\s]+)\s+(\w+)\s*\(([^)]*)\)`)
+		p.patterns["class"] = regexp.MustCompile(`(?m)^\s*(?:public\s+)?(?:abstract\s+|sealed\s+)?class\s+(\w+)`)
+		p.patterns["interface"] = regexp.MustCompile(`(?m)^\s*(?:public\s+)?interface\s+(\w+)`)
 	}
 }
 
@@ -432,6 +474,32 @@ func (p *RegexParser) extractImports(content []byte) []Import {
 						Path:     string(m[1]),
 						Line:     lineNum + 1,
 						Language: "rust",
+					})
+				}
+			}
+		}
+	case "kotlin":
+		for lineNum, line := range lines {
+			matches := p.patterns["import"].FindAllSubmatch(line, -1)
+			for _, m := range matches {
+				if len(m) > 1 {
+					imports = append(imports, Import{
+						Path:     string(m[1]),
+						Line:     lineNum + 1,
+						Language: "kotlin",
+					})
+				}
+			}
+		}
+	case "csharp":
+		for lineNum, line := range lines {
+			matches := p.patterns["import"].FindAllSubmatch(line, -1)
+			for _, m := range matches {
+				if len(m) > 1 {
+					imports = append(imports, Import{
+						Path:     string(m[1]),
+						Line:     lineNum + 1,
+						Language: "csharp",
 					})
 				}
 			}

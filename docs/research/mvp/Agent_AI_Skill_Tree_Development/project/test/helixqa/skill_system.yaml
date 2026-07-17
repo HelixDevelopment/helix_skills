@@ -1,0 +1,239 @@
+# HelixQA test bank — HelixKnowledge Skill Graph System
+# Covers: G12 tree-sitter, G20 autoexpand, G11 worker lifecycle,
+#         G03 skill CRUD, G29 hybrid search, validation pipeline.
+#
+# Each test_case dispatches to a Go test or script that produces
+# captured evidence (§11.4.69). PASS only on required_evidence tokens.
+# Cross-refs: GAPS_AND_RISKS_REGISTER.md, internal/*_test.go.
+
+test_cases:
+
+  # ------------------------------------------------------------------
+  # G12 — tree-sitter regex-fallback parsing
+  # ------------------------------------------------------------------
+  - id: CME-TREESITTER-001
+    name: "Kotlin regex extraction matches ground truth"
+    feature_class: code_analysis
+    related_issue: G12
+    dispatches_to: "go test ./internal/codeanalysis/ -run TestExtract_Kotlin_MatchesGroundTruth -v"
+    category: unit
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-TREESITTER-002
+    name: "C# regex extraction matches ground truth"
+    feature_class: code_analysis
+    related_issue: G12
+    dispatches_to: "go test ./internal/codeanalysis/ -run TestExtract_CSharp_MatchesGroundTruth -v"
+    category: unit
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-TREESITTER-003
+    name: "Unsupported language returns ErrNoPatternsForLanguage"
+    feature_class: code_analysis
+    related_issue: G12
+    dispatches_to: "go test ./internal/codeanalysis/ -run TestParse_ErrNoPatternsForLanguage -v"
+    category: unit
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-TREESITTER-004
+    name: "Fidelity populated on every Parse call"
+    feature_class: code_analysis
+    related_issue: G12
+    dispatches_to: "go test ./internal/codeanalysis/ -run TestParse_FidelityIsSet -v"
+    category: unit
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-TREESITTER-005
+    name: "normalizeLanguage aliases correct (kt→kotlin, c#→csharp)"
+    feature_class: code_analysis
+    related_issue: G12
+    dispatches_to: "go test ./internal/codeanalysis/ -run TestNormalizeLanguage_KotlinAndCSharp -v"
+    category: unit
+    priority: medium
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-TREESITTER-006
+    name: "Fuzz: malformed/truncated source does not panic"
+    feature_class: code_analysis
+    related_issue: G12
+    dispatches_to: "go test ./internal/codeanalysis/ -run TestFuzz_MalformedSource_NoPanic -v"
+    category: chaos
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-TREESITTER-007
+    name: "Concurrent parsing stress (100 goroutines, no races)"
+    feature_class: code_analysis
+    related_issue: G12
+    dispatches_to: "go test ./internal/codeanalysis/ -run TestStress_ConcurrentParsing -race -v"
+    category: stress
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  # ------------------------------------------------------------------
+  # G20 — autoexpand anti-bluff + resource persistence
+  # ------------------------------------------------------------------
+  - id: CME-AUTOEXPAND-001
+    name: "DraftSkill nil-LLM returns error (no placeholder persisted)"
+    feature_class: autoexpand
+    related_issue: G20
+    dispatches_to: "go test ./internal/autoexpand/ -run TestDraftSkill_NilLLM_ReturnsError -v"
+    category: unit
+    priority: critical
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-AUTOEXPAND-002
+    name: "DraftSkill resources persisted via BulkAddResources"
+    feature_class: autoexpand
+    related_issue: G20
+    dispatches_to: "go test ./internal/autoexpand/ -run TestDraftSkill_ResourcesPersisted -v"
+    category: integration
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  # ------------------------------------------------------------------
+  # G11 — worker panic safety + lifecycle
+  # ------------------------------------------------------------------
+  - id: CME-WORKER-001
+    name: "Worker panic safety: nil-map write recovered"
+    feature_class: worker_lifecycle
+    related_issue: G11
+    dispatches_to: "go test ./internal/worker/ -run TestChaos_WorkerPanicSafety -v"
+    category: chaos
+    priority: critical
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-WORKER-002
+    name: "Goroutine leak detection on cancellation"
+    feature_class: worker_lifecycle
+    related_issue: G11
+    dispatches_to: "go test ./internal/worker/ -run TestChaos_GoroutineLeakOnCancel -v"
+    category: chaos
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-WORKER-003
+    name: "Supervise recovers panic and restarts worker"
+    feature_class: worker_lifecycle
+    related_issue: G11
+    dispatches_to: "go test ./internal/worker/ -run TestSupervise_RecoversPanicAndRestarts -v"
+    category: unit
+    priority: critical
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-WORKER-004
+    name: "recoverJob records panic as failed job (not process death)"
+    feature_class: worker_lifecycle
+    related_issue: G11
+    dispatches_to: "go test ./internal/worker/ -run TestRecoverJob_HandlerPanic_RecordedNotFatal -v"
+    category: unit
+    priority: critical
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  # ------------------------------------------------------------------
+  # G03 — worker seam wiring (autoexpand, validation, codeanalysis)
+  # ------------------------------------------------------------------
+  - id: CME-WORKER-005
+    name: "handleCodeAnalysis invokes analyzer with project path"
+    feature_class: worker_seam
+    related_issue: G03
+    dispatches_to: "go test ./internal/worker/ -run TestHandleCodeAnalysis_InvokesAnalyzerWithProjectPath -v"
+    category: unit
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-WORKER-006
+    name: "handleValidate fails closed without calling validator"
+    feature_class: worker_seam
+    related_issue: G03
+    dispatches_to: "go test ./internal/worker/ -run TestHandleValidate_MissingSkillName_FailsClosed -v"
+    category: unit
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  # ------------------------------------------------------------------
+  # G29 — hybrid search (embedder wiring)
+  # ------------------------------------------------------------------
+  - id: CME-EMBEDDER-001
+    name: "Worker embedder seam wired (no nil embedder in pipeline)"
+    feature_class: embedder
+    related_issue: G29
+    dispatches_to: "go test ./internal/worker/ -run TestNewRunner -v"
+    category: unit
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  # ------------------------------------------------------------------
+  # Cross-package: full suite green
+  # ------------------------------------------------------------------
+  - id: CME-FULLSUITE-001
+    name: "Full test suite green with race detector"
+    feature_class: full_suite
+    related_issue: G04
+    dispatches_to: "go test ./... -short -race"
+    category: regression
+    priority: critical
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "ok"
+
+  # ------------------------------------------------------------------
+  # Stress + chaos: codeanalysis concurrent parsing
+  # ------------------------------------------------------------------
+  - id: CME-STRESS-001
+    name: "Codeanalysis concurrent parse with cancellation (no leaks)"
+    feature_class: code_analysis
+    related_issue: G12
+    dispatches_to: "go test ./internal/codeanalysis/ -run TestChaos_ConcurrentParseCancel -race -v"
+    category: chaos
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
+
+  - id: CME-STRESS-002
+    name: "Codeanalysis malformed input recovery (parser not poisoned)"
+    feature_class: code_analysis
+    related_issue: G12
+    dispatches_to: "go test ./internal/codeanalysis/ -run TestChaos_MalformedInputRecovery -race -v"
+    category: chaos
+    priority: high
+    required_evidence:
+      - test_exit_zero
+      - captured_output_contains "PASS"
