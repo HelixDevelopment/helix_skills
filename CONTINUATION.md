@@ -1,7 +1,7 @@
 # CONTINUATION.md — Helix Skills
 
-**Revision:** 6
-**Last modified:** 2026-07-18T02:30:00Z
+**Revision:** 7
+**Last modified:** 2026-07-18T04:15:00Z
 
 ---
 
@@ -16,7 +16,7 @@ development with 95 open findings (2 CRITICAL, 64 HIGH, 25 MEDIUM,
 
 ## §2 — Session State
 
-- **HEAD:** `a52eccc` (docs: update CONTINUATION.md Rev 5 + README.md Rev 3 — T1 restart doc-sync)
+- **HEAD:** `be54af4` + merge `b4fa061` (T3 restart — full test suite GREEN, merged origin/main tenant wiring)
 - **Branch:** `feature/testing-infra` (merged origin/main, fast-forward)
 - **Constitution submodule:** present at `constitution/`
 - **Skills installed:** 7 active (action-prefix-system, media-validator,
@@ -29,6 +29,11 @@ development with 95 open findings (2 CRITICAL, 64 HIGH, 25 MEDIUM,
 ## §3 — Active Work
 
 ### Just completed (this session)
+- T3-RESTART-2: merged origin/main (b4fa061 tenant wiring) into feature/testing-infra — clean merge, 22 files +436/-113
+- T3-RESTART-2: full test suite — 24/24 Go packages PASS (fresh, no cache), stress+chaos+fuzz all GREEN
+- T3-RESTART-2: G12 tree-sitter verified — 4/4 PASS (kotlin, csharp, normalize, fidelity constants)
+- T3-RESTART-2: G20 autoexpand verified — 2 PASS + 3 SKIP (live-DB-gated, correct §11.4.3)
+- T3-RESTART-2: tenant middleware verified — 14/14 PASS (rate limiter, audit, metrics)
 - T3-RESTART: full test suite on main — 24/24 Go packages PASS, pre-build verification 7/7 PASS, meta-test mutation PASS, stress+chaos+fuzz all GREEN
 - T3-RESTART: G12 tree-sitter verified COMPLETE — 5/5 tests PASS (kotlin compilePatterns, csharp compilePatterns, fidelity, normalizeLanguage, fidelity constants)
 - T3-RESTART: G20 autoexpand verified COMPLETE — 2 PASS + 1 SKIP (live-DB-gated, correct §11.4.3); nil-LLM guard + resource persistence confirmed
