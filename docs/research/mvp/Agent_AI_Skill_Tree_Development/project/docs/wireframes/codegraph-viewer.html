@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code Graph Viewer — HelixKnowledge</title>
+  <!-- OpenDesign od-design-tokens/v1 binding -->
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .graph-layout {
+      display: grid;
+      grid-template-rows: var(--topbar-height) 1fr;
+      grid-template-columns: 260px 1fr 320px;
+      min-height: 100vh;
+    }
+    .graph-layout .topbar { grid-column: 1 / -1; }
+
+    .graph-sidebar {
+      background: var(--od-surface);
+      border-right: 1px solid var(--od-border);
+      overflow-y: auto;
+      padding: var(--sp-md);
+    }
+    .graph-canvas {
+      position: relative;
+      overflow: hidden;
+      background: var(--od-bg);
+    }
+    .graph-detail {
+      background: var(--od-surface);
+      border-left: 1px solid var(--od-border);
+      overflow-y: auto;
+      padding: var(--sp-lg);
+    }
+
+    /* Project selector */
+    .project-selector {
+      margin-bottom: var(--sp-lg);
+    }
+    .project-selector__label {
+      display: block;
+      font-size: var(--od-font-size-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--od-muted);
+      margin-bottom: var(--sp-xs);
+    }
+
+    /* Entity list */
+    .entity-group {
+      margin-bottom: var(--sp-lg);
+    }
+    .entity-group__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--sp-xs) 0;
+      margin-bottom: var(--sp-xs);
+      border-bottom: 1px solid var(--od-border);
+    }
+    .entity-group__title {
+      font-size: var(--od-font-size-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--od-muted);
+    }
+    .entity-group__count {
+      font-size: var(--od-font-size-xs);
+      color: var(--od-muted);
+      background: var(--od-bg);
+      padding: 1px var(--sp-sm);
+      border-radius: var(--od-radius-sm);
+    }
+    .entity-item {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-sm);
+      padding: var(--sp-xs) var(--sp-sm);
+      border-radius: var(--od-radius-sm);
+      cursor: pointer;
+      font-size: var(--od-font-size-sm);
+      transition: background 0.15s;
+    }
+    .entity-item:hover { background: var(--bg-tertiary); }
+    .entity-item--active {
+      background: var(--bg-tertiary);
+      border-left: 2px solid var(--od-accent);
+    }
+    .entity-item__icon {
+      width: 16px;
+      height: 16px;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.6rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .entity-item__icon--fn   { background: rgba(46,204,113,0.2); color: var(--od-success); }
+    .entity-item__icon--cls  { background: rgba(52,152,219,0.2); color: #3498db; }
+    .entity-item__icon--type { background: rgba(155,89,182,0.2); color: #9b59b6; }
+    .entity-item__icon--mod  { background: rgba(241,196,15,0.2); color: #f1c40f; }
+    .entity-item__name { flex: 1; }
+    .entity-item__file {
+      font-size: var(--od-font-size-xs);
+      color: var(--od-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100px;
+    }
+
+    /* Graph canvas placeholder */
+    .canvas-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--od-muted);
+      pointer-events: none;
+    }
+    .canvas-placeholder__icon {
+      font-size: 3rem;
+      margin-bottom: var(--sp-md);
+      opacity: 0.3;
+    }
+    .canvas-placeholder__text {
+      font-size: var(--od-font-size-sm);
+      opacity: 0.5;
+    }
+
+    /* Simulated graph nodes */
+    .graph-node {
+      position: absolute;
+      background: var(--od-surface);
+      border: 2px solid var(--od-border);
+      border-radius: var(--od-radius-md);
+      padding: var(--sp-sm) var(--sp-md);
+      font-size: var(--od-font-size-sm);
+      font-weight: 600;
+      color: var(--od-fg);
+      box-shadow: var(--od-shadow-card);
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      z-index: 2;
+    }
+    .graph-node:hover,
+    .graph-node--selected {
+      border-color: var(--od-accent);
+      box-shadow: var(--od-shadow-elevated);
+    }
+    .graph-node--fn   { border-left: 3px solid var(--od-success); }
+    .graph-node--cls  { border-left: 3px solid #3498db; }
+    .graph-node--type { border-left: 3px solid #9b59b6; }
+    .graph-node__label {
+      font-size: var(--od-font-size-xs);
+      color: var(--od-muted);
+    }
+
+    /* Simulated edges (SVG lines) */
+    .graph-edges {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+    }
+    .graph-edges line {
+      stroke: var(--od-border);
+      stroke-width: 1.5;
+      stroke-dasharray: 4 3;
+    }
+
+    /* Language breakdown */
+    .lang-breakdown {
+      margin-bottom: var(--sp-xl);
+    }
+    .lang-bar {
+      display: flex;
+      height: 12px;
+      border-radius: var(--od-radius-sm);
+      overflow: hidden;
+      margin-bottom: var(--sp-sm);
+    }
+    .lang-bar__seg {
+      transition: width 0.4s ease;
+    }
+    .lang-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--sp-sm);
+    }
+    .lang-legend__item {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-xs);
+      font-size: var(--od-font-size-xs);
+      color: var(--od-muted);
+    }
+    .lang-legend__dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    /* Detail panel */
+    .detail-section {
+      margin-bottom: var(--sp-xl);
+    }
+    .detail-section__title {
+      font-size: var(--od-font-size-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--od-muted);
+      margin-bottom: var(--sp-md);
+      padding-bottom: var(--sp-xs);
+      border-bottom: 1px solid var(--od-border);
+    }
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: var(--sp-xs) 0;
+      font-size: var(--od-font-size-sm);
+    }
+    .detail-row__key { color: var(--od-muted); }
+    .detail-row__val { color: var(--od-fg); font-weight: 600; }
+
+    /* Relationship list */
+    .rel-item {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-sm);
+      padding: var(--sp-xs) 0;
+      font-size: var(--od-font-size-sm);
+    }
+    .rel-item__type {
+      font-size: var(--od-font-size-xs);
+      padding: 1px var(--sp-xs);
+      border-radius: var(--od-radius-sm);
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    .rel-item__type--calls    { background: rgba(46,204,113,0.15); color: var(--od-success); }
+    .rel-item__type--imports  { background: rgba(52,152,219,0.15); color: #3498db; }
+    .rel-item__type--inherits { background: rgba(155,89,182,0.15); color: #9b59b6; }
+    .rel-item__type--uses     { background: rgba(241,196,15,0.15); color: #f1c40f; }
+
+    @media (max-width: 1200px) {
+      .graph-layout { grid-template-columns: 220px 1fr 280px; }
+    }
+    @media (max-width: 1024px) {
+      .graph-layout { grid-template-columns: 1fr; }
+      .graph-sidebar, .graph-detail { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#graph-canvas">Skip to graph</a>
+
+  <div class="graph-layout">
+    <!-- Topbar -->
+    <header class="topbar" role="banner">
+      <span class="topbar__brand" aria-label="HelixKnowledge">hx://skill-graph</span>
+      <nav aria-label="Primary navigation">
+        <ul class="topbar__nav">
+          <li><a href="index.html">Overview</a></li>
+          <li><a href="skill-tree.html">Skill Tree</a></li>
+          <li><a href="gap-dashboard.html">Gaps</a></li>
+          <li><a href="evidence-browser.html">Evidence</a></li>
+          <li><a href="skill-editor.html">Editor</a></li>
+          <li><a href="search.html">Search</a></li>
+          <li><a href="tenant-dashboard.html">Tenants</a></li>
+          <li><a href="codegraph-viewer.html" aria-current="page">Code Graph</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <!-- Left sidebar: entity list -->
+    <aside class="graph-sidebar" role="navigation" aria-label="Entity browser">
+      <div class="project-selector">
+        <label class="project-selector__label" for="project-select">Project</label>
+        <select id="project-select" class="select">
+          <option>helix-skills</option>
+          <option>skill-api</option>
+          <option>gap-analyzer</option>
+          <option>evidence-engine</option>
+        </select>
+      </div>
+
+      <!-- Language breakdown -->
+      <div class="lang-breakdown">
+        <div class="lang-bar">
+          <div class="lang-bar__seg" style="width:42%;background:#3498db"></div>
+          <div class="lang-bar__seg" style="width:28%;background:#f1c40f"></div>
+          <div class="lang-bar__seg" style="width:18%;background:#2ecc71"></div>
+          <div class="lang-bar__seg" style="width:12%;background:#9b59b6"></div>
+        </div>
+        <div class="lang-legend">
+          <span class="lang-legend__item"><span class="lang-legend__dot" style="background:#3498db"></span>Go 42%</span>
+          <span class="lang-legend__item"><span class="lang-legend__dot" style="background:#f1c40f"></span>Python 28%</span>
+          <span class="lang-legend__item"><span class="lang-legend__dot" style="background:#2ecc71"></span>TypeScript 18%</span>
+          <span class="lang-legend__item"><span class="lang-legend__dot" style="background:#9b59b6"></span>Rust 12%</span>
+        </div>
+      </div>
+
+      <!-- Entity groups -->
+      <div class="entity-group">
+        <div class="entity-group__header">
+          <span class="entity-group__title">Functions</span>
+          <span class="entity-group__count">156</span>
+        </div>
+        <div class="entity-item entity-item--active">
+          <span class="entity-item__icon entity-item__icon--fn">fn</span>
+          <span class="entity-item__name">buildRouter</span>
+          <span class="entity-item__file">router.go</span>
+        </div>
+        <div class="entity-item">
+          <span class="entity-item__icon entity-item__icon--fn">fn</span>
+          <span class="entity-item__name">handleSearch</span>
+          <span class="entity-item__file">handlers.go</span>
+        </div>
+        <div class="entity-item">
+          <span class="entity-item__icon entity-item__icon--fn">fn</span>
+          <span class="entity-item__name">parseQuery</span>
+          <span class="entity-item__file">query.go</span>
+        </div>
+        <div class="entity-item">
+          <span class="entity-item__icon entity-item__icon--fn">fn</span>
+          <span class="entity-item__name">renderTree</span>
+          <span class="entity-item__file">tree.go</span>
+        </div>
+        <div class="entity-item">
+          <span class="entity-item__icon entity-item__icon--fn">fn</span>
+          <span class="entity-item__name">analyzeGaps</span>
+          <span class="entity-item__file">gaps.go</span>
+        </div>
+      </div>
+
+      <div class="entity-group">
+        <div class="entity-group__header">
+          <span class="entity-group__title">Classes / Structs</span>
+          <span class="entity-group__count">42</span>
+        </div>
+        <div class="entity-item">
+          <span class="entity-item__icon entity-item__icon--cls">C</span>
+          <span class="entity-item__name">SkillGraph</span>
+          <span class="entity-item__file">graph.go</span>
+        </div>
+        <div class="entity-item">
+          <span class="entity-item__icon entity-item__icon--cls">C</span>
+          <span class="entity-item__name">EvidenceStore</span>
+          <span class="entity-item__file">store.go</span>
+        </div>
+        <div class="entity-item">
+          <span class="entity-item__icon entity-item__icon--cls">C</span>
+          <span class="entity-item__name">TenantManager</span>
+          <span class="entity-item__file">tenant.go</span>
+        </div>
+      </div>
+
+      <div class="entity-group">
+        <div class="entity-group__header">
+          <span class="entity-group__title">Types / Interfaces</span>
+          <span class="entity-group__count">28</span>
+        </div>
+        <div class="entity-item">
+          <span class="entity-item__icon entity-item__icon--type">T</span>
+          <span class="entity-item__name">SkillNode</span>
+          <span class="entity-item__file">types.go</span>
+        </div>
+        <div class="entity-item">
+          <span class="entity-item__icon entity-item__icon--type">T</span>
+          <span class="entity-item__name">GapReport</span>
+          <span class="entity-item__file">types.go</span>
+        </div>
+      </div>
+
+      <div class="entity-group">
+        <div class="entity-group__header">
+          <span class="entity-group__title">Modules</span>
+          <span class="entity-group__count">12</span>
+        </div>
+        <div class="entity-item">
+          <span class="entity-item__icon entity-item__icon--mod">M</span>
+          <span class="entity-item__name">skill-api</span>
+          <span class="entity-item__file">go.mod</span>
+        </div>
+        <div class="entity-item">
+          <span class="entity-item__icon entity-item__icon--mod">M</span>
+          <span class="entity-item__name">evidence-engine</span>
+          <span class="entity-item__file">py.mod</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Graph canvas -->
+    <div class="graph-canvas" id="graph-canvas" role="img" aria-label="Code relationship graph">
+      <!-- SVG edges -->
+      <svg class="graph-edges" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet">
+        <line x1="200" y1="120" x2="400" y2="200" />
+        <line x1="400" y1="200" x2="550" y2="140" />
+        <line x1="200" y1="120" x2="300" y2="350" />
+        <line x1="400" y1="200" x2="350" y2="400" />
+        <line x1="300" y1="350" x2="550" y2="140" />
+        <line x1="550" y1="140" x2="600" y2="380" />
+        <line x1="350" y1="400" x2="600" y2="380" />
+      </svg>
+
+      <!-- Graph nodes -->
+      <div class="graph-node graph-node--fn graph-node--selected" style="left:140px;top:80px">
+        buildRouter
+        <div class="graph-node__label">router.go:42</div>
+      </div>
+      <div class="graph-node graph-node--fn" style="left:340px;top:170px">
+        handleSearch
+        <div class="graph-node__label">handlers.go:18</div>
+      </div>
+      <div class="graph-node graph-node--cls" style="left:490px;top:100px">
+        SkillGraph
+        <div class="graph-node__label">graph.go:7</div>
+      </div>
+      <div class="graph-node graph-node--fn" style="left:240px;top:320px">
+        parseQuery
+        <div class="graph-node__label">query.go:12</div>
+      </div>
+      <div class="graph-node graph-node--fn" style="left:290px;top:370px">
+        renderTree
+        <div class="graph-node__label">tree.go:55</div>
+      </div>
+      <div class="graph-node graph-node--type" style="left:540px;top:350px">
+        SkillNode
+        <div class="graph-node__label">types.go:3</div>
+      </div>
+
+      <!-- Canvas toolbar overlay -->
+      <div style="position:absolute;top:var(--sp-md);right:var(--sp-md);display:flex;gap:var(--sp-sm);z-index:10">
+        <button class="btn btn--sm">Zoom In</button>
+        <button class="btn btn--sm">Zoom Out</button>
+        <button class="btn btn--sm">Fit</button>
+        <button class="btn btn--sm">Reset</button>
+      </div>
+      <div style="position:absolute;bottom:var(--sp-md);left:var(--sp-md);z-index:10">
+        <span class="badge badge--info">D3.js Force-Directed</span>
+        <span style="font-size:var(--od-font-size-xs);color:var(--od-muted);margin-left:var(--sp-sm)">238 entities &middot; 512 relationships</span>
+      </div>
+    </div>
+
+    <!-- Right sidebar: entity detail -->
+    <aside class="graph-detail" role="complementary" aria-label="Entity detail panel">
+      <div class="detail-section">
+        <h3 class="detail-section__title">Entity Detail</h3>
+        <div style="display:flex;align-items:center;gap:var(--sp-sm);margin-bottom:var(--sp-md)">
+          <span class="entity-item__icon entity-item__icon--fn" style="width:24px;height:24px;font-size:0.75rem">fn</span>
+          <div>
+            <div style="font-weight:700;font-size:var(--od-font-size-md)">buildRouter</div>
+            <div style="font-size:var(--od-font-size-xs);color:var(--od-muted)">function</div>
+          </div>
+        </div>
+        <div class="detail-row">
+          <span class="detail-row__key">File</span>
+          <span class="detail-row__val"><code style="font-size:0.75rem">router.go</code></span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-row__key">Line</span>
+          <span class="detail-row__val">42</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-row__key">Package</span>
+          <span class="detail-row__val">skill-api</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-row__key">Language</span>
+          <span class="detail-row__val">Go</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-row__key">Exported</span>
+          <span class="detail-row__val">Yes</span>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <h3 class="detail-section__title">Relationships</h3>
+        <div class="rel-item">
+          <span class="rel-item__type rel-item__type--calls">calls</span>
+          <span>handleSearch</span>
+        </div>
+        <div class="rel-item">
+          <span class="rel-item__type rel-item__type--calls">calls</span>
+          <span>parseQuery</span>
+        </div>
+        <div class="rel-item">
+          <span class="rel-item__type rel-item__type--uses">uses</span>
+          <span>SkillGraph</span>
+        </div>
+        <div class="rel-item">
+          <span class="rel-item__type rel-item__type--imports">imports</span>
+          <span>skill-api/middleware</span>
+        </div>
+        <div class="rel-item">
+          <span class="rel-item__type rel-item__type--inherits">inherits</span>
+          <span>http.Handler</span>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <h3 class="detail-section__title">Signature</h3>
+        <pre style="background:var(--od-bg);padding:var(--sp-md);border-radius:var(--od-radius-sm);font-size:var(--od-font-size-xs);line-height:1.5;overflow-x:auto;color:var(--od-fg)"><code>func buildRouter(
+  graph *SkillGraph,
+  store EvidenceStore,
+  opts ...RouterOption,
+) http.Handler</code></pre>
+      </div>
+
+      <div class="detail-section">
+        <h3 class="detail-section__title">Graph Filters</h3>
+        <div style="display:flex;flex-direction:column;gap:var(--sp-sm)">
+          <label style="display:flex;align-items:center;gap:var(--sp-sm);font-size:var(--od-font-size-sm);cursor:pointer">
+            <input type="checkbox" checked> Show functions
+          </label>
+          <label style="display:flex;align-items:center;gap:var(--sp-sm);font-size:var(--od-font-size-sm);cursor:pointer">
+            <input type="checkbox" checked> Show classes
+          </label>
+          <label style="display:flex;align-items:center;gap:var(--sp-sm);font-size:var(--od-font-size-sm);cursor:pointer">
+            <input type="checkbox" checked> Show types
+          </label>
+          <label style="display:flex;align-items:center;gap:var(--sp-sm);font-size:var(--od-font-size-sm);cursor:pointer">
+            <input type="checkbox"> Show modules
+          </label>
+        </div>
+      </div>
+    </aside>
+  </div>
+</body>
+</html>
