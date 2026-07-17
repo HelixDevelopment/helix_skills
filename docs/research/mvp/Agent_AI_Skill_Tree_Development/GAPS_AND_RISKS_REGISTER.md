@@ -1,7 +1,7 @@
 # GAPS_AND_RISKS_REGISTER — HelixKnowledge Skill Graph System
 
-**Revision:** 7
-**Last modified:** 2026-07-17T18:00:00Z
+**Revision:** 8
+**Last modified:** 2026-07-17T20:30:00Z
 
 > Adversarial audit satisfying operator mandate **R17**. Every row carries
 > concrete `file:line` evidence (positive-evidence-only, R11). Anything not
@@ -14,25 +14,36 @@
 > audit did not re-run them. Findings are about *design, behaviour, wiring,
 > security, and contract fidelity*, not compilation.
 
-## Summary counts (2026-07-17 register-cleanup update — all items G01–G137)
+## Summary counts (2026-07-17 Rev 8 register-cleanup — field verification + status corrections — all items G01–G137)
 
 | Status | Count | IDs |
 |---|---|---|
 | **OPEN — CRITICAL** | 3 | G01, G03, G04 |
-| **OPEN — HIGH** | 28 | G09, G10, G12, G14, G15, G40, G42, G59, G63, G69–G92 (×24), G93–G122 (×30), G137 |
-| **OPEN — MEDIUM** | 26 | G17, G18, G19, G20, G28, G30, G44, G45, G47, G55, G56, G58, G60, G61, G66, G123, G124–G135 (×12) |
+| **OPEN — HIGH** | 64 | G09, G10, G12, G14, G15, G40, G42, G43, G59, G63, G69–G92 (×24), G93–G122 (×30) |
+| **OPEN — MEDIUM** | 25 | G17, G18, G30, G44, G45, G47, G55, G56, G58, G60, G61, G66, G123, G124–G135 (×12) |
 | **OPEN — LOW** | 4 | G37, G62, G67, G68 |
-| **FIXED** | 75 | G02, G05, G06, G07, G08, G11, G13, G16, G21, G22, G23, G24, G25, G26, G27, G29, G31, G32, G33, G34, G35, G36, G38, G39, G41, G43, G46, G48, G49, G51, G52, G53, G54, G57, G64, G65 — see per-item STATUS lines for exact commit hashes |
+| **FIXED** | 39 | G02, G05, G06, G07, G08, G11, G13, G16, G19, G20, G21, G22, G23, G24, G25, G26, G27, G28, G29, G31, G32, G33, G34, G35, G36, G38, G39, G41, G46, G48, G49, G51, G52, G53, G54, G57, G64, G65, G137 |
 | **N/A** | 1 | G136 (meta-assessment task itself) |
 | **TOTAL** | **136** | (G01–G135 + G137; G136 is the assessment task, deliberately unrated) |
 
-> **Register-cleanup note (2026-07-17):** G52, G53, G54 moved from LOW→Fixed;
-> G29 moved from HIGH→Fixed (hybrid search landed); G20 status updated
-> (type-assertion half resolved by G03, createMinimalDraft placeholder-persist
-> still open). The Fixed row captures all items whose per-item STATUS line
-> reads Fixed, Implemented, Completed, or CLOSED.
+> **Register-cleanup note (2026-07-17 Rev 8):** Field-verification pass against
+> every per-item STATUS line. Corrections from Rev 7:
+> - G43 was wrongly in FIXED row; moved to OPEN HIGH (per-item status: FILED, PENDING).
+> - G19 (Fixed→SPEC.md), G20 (COMPLETED), G28 (Implemented) were in OPEN MEDIUM
+>   but have Fixed per-item statuses; moved to FIXED.
+> - G137 was in OPEN HIGH but has Fixed per-item status; moved to FIXED.
+> - FIXED count corrected from 75→39 (Rev 7 count was inflated; only 39 items
+>   have Fixed/Implemented/Completed/CLOSED per-item STATUS lines).
+> - OPEN HIGH corrected from 28→64 (G43 added; G137 removed; range counts
+>   24+30 = 54 from G69–G122 are correct).
+> - OPEN MEDIUM corrected from 26→25 (G19, G20, G28 removed; G28 was missed
+>   in Rev 7's count adjustment).
+> - G58 remains a placeholder (Type: TBD, Status: UNCONFIRMED) — no real finding
+>   filed; conductor must investigate and create the actual finding.
+> The Fixed row captures all items whose per-item STATUS line reads Fixed,
+> Implemented, Completed, or CLOSED.
 > Open-item severity rows contain only OPEN items.
-> **Open-total verification:** 3+28+26+4 = 61 open + 75 fixed + 1 N/A = 136 total. ✓
+> **Open-total verification:** 3+64+25+4 = 96 open + 39 fixed + 1 N/A = 136 total. ✓
 
 > Severities for G52–G137 are **proposed** per G136 — see
 > `research/g136_severity_assessment.md` for the per-item evidence and
