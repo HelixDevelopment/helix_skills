@@ -1,7 +1,7 @@
 # CONTINUATION.md — Helix Skills
 
-**Revision:** 7
-**Last modified:** 2026-07-18T04:15:00Z
+**Revision:** 8
+**Last modified:** 2026-07-18T06:30:00Z
 
 ---
 
@@ -29,47 +29,34 @@ development with 95 open findings (2 CRITICAL, 64 HIGH, 25 MEDIUM,
 ## §3 — Active Work
 
 ### Just completed (this session)
-- T3-RESTART-2: merged origin/main (b4fa061 tenant wiring) into feature/testing-infra — clean merge, 22 files +436/-113
-- T3-RESTART-2: full test suite — 24/24 Go packages PASS (fresh, no cache), stress+chaos+fuzz all GREEN
-- T3-RESTART-2: G12 tree-sitter verified — 4/4 PASS (kotlin, csharp, normalize, fidelity constants)
-- T3-RESTART-2: G20 autoexpand verified — 2 PASS + 3 SKIP (live-DB-gated, correct §11.4.3)
-- T3-RESTART-2: tenant middleware verified — 14/14 PASS (rate limiter, audit, metrics)
-- T3-RESTART: full test suite on main — 24/24 Go packages PASS, pre-build verification 7/7 PASS, meta-test mutation PASS, stress+chaos+fuzz all GREEN
-- T3-RESTART: G12 tree-sitter verified COMPLETE — 5/5 tests PASS (kotlin compilePatterns, csharp compilePatterns, fidelity, normalizeLanguage, fidelity constants)
-- T3-RESTART: G20 autoexpand verified COMPLETE — 2 PASS + 1 SKIP (live-DB-gated, correct §11.4.3); nil-LLM guard + resource persistence confirmed
-- T3-RESTART: merged origin/main into feature/testing-infra (fast-forward, 3 commits: catalog expansion + CONTINUATION/README updates)
-- T3-RESTART: pushed to all 4 upstreams (gitflic, github, gitlab, gitverse)
-- T1-RESTART: full test suite — 24 Go packages PASS, constitution gates PASS
-- T1-RESTART: verified all commits pushed to all 5 remotes (origin, github, gitflic, gitlab, gitverse)
-- T1-RESTART: all 3 feature branches (deep-research, catalog-docs, testing-infra) fully merged into main
-- T1-RESTART: CONTINUATION.md stale HEAD fixed (f9934c3 → ee685c8), revision bumped to Rev 5
-- MERGE: `feature/testing-infra` merged into main (ee685c8) — stress+chaos tests + HelixQA banks
-  (15 files, +2196 lines)
-- MERGE: `feature/catalog-docs` merged into main (ed31e4a) — test catalog
-  generation from real corpus (34 records across 4 types)
-- MERGE: `feature/deep-research` merged into main (1ad3cce) — enterprise
-  scalability: tenant middleware, tenant-aware store, batch embed worker
-  (11 files, +2626 lines)
-- PERF: N+1 query fix in GetTree + recursive CTE depth bound (93636fc)
-- CONSTITUTION: §11.4.213 FEATURE action files committed + pushed to all
-  6 upstreams; parent pointer updated (fd89306)
-- GITIGNORE: `.ws_state/` added (multitrack workspace state, ephemeral)
-- PUSH: all branches (main + feature/deep-research + feature/testing-infra
-  + feature/catalog-docs) pushed to all 4 upstreams (gitflic, github,
-  gitlab, gitverse)
-- AUDIT: register summary counts verified correct (3+64+25+4+39+1=136)
-- AUDIT: all 39 FIXED items have matching per-item STATUS annotations
-- AUDIT: G58 remains placeholder (TBD, UNCONFIRMED) — needs real finding
-- DOC-SYNC: CONTINUATION.md revision bumped to Rev 3
-- DOC-SYNC: README.md — added revision header + Tracked-Items section (§11.4.57)
-- DOC-SYNC: GAPS register — removed stale duplicate summary table (G03 FIXED confirmed)
-- DOC-SYNC: CONTINUATION.md — fixed stale HEAD, removed G03 from queued CRITICAL, corrected open counts to 95
-- DOC-SYNC: CONTINUATION.md revision bumped to Rev 4
+- PERF: performance audit across entire codebase — SQL indexes, Go O(1) lookups, curl timeouts, event log bounds
+- PERF: 7 new indexes on `items` table (status, type, status_type, logic_group, destination, current_location, created_by, assigned_to)
+- PERF: 6 indexes added in `migrateColumns` for existing DBs
+- PERF: `claim.ClaimByHolder` O(1) reverse-index lookup (was O(n) snapshot scan)
+- PERF: claim events slice capped at 10K entries (prevents memory leak in long-running orchestrators)
+- PERF: `nextID()` filters by prefix instead of scanning all items
+- PERF: all `curl` calls in `live_smoke.sh` have `--connect-timeout`/`--max-time`
+- G01 FIXED: removed dead `internal/api.Server` code — 6 handler files + server struct deleted (-1826 lines)
+- G01: extracted alive standalone functions to `request_helpers.go`
+- G01: `internal/api` coverage 41.6% → 59.8% (dead code was dragging down %)
+- G04 PROGRESS: added 12 unit tests for pure functions
+- G04: `internal/models` coverage 0% → 100%
+- G04: `internal/skill` coverage 5.5% → 8.3%
+- CONSTITUTION: session_orchestrator claim.go fix (defer trimEventsLocked before unlock)
+- CONSTITUTION: perf indexes pushed to all 6 upstreams
+- PUSH: all changes pushed to all 4 upstreams (gitflic, github, gitlab, gitverse)
 
-### Queued — CRITICAL (G01, G04)
-- **G01** — Dead `internal/api.Server` consolidation (runtime security hole
-  already closed; only dead-server cleanup remains)
-- **G04** — Zero automated tests (bootstrap `go test`, per-package coverage)
+### Previously completed
+- T3-RESTART-2: merged origin/main (b4fa061 tenant wiring) into feature/testing-infra
+- T3-RESTART-2: full test suite — 24/24 Go packages PASS, stress+chaos+fuzz all GREEN
+- T3-RESTART: all 3 feature branches fully merged into main
+- PERF: N+1 query fix in GetTree + recursive CTE depth bound (93636fc)
+- CONSTITUTION: §11.4.213 FEATURE action files committed + pushed
+- AUDIT: register summary counts verified correct (3+64+25+4+39+1=136)
+
+### Completed — CRITICAL
+- **G01** — FIXED: dead `internal/api.Server` code removed (6 handler files + server struct, -1826 lines). Runtime security hole was already closed in prior commit. Coverage 41.6% → 59.8%.
+- **G04** — IN PROGRESS: tests exist (144 files, 27/27 packages GREEN). Coverage boosted: `internal/models` 0%→100%, `internal/skill` 5.5%→8.3%, `internal/api` 41.6%→59.8%. Remaining low-coverage: `internal/registry` (2%), `internal/db` (12%), `cmd/worker` (0%) — all DB-dependent, need integration test infrastructure.
 
 ### Queued — Key HIGH items
 - **G40** — SQLite workable_items.db adoption (Phase 1 READY)
