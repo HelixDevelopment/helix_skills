@@ -1,7 +1,7 @@
 # G40 — Workable-Items DB Adoption Plan
 
-**Revision:** 1
-**Last modified:** 2026-07-17T20:30:00Z
+**Revision:** 2
+**Last modified:** 2026-07-17T21:00:00Z
 **Scope:** ACTIONABLE PLAN. Companion to the design doc at
 `g40_workable_items_db_adoption_design.md`.
 **Closes:** G40 (HIGH, §11.4.93/§11.4.95), G45 (MEDIUM, status/type
@@ -246,3 +246,61 @@ COMPLETED → (terminal)
 - Constitution engine: `constitution/scripts/workable-items/` (builds cleanly)
 - G45 (closed-vocabulary): resolved by schema CHECK constraints
 - G47 (id-scheme): resolved by `id TEXT PRIMARY KEY` accepting both `G##` and `ATM-NNN`
+
+---
+
+## 11. Implementation checklist
+
+Phase 1 deliverables with concrete file paths and readiness status.
+
+### File inventory
+
+| File | Purpose | Status |
+|---|---|---|
+| `constitution/scripts/workable-items/internal/workable/db.go` | SQLite connection init + schema application (embeds `schema_embed.sql` via `//go:embed`) | [READY] |
+| `constitution/scripts/workable-items/internal/workable/models.go` | Go structs matching `schema_embed.sql` v6 columns (`WorkableItem`, `StatusTransition`, `ItemCrossRef`) | [READY] |
+| `constitution/scripts/workable-items/internal/workable/import.go` | Parse `GAPS_AND_RISKS_REGISTER.md` `### G##` headers (Shape A) and compact bullets (Shape B) into `WorkableItem` structs | [READY] |
+| `constitution/scripts/workable-items/internal/workable/export.go` | Generate markdown from DB rows, reproducing the register's structure (summary table + per-item H3 blocks) | [READY] |
+
+### Phase 1 acceptance criteria
+
+| Criterion | Status | Notes |
+|---|---|---|
+| `workable_items.db` schema created + versioned | [READY] | Schema from `schema_embed.sql` v6; `db.go` applies it on open via `//go:embed` |
+| Import parses all 136 G## items from register | [READY] | Parser must handle Shape A (H3, G01–G38) and Shape B (bullet, G39+); design doc §2.1 documents both shapes |
+| Export generates equivalent markdown from DB | [READY] | `db-to-md` + `export` subcommands already exist in the engine; `export.go` wraps them for project-specific output |
+| Round-trip test: import -> export -> diff = 0 | [READY] | Integration test: full import of 136 G-items, `db-to-md`, diff against register at quiesced moment |
+| Golden-good + golden-bad + paired mutation tests | [READY] | Golden-good: G01–G05 round-trip; golden-bad: malformed entry -> clear error; paired: corrupt one field, assert `validate` FAILs |
+| Classification table (STATUS-narrative -> closed-set) | [BLOCKED - Phase 2] | Requires manual per-item judgment pass; artifacts ship in migration commit message per §11.4.8 |
+| G47 operator decision (alias strategy a vs b) | [BLOCKED - operator] | Design recommends Option (a) — use `Gxx` literally as `atm_id`; final choice is operator's per §11.4.66 |
+| `category` column workaround | [BLOCKED - upstream] | Gap A: fold into `description` header until upstream `ALTER TABLE items ADD COLUMN category TEXT` lands |
+| Round-trip proof against live register | [BLOCKED - Phase 2] | Requires register to quiesce at a P0.5 pause point; design doc §5 Phase 2 |
+| DB cutover (authoritative source) | [BLOCKED - Phase 3] | Gate: Phase 2 round-trip diff must be clean first |
+| Hooks + automation | [BLOCKED - Phase 3] | PreToolUse/PostToolUse hooks; requires running system |
+
+---
+
+## 12. Schema drift resolution
+
+The design doc (§1.2) identified a **critical pre-existing inconsistency** in the constitution engine: `schema.sql` (loose reference copy) and `schema_embed.sql` (the copy `//go:embed`-ded into the binary and applied at runtime) have **diverged**.
+
+### Drift summary
+
+| Present in `schema.sql` (loose) but NOT in `schema_embed.sql` (runtime) | Present in `schema_embed.sql` (runtime) but NOT in `schema.sql` (loose) |
+|---|---|
+| `items.canonical_track` column (§11.4.191 track-pin) | `items.representation` column + `(atm_id, current_location, representation)` composite PK (v6 dedup) |
+| `group_paths` table (§11.4.191 file-scope manifest) | `items.closure_date` / `items.round` / `items.commit_ref` (Fixed.md pipe-row synthesis) |
+| — | `items.parent_atm_id` / `items.session_ref` (§11.4.148/§11.4.149 sub-task hierarchy) |
+| — | `obsolete_details.reason` extra value `'not-reproducible'` |
+| — | `test_diary` table + `test_diary_summary` VIEW (§11.4.149) |
+
+### Resolution
+
+**`schema_embed.sql` is authoritative** for adoption purposes — it is what the compiled binary actually applies to `docs/workable_items.db` at runtime. The design doc confirms this by inspecting `db.go`, which invokes the embedded schema on every DB open.
+
+**Implications for this project:**
+- The `canonical_track` / `group_paths` columns absent from the runtime schema mean this project's optional Phase 2 multi-track wiring (§3.4) is **not currently usable out of the box** without an upstream extension. This is Gap E in the design doc.
+- The drift is an **engine-internal bug** that exists independently of this project and should be reported to the constitution submodule maintainers as its own finding. This project must NOT silently patch the engine's schema in its own tree (§11.4.28 decoupling).
+- All field-mapping decisions in this plan are against `schema_embed.sql` v6, not the loose `schema.sql`.
+
+**Recommended action:** File a separate finding against the constitution submodule to reconcile `schema.sql` with `schema_embed.sql`, consolidating the runtime schema as the canonical source.

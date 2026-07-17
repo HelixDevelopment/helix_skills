@@ -473,7 +473,7 @@ PASS (real run).
 - **Constitution references:** §11.4.161, §11.4.76, §11.4.173.
 
 ### G40 — No SQLite workable_items.db single-source-of-truth
-- **Type:** Task. **Severity:** HIGH. **Status:** FILED; adopt-engine PENDING.
+- **Type:** Task. **Severity:** HIGH. **Status:** FILED; adoption plan finalized; Phase 1 READY.
 - **Evidence:** 39 findings tracked in this markdown register instead. The constitution's own Go workable-items engine (`constitution/scripts/workable-items/`) exists + is unused → adoption-only.
 - **Constitution references:** §11.4.93, §11.4.95.
 
