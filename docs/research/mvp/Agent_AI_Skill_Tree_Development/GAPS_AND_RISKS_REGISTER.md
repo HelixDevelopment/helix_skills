@@ -1,7 +1,7 @@
 # GAPS_AND_RISKS_REGISTER — HelixKnowledge Skill Graph System
 
-**Revision:** 9
-**Last modified:** 2026-07-17T22:00:00Z
+**Revision:** 10
+**Last modified:** 2026-07-18T06:30:00Z
 
 > Adversarial audit satisfying operator mandate **R17**. Every row carries
 > concrete `file:line` evidence (positive-evidence-only, R11). Anything not
@@ -14,15 +14,15 @@
 > audit did not re-run them. Findings are about *design, behaviour, wiring,
 > security, and contract fidelity*, not compilation.
 
-## Summary counts (2026-07-17 Rev 9 — all items G01–G137)
+## Summary counts (2026-07-18 Rev 10 — all items G01–G137)
 
 | Status | Count | IDs |
 |---|---|---|
-| **OPEN — CRITICAL** | 2 | G01, G04 |
+| **OPEN — CRITICAL** | 1 | G04 |
 | **OPEN — HIGH** | 64 | G09, G10, G12, G14, G15, G40, G42, G43, G59, G63, G69–G92 (×24), G93–G122 (×30) |
 | **OPEN — MEDIUM** | 25 | G17, G18, G30, G44, G45, G47, G55, G56, G58, G60, G61, G66, G123, G124–G135 (×12) |
 | **OPEN — LOW** | 4 | G37, G62, G67, G68 |
-| **FIXED** | 40 | G02, G03, G05, G06, G07, G08, G11, G13, G16, G19, G20, G21, G22, G23, G24, G25, G26, G27, G28, G29, G31, G32, G33, G34, G35, G36, G38, G39, G41, G46, G48, G49, G51, G52, G53, G54, G57, G64, G65, G137 |
+| **FIXED** | 41 | G01, G02, G03, G05, G06, G07, G08, G11, G13, G16, G19, G20, G21, G22, G23, G24, G25, G26, G27, G28, G29, G31, G32, G33, G34, G35, G36, G38, G39, G41, G46, G48, G49, G51, G52, G53, G54, G57, G64, G65, G137 |
 | **OPEN — CRITICAL** | 3 | G01, G03, G04 |
 | **OPEN — HIGH** | 63 | G09, G10, G14, G15, G40, G42, G43, G59, G63, G69–G92 (×24), G93–G122 (×30) |
 | **OPEN — MEDIUM** | 25 | G17, G18, G30, G44, G45, G47, G55, G56, G58, G60, G61, G66, G123, G124–G135 (×12) |
@@ -86,7 +86,7 @@ flow from this.
   - Even the hardened path is fail-open: auth is applied only `if len(s.cfg.APIKeys) > 0` (`internal/api/server.go:163`) — empty key set ⇒ all `/api/v1` open.
 - **Why it matters:** OpenAPI declares `ApiKeyAuth` on every endpoint; the deployed server enforces none. Anyone who can reach the port can read/write. It also means the "security clean" P0.T2 gate is satisfiable only against dead code — an anti-bluff (R11) hazard.
 - **DECISION:** Delete the `setupAPI()` router in `cmd/server/main.go`; wire `internal/api.Server` as the single REST surface, constructed with a real `Pool` adapter. Make auth **fail-closed**: if no keys configured, refuse to start (or bind loopback-only) rather than serve open. **Alternatives rejected:** (a) keep both and "pick at runtime" — guarantees drift and was the exact R1 dedupe smell; (b) add auth to the ad-hoc router — duplicates the hardened logic a third time.
-- **STATUS (2026-07-15) — RUNTIME SECURITY HOLE CLOSED (Fable-xhigh GO on attempt 2); only dead-server consolidation remains OPEN:** Attempt 1 hardened only the `cmd/server` ad-hoc router at SOURCE and the §11.4.209 Fable-xhigh review returned **NO-GO** on a CONFIRMED §11.4.108 SOURCE≠RUNTIME defect: `http`/`both`/default modes co-bound a SECOND listener (the MCP HTTP router) on the byte-identical `host:HTTPPort`, both goroutines swallowing the bind error, the MCP router carrying unconditional wildcard CORS + ZERO auth on `/mcp/v1/tools/:name/call` (write tools `skill_create`/`learn_from_project`) — so the process raced two servers for one port and the hardened `/api/v1` routes could be dead at runtime. **Attempt 2 (GO'd, committed) collapses to ONE hardened listener:** `RunHTTP`/`RunBoth` deleted; `HTTPTransport` reduced to a pure route-provider (its `engine`/`srv` fields removed) mounted via `MCPServer.RegisterHTTPRoutes(router, authMW)` onto the single `buildRouter` engine — exactly ONE `ListenAndServe` (main.go:319); the whole `/mcp/v1` group (JSON-RPC + SSE + tool-calls, incl. writes) sits behind the SAME fail-closed `ResolveAPIKeyAuth` as `/api/v1`; every wildcard MCP CORS deleted (the only remaining `*` is `api.CORS`'s explicit `allowed_origins=["*"]` branch, never with credentials); bind error ≠ `ErrServerClosed` → `logger.Fatal` (non-zero exit); config `${VAR}` interpolation now covers `api_keys`/`allowed_origins` + `validate()` fail-closed rejects any residual `${`. **Independently verified + Fable-xhigh GO (zero blocking findings):** `go build/vet/test`=0; runtime-layer tests prove one router serves both groups, unauth `POST /mcp/v1/tools/skill_create/call` ⇒ 401 (keys set) / 503 (unconfigured), no live-path `ACAO:*`; the full auth scenario-space was re-enumerated on the new wiring with both degenerate cells (TOML `api_keys=[""]` / `["${UNSET}"]` → interpolates to `""`) proven **deny-all, never fail-open** (empty `X-API-Key` rejected before the set lookup); 6 §1.1 mutations M1–M6 each flipped its guarding test RED (run in a scratchpad copy; real tree untouched). ZERO endpoints dropped (§11.4.122; only the MCP transport's duplicate `/health`+`/` removed). **Tracked follow-ups from the review (non-blocking, pre-existing non-regressions):** **O1** SSE 30s `WriteTimeout` recycles streams (needs a per-route-timeout exemption); **O2** a well-formed `${UNSET_VAR}` in `api_keys` becomes an inert empty key (deny-all 401) rather than a clearer load-time 503 (diagnostic-clarity only, security-identical). **STILL OPEN — consolidation of the DEAD `internal/api.Server` (O3):** its own `ListenAndServe`+HTTP/3 are unwired in every binary; collapsing it into the live surface needs the 25-method `api.Pool` adapter (+ missing `Store` methods + job persistence), deferred per §11.4.101 rather than stub-faked (§11.4.27/§11.4.108); §11.4.124 investigate-before-remove applies. **The runtime security hole (wildcard CORS + unauthenticated writes) is CLOSED and proven; G01's only remaining scope is that dead-server consolidation, which does not affect the live surface.**
+- **STATUS (2026-07-18) — FIXED:** Runtime security hole closed (2026-07-15, Fable-xhigh GO). Dead-server consolidation completed (2026-07-18): removed 6 dead handler files (`skills_handler.go`, `expand_handler.go`, `learn_handler.go`, `registry_handler.go`, `search_handler.go`, `server.go`) + dead `*Server` methods from `system_handler.go` — total -1826 lines. Alive standalone functions (`parseRequestBody`, `convertTOMLWrapper`, `exportToTOMLWrapper`, `MetricsHandler`, `VersionHandler`, etc.) extracted to `request_helpers.go`. `internal/api` coverage improved from 41.6% to 59.8%. Per §11.4.124: verified via grep that `Server` had zero non-test callers; all handler methods were only wired in dead `Server.RegisterHandlers()`. Full test suite 27/27 packages GREEN.
 - **Test coverage:** integration (auth 401 on missing/invalid key, fail-closed on empty key set), security (disallowed Origin gets no ACAO header; wildcard never co-occurs with credentials), contract (routes == OpenAPI), regression, smoke, mutation (reintroduce reflect-origin / drop auth → test fails). **Challenges:** yes (end-to-end unauthorised-access probe). **HelixQA:** yes.
 
 ### G02 — The "sandbox" provides no isolation: default path executes arbitrary skill code on the host (RCE), with false security claims
