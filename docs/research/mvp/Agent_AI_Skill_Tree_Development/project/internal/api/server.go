@@ -2,15 +2,9 @@ package api
 
 import (
 	"context"
-	"fmt"
-	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
-	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/quic-go/quic-go/http3"
 	"go.uber.org/zap"
 
 	"github.com/helixdevelopment/skill-system/internal/models"
@@ -88,17 +82,15 @@ type Pool interface {
 	Ping(ctx context.Context) error
 
 	// Close closes the pool
-	Close() error
+	Close()
 }
 
 // Server is the HTTP API server for the HelixKnowledge Skill Graph System.
 type Server struct {
-	router      *gin.Engine
-	pool        Pool
-	cfg         ServerConfig
-	logger      *zap.Logger
-	httpServer  *http.Server
-	http3Server *http3.Server
+	router *gin.Engine
+	pool   Pool
+	cfg    ServerConfig
+	logger *zap.Logger
 
 	// validator runs the fail-closed create-path validation. When nil (or
 	// validationEnabled is false) newly-created skills are forced to draft — a
@@ -149,9 +141,35 @@ func New(pool Pool, cfg Config, logger *zap.Logger, opts ...Option) *Server {
 	// Register middleware
 	s.setupMiddleware()
 
-	// Register routes
-	s.SetupRoutes()
+	// System routes (open, no auth)
+	s.router.GET("/health", s.handleHealth)
+	s.router.GET("/metrics", s.handleMetrics())
+	s.router.GET("/version", s.handleVersion)
 
+	// API v1 with auth
+	v1 := s.router.Group("/api/v1")
+	if mw := ResolveAPIKeyAuth(s.cfg.APIKeys, s.cfg.AuthDisabled, s.logger); mw != nil {
+		v1.Use(mw)
+	}
+	s.RegisterHandlers(v1)
+
+	return s
+}
+
+// NewHandler creates a Server suitable for registering handlers onto an
+// existing Gin router, without creating its own gin.Engine or registering
+// middleware. Use RegisterHandlers to register routes on a provided group.
+func NewHandler(pool Pool, logger *zap.Logger, opts ...Option) *Server {
+	if logger == nil {
+		logger = zap.L()
+	}
+	s := &Server{
+		pool:   pool,
+		logger: logger,
+	}
+	for _, opt := range opts {
+		opt(s)
+	}
 	return s
 }
 
@@ -185,25 +203,30 @@ func (s *Server) setupMiddleware() {
 }
 
 // SetupRoutes registers all API routes.
+//
+// Deprecated: Use RegisterHandlers instead. This method is retained for
+// backward compatibility with legacy callers. It registers system routes
+// directly on s.router and data routes on an auth-guarded /api/v1 group.
 func (s *Server) SetupRoutes() {
-	// Health and metrics (no auth required)
+	// System routes (open, no auth)
 	s.router.GET("/health", s.handleHealth)
 	s.router.GET("/metrics", s.handleMetrics())
 	s.router.GET("/version", s.handleVersion)
 
-	// API v1 group
+	// API v1 with auth
 	v1 := s.router.Group("/api/v1")
-
-	// Apply authentication to all v1 routes. ResolveAPIKeyAuth is fail-CLOSED:
-	// with no API keys configured and auth not explicitly disabled it installs
-	// a middleware that rejects every request (503), instead of the previous
-	// fail-OPEN behaviour that served protected routes with no auth at all.
 	if mw := ResolveAPIKeyAuth(s.cfg.APIKeys, s.cfg.AuthDisabled, s.logger); mw != nil {
 		v1.Use(mw)
 	}
+	s.RegisterHandlers(v1)
+}
 
+// RegisterHandlers registers all API handler routes onto the provided Gin
+// router group. The group should already have authentication middleware applied
+// where needed. This is the canonical route registration entry point.
+func (s *Server) RegisterHandlers(router gin.IRouter) {
 	// Skills CRUD
-	skills := v1.Group("/skills")
+	skills := router.Group("/skills")
 	{
 		skills.GET("", s.handleListSkills)
 		skills.POST("", s.handleCreateSkill)
@@ -217,21 +240,21 @@ func (s *Server) SetupRoutes() {
 	}
 
 	// Search
-	v1.GET("/search", s.handleSearch)
-	v1.POST("/search/similar", s.handleSimilarSkills)
+	router.GET("/search", s.handleSearch)
+	router.POST("/search/similar", s.handleSimilarSkills)
 
 	// Registry
-	registry := v1.Group("/registry")
+	reg := router.Group("/registry")
 	{
-		registry.GET("", s.handleGetRegistry)
-		registry.GET("/missing-deps/:id", s.handleGetMissingDeps)
-		registry.GET("/stale", s.handleGetStaleSkills)
-		registry.POST("/review/:id", s.handleTriggerReview)
-		registry.GET("/coverage", s.handleGetCoverage)
+		reg.GET("", s.handleGetRegistry)
+		reg.GET("/missing-deps/:id", s.handleGetMissingDeps)
+		reg.GET("/stale", s.handleGetStaleSkills)
+		reg.POST("/review/:id", s.handleTriggerReview)
+		reg.GET("/coverage", s.handleGetCoverage)
 	}
 
 	// Auto-expand
-	expand := v1.Group("/expand")
+	expand := router.Group("/expand")
 	{
 		expand.POST("", s.handleTriggerExpand)
 		expand.GET("/status/:id", s.handleGetExpandStatus)
@@ -239,98 +262,12 @@ func (s *Server) SetupRoutes() {
 	}
 
 	// Learning
-	learn := v1.Group("/learn")
+	learn := router.Group("/learn")
 	{
 		learn.POST("/projects", s.handleSubmitProject)
 		learn.GET("/status/:id", s.handleGetLearnStatus)
 		learn.GET("/evidences/:skill_id", s.handleGetEvidences)
 	}
-}
-
-// Run starts the HTTP/2 server and optionally the HTTP/3 server.
-// It blocks until the context is cancelled or a signal is received.
-func (s *Server) Run() error {
-	addr := fmt.Sprintf("%s:%d", s.cfg.Host, s.cfg.HTTPPort)
-
-	s.httpServer = &http.Server{
-		Addr:         addr,
-		Handler:      s.router,
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 30 * time.Second,
-		IdleTimeout:  120 * time.Second,
-	}
-
-	// Start HTTP/3 if enabled and TLS is configured
-	if s.cfg.EnableHTTP3 {
-		if err := s.setupHTTP3(s.router); err != nil {
-			s.logger.Warn("failed to start HTTP/3 server, continuing with HTTP/2 only",
-				zap.Error(err),
-			)
-		}
-	}
-
-	// Channel to listen for errors from server goroutines
-	serverErr := make(chan error, 1)
-
-	// Start HTTP/2 server in a goroutine
-	go func() {
-		s.logger.Info("starting HTTP/2 server",
-			zap.String("addr", addr),
-			zap.Bool("http3_enabled", s.cfg.EnableHTTP3),
-		)
-
-		var err error
-		if s.cfg.TLSCert != "" && s.cfg.TLSKey != "" {
-			err = s.httpServer.ListenAndServeTLS(s.cfg.TLSCert, s.cfg.TLSKey)
-		} else {
-			s.logger.Warn("running without TLS - HTTP/2 will work but HTTP/3 requires TLS")
-			err = s.httpServer.ListenAndServe()
-		}
-
-		if err != nil && err != http.ErrServerClosed {
-			serverErr <- err
-		}
-	}()
-
-	// Wait for interrupt signal or server error
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-
-	select {
-	case err := <-serverErr:
-		return fmt.Errorf("HTTP server error: %w", err)
-	case sig := <-quit:
-		s.logger.Info("shutdown signal received",
-			zap.String("signal", sig.String()),
-		)
-	}
-
-	// Graceful shutdown
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	return s.Shutdown(shutdownCtx)
-}
-
-// Shutdown gracefully shuts down the server, waiting for active connections
-// to complete or the context to be cancelled.
-func (s *Server) Shutdown(ctx context.Context) error {
-	s.logger.Info("starting graceful shutdown")
-
-	// Shutdown HTTP/3 first if running
-	if err := s.shutdownHTTP3(ctx); err != nil {
-		s.logger.Warn("HTTP/3 shutdown error", zap.Error(err))
-	}
-
-	// Shutdown HTTP/2 server
-	if s.httpServer != nil {
-		if err := s.httpServer.Shutdown(ctx); err != nil {
-			return fmt.Errorf("HTTP/2 server shutdown error: %w", err)
-		}
-	}
-
-	s.logger.Info("server shutdown complete")
-	return nil
 }
 
 // Router returns the underlying gin.Engine for testing purposes.

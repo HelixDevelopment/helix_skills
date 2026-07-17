@@ -392,7 +392,13 @@ func buildRouter(cfg *config.Config, pool *db.Pool, store *skill.Store, reg *reg
 		v1.Use(authMW)
 	}
 
-	// Skills API
+	// Skills CRUD (served via inline closures — these replace the previous
+	// api.Server.SetupRoutes path that was removed during G01 consolidation.
+	// The Server struct's Pool interface is satisfied across db.Pool +
+	// skill.Store + registry.Registry, so a future consolidation will wire
+	// them into a single handler; for now, the three-component buildRouter
+	// variables (pool, store, reg) serve the inline closures directly, which
+	// is correct and symmetrical with the coverage/missing routes below.
 	skills := v1.Group("/skills")
 	{
 		skills.GET("", func(c *gin.Context) {
@@ -444,7 +450,9 @@ func buildRouter(cfg *config.Config, pool *db.Pool, store *skill.Store, reg *reg
 		})
 	}
 
-	// Coverage API
+	// Coverage API — kept separately from the Server's /api/v1/registry/coverage
+	// (which surfaces pool.GetCoverage). This route delegates to the registry
+	// layer's GetCoverageReport for domain-scoped coverage data.
 	v1.GET("/coverage", func(c *gin.Context) {
 		ctx := c.Request.Context()
 		domain := c.Query("domain")

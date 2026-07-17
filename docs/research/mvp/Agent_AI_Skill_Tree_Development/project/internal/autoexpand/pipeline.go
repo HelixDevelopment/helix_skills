@@ -420,13 +420,28 @@ func (p *Pipeline) Run(ctx context.Context, skillName string, maxDepth int) (*Ex
 			}
 			visited[currentSkill] = true
 
-			// Detect gaps at this level
+			// Detect gaps at this level.
+			//
+			// G137: Uses DetectGaps (which queries skill_registry.missing_deps
+			// via GetMissingSkills) for EVERY depth level, because the
+			// FK-enforced skill_dependencies.depends_on constraint makes the
+			// old DependsOn == uuid.Nil check structurally unreachable for any
+			// graph the store API constructs -- GetMissingSkills is the only
+			// path that can see real gaps.
 			var gaps []Gap
 			var err error
 			if depth == 0 {
-				gaps, err = p.DetectGapsForSkill(ctx, currentSkill)
+				allGaps, gErr := p.DetectGaps(ctx)
+				if gErr != nil {
+					err = gErr
+				} else {
+					for _, g := range allGaps {
+						if g.SkillName == currentSkill {
+							gaps = append(gaps, g)
+						}
+					}
+				}
 			} else {
-				// For deeper levels, check if this skill itself has gaps
 				gaps, err = p.detectGapsForSingleSkill(ctx, currentSkill)
 			}
 			if err != nil {
@@ -478,27 +493,41 @@ func (p *Pipeline) Run(ctx context.Context, skillName string, maxDepth int) (*Ex
 }
 
 // detectGapsForSingleSkill checks a single skill for missing dependencies.
+// G137: uses GetMissingSkills (the skill_registry's missing_deps column)
+// instead of the old DependsOn == uuid.Nil check, which is structurally
+// unreachable for any graph the store API constructs.
 func (p *Pipeline) detectGapsForSingleSkill(ctx context.Context, skillName string) ([]Gap, error) {
-	skill, err := p.store.GetByName(ctx, skillName)
+	entries, err := p.store.GetMissingSkills(ctx, "")
 	if err != nil {
-		return nil, fmt.Errorf("get skill %s: %w", skillName, err)
+		return nil, fmt.Errorf("get missing skills: %w", err)
 	}
 
 	var gaps []Gap
-	for _, dep := range skill.Dependencies {
-		if dep.DependsOn == uuid.Nil && dep.DependsOnName != "" {
-			exists, err := p.skillNameExists(ctx, dep.DependsOnName)
+	for _, entry := range entries {
+		if entry.SkillName != skillName {
+			continue
+		}
+		if !entry.AutoExpand {
+			continue
+		}
+		for _, missingDep := range entry.MissingDeps {
+			exists, err := p.skillNameExists(ctx, missingDep)
 			if err != nil {
+				p.logger.Warn("failed to check skill existence",
+					zap.String("name", missingDep),
+					zap.Error(err),
+				)
 				continue
 			}
-			if !exists {
-				gaps = append(gaps, Gap{
-					SkillName:      skillName,
-					MissingDepName: dep.DependsOnName,
-					SuggestedTitle: p.suggestTitle(dep.DependsOnName),
-					Reason:         fmt.Sprintf("Unresolved dependency %q in skill %q", dep.DependsOnName, skillName),
-				})
+			if exists {
+				continue // gap already filled
 			}
+			gaps = append(gaps, Gap{
+				SkillName:      skillName,
+				MissingDepName: missingDep,
+				SuggestedTitle: p.suggestTitle(missingDep),
+				Reason:         fmt.Sprintf("Skill %q depends on %q which does not exist", skillName, missingDep),
+			})
 		}
 	}
 
