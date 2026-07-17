@@ -1,6 +1,6 @@
 // Package mcp implements the Model Context Protocol server for the HelixKnowledge
-// Skill Graph System. It provides 7 tools for AI agents to query, create, and
-// manage skills through stdio and HTTP transports.
+// Skill Graph System. It provides 10 tools for AI agents to query, create, and
+// manage skills and analyze codebases through stdio and HTTP transports.
 package mcp
 
 import (
@@ -43,6 +43,7 @@ type MCPServer struct {
 	acp               *ACPAdapter
 	validator         skillValidator
 	validationEnabled bool
+	codeGraphResults  *codeGraphStore // in-memory cache for codegraph_analyze results
 }
 
 // NewMCPServer creates a new MCP server with all dependencies.
@@ -122,6 +123,7 @@ func NewMCPServer(pool *db.Pool, store *skill.Store, reg *registry.Registry, cfg
 		transport:         cfg.MCP.Transport,
 		validator:         validation.NewPipeline(store, cfg.Validation, logger),
 		validationEnabled: cfg.Validation.Enabled,
+		codeGraphResults:  newCodeGraphStore(),
 	}
 }
 
@@ -188,8 +190,10 @@ func (s *MCPServer) validateForCreate(ctx context.Context, tomlData []byte) map[
 	}
 }
 
-// RegisterTools sets up all 7 MCP tool handlers.
+// RegisterTools sets up all 10 MCP tool handlers (7 skill-graph tools + 3
+// CodeGraph analysis tools).
 func (s *MCPServer) RegisterTools() {
+	// Skill graph tools (1-7)
 	s.registerSkillSearch()
 	s.registerSkillGet()
 	s.registerSkillTree()
@@ -198,7 +202,12 @@ func (s *MCPServer) RegisterTools() {
 	s.registerMissingSkills()
 	s.registerGetCoverage()
 
-	s.logger.Info("All 7 MCP tools registered",
+	// CodeGraph analysis tools (8-10)
+	s.registerCodeGraphAnalyze()
+	s.registerCodeGraphSearch()
+	s.registerCodeGraphStats()
+
+	s.logger.Info("All 10 MCP tools registered",
 		zap.String("transport", s.transport),
 	)
 }
