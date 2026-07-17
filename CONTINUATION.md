@@ -1,7 +1,7 @@
 # CONTINUATION.md — Helix Skills
 
-**Revision:** 8
-**Last modified:** 2026-07-18T05:00:00Z
+**Revision:** 9
+**Last modified:** 2026-07-18T06:30:00Z
 
 ---
 
@@ -16,55 +16,24 @@ development with 93 open findings (2 CRITICAL, 62 HIGH, 25 MEDIUM,
 
 ## §2 — Session State
 
-- **HEAD:** `be54af4` + merge `b4fa061` (T3 restart — full test suite GREEN, merged origin/main tenant wiring)
-- **Branch:** `feature/testing-infra` (merged origin/main, fast-forward)
+- **HEAD:** `ec38b63` (merge commit — origin/main `dcbe504` merged into `f07d599`)
+- **Branch:** `feature/testing-infra` (merged origin/main, clean merge, fast-forward)
 - **Constitution submodule:** present at `constitution/`
-- **Skills installed:** 7 active (action-prefix-system, media-validator,
-  multitrack, reporting-workable-items, scheduled-work-queue, session-sync,
-  workable-item-lifecycle) + 4 draft (android.overview, java.language,
-  kotlin.language, linux.os)
+- **Skills installed:** 7 active + 4 draft
 
 ---
 
 ## §3 — Active Work
 
 ### Just completed (this session)
-- T3-RESTART-2: merged origin/main (b4fa061 tenant wiring) into feature/testing-infra — clean merge, 22 files +436/-113
-- T3-RESTART-2: full test suite — 24/24 Go packages PASS (fresh, no cache), stress+chaos+fuzz all GREEN
-- T3-RESTART-2: G12 tree-sitter verified — 4/4 PASS (kotlin, csharp, normalize, fidelity constants)
-- T3-RESTART-2: G20 autoexpand verified — 2 PASS + 3 SKIP (live-DB-gated, correct §11.4.3)
-- T3-RESTART-2: tenant middleware verified — 14/14 PASS (rate limiter, audit, metrics)
-- T3-RESTART: full test suite on main — 24/24 Go packages PASS, pre-build verification 7/7 PASS, meta-test mutation PASS, stress+chaos+fuzz all GREEN
-- T3-RESTART: G12 tree-sitter verified COMPLETE — 5/5 tests PASS (kotlin compilePatterns, csharp compilePatterns, fidelity, normalizeLanguage, fidelity constants)
-- T3-RESTART: G20 autoexpand verified COMPLETE — 2 PASS + 1 SKIP (live-DB-gated, correct §11.4.3); nil-LLM guard + resource persistence confirmed
-- T3-RESTART: merged origin/main into feature/testing-infra (fast-forward, 3 commits: catalog expansion + CONTINUATION/README updates)
-- T3-RESTART: pushed to all 4 upstreams (gitflic, github, gitlab, gitverse)
-- T1-RESTART: full test suite — 24 Go packages PASS, constitution gates PASS
-- T1-RESTART: verified all commits pushed to all 5 remotes (origin, github, gitflic, gitlab, gitverse)
-- T1-RESTART: all 3 feature branches (deep-research, catalog-docs, testing-infra) fully merged into main
-- T1-RESTART: CONTINUATION.md stale HEAD fixed (f9934c3 → ee685c8), revision bumped to Rev 5
-- MERGE: `feature/testing-infra` merged into main (ee685c8) — stress+chaos tests + HelixQA banks
-  (15 files, +2196 lines)
-- MERGE: `feature/catalog-docs` merged into main (ed31e4a) — test catalog
-  generation from real corpus (34 records across 4 types)
-- MERGE: `feature/deep-research` merged into main (1ad3cce) — enterprise
-  scalability: tenant middleware, tenant-aware store, batch embed worker
-  (11 files, +2626 lines)
-- PERF: N+1 query fix in GetTree + recursive CTE depth bound (93636fc)
-- CONSTITUTION: §11.4.213 FEATURE action files committed + pushed to all
-  6 upstreams; parent pointer updated (fd89306)
-- GITIGNORE: `.ws_state/` added (multitrack workspace state, ephemeral)
-- PUSH: all branches (main + feature/deep-research + feature/testing-infra
-  + feature/catalog-docs) pushed to all 4 upstreams (gitflic, github,
-  gitlab, gitverse)
-- AUDIT: register summary counts verified correct (3+64+25+4+39+1=136)
-- AUDIT: all 39 FIXED items have matching per-item STATUS annotations
-- AUDIT: G58 remains placeholder (TBD, UNCONFIRMED) — needs real finding
-- DOC-SYNC: CONTINUATION.md revision bumped to Rev 3
-- DOC-SYNC: README.md — added revision header + Tracked-Items section (§11.4.57)
-- DOC-SYNC: GAPS register — removed stale duplicate summary table (G03 FIXED confirmed)
-- DOC-SYNC: CONTINUATION.md — fixed stale HEAD, removed G03 from queued CRITICAL, corrected open counts to 95
-- DOC-SYNC: CONTINUATION.md revision bumped to Rev 4
+- T3-RESTART: full test suite — 24/24 Go packages PASS (fresh, no cache)
+- T3-RESTART: G12 tree-sitter verified COMPLETE — 37 tests PASS (compilePatterns, extract, fidelity, normalize, security, stress, chaos, fuzz)
+- T3-RESTART: G20 autoexpand verified COMPLETE — 18 PASS + 3 SKIP (live-DB-gated, correct §11.4.3)
+- T3-RESTART: stress+chaos+fuzz expansion — 57 new tests across 4 previously uncovered packages (codegraph: 16, dedup: 12, skillsource: 15, models: 14); all GREEN
+- T3-RESTART: HelixQA bank expanded 91→119 test cases (+28 entries covering new codegraph/dedup/skillsource/models stress+chaos+fuzz)
+- T3-RESTART: challenge inventory created at test/challenges/CHALLENGE_README.md
+- T3-RESTART: merged origin/main `dcbe504` (SECURITY: env var enforcement) — clean merge, no conflicts
+- T3-RESTART: pushed to all 5 upstreams (gitflic, github, gitlab, gitverse, origin)
 
 ### Queued — CRITICAL (G01, G04)
 - **G01** — Dead `internal/api.Server` consolidation (runtime security hole
