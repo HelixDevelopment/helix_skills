@@ -136,9 +136,9 @@ func processBatch(
 ) (succeeded, failed int, batchErr error) {
 	// Fetch skill content for this batch.
 	type skillContent struct {
-		ID      uuid.UUID
-		Name    string
-		Text    string
+		ID   uuid.UUID
+		Name string
+		Text string
 	}
 
 	var contents []skillContent

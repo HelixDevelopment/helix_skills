@@ -16,9 +16,9 @@ import (
 
 	sitter "github.com/tree-sitter/go-tree-sitter"
 
+	tree_sitter_csharp "github.com/tree-sitter/tree-sitter-c-sharp/bindings/go"
 	tree_sitter_c "github.com/tree-sitter/tree-sitter-c/bindings/go"
 	tree_sitter_cpp "github.com/tree-sitter/tree-sitter-cpp/bindings/go"
-	tree_sitter_csharp "github.com/tree-sitter/tree-sitter-c-sharp/bindings/go"
 	tree_sitter_go "github.com/tree-sitter/tree-sitter-go/bindings/go"
 	tree_sitter_java "github.com/tree-sitter/tree-sitter-java/bindings/go"
 	tree_sitter_js "github.com/tree-sitter/tree-sitter-javascript/bindings/go"

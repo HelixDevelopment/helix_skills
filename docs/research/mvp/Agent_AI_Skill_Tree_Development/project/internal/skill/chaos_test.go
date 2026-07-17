@@ -47,9 +47,9 @@ func TestChaos_ConcurrentReadWrite(t *testing.T) {
 
 	// Seed one skill.
 	if err := store.Create(ctx, &models.Skill{
-		Name:    skillName,
-		Title:   "Chaos Concurrent Skill",
-		Status:  models.SkillStatusDraft,
+		Name:   skillName,
+		Title:  "Chaos Concurrent Skill",
+		Status: models.SkillStatusDraft,
 	}); err != nil {
 		t.Fatalf("Create: %v", err)
 	}

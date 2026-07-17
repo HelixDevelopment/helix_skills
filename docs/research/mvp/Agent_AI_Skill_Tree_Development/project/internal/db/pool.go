@@ -38,21 +38,21 @@ import (
 
 // PoolStats reports the state of both the primary and replica pools.
 type PoolStats struct {
-	Primary  PoolStat `json:"primary"`
-	Replica  PoolStat `json:"replica"`
-	HasReplica bool   `json:"has_replica"`
+	Primary    PoolStat `json:"primary"`
+	Replica    PoolStat `json:"replica"`
+	HasReplica bool     `json:"has_replica"`
 }
 
 // PoolStat holds the statistics for a single database pool.
 type PoolStat struct {
-	MaxOpenConnections int `json:"max_open_connections"`
-	OpenConnections    int `json:"open_connections"`
-	InUse              int `json:"in_use"`
-	Idle               int `json:"idle"`
-	WaitCount          int64 `json:"wait_count"`
+	MaxOpenConnections int           `json:"max_open_connections"`
+	OpenConnections    int           `json:"open_connections"`
+	InUse              int           `json:"in_use"`
+	Idle               int           `json:"idle"`
+	WaitCount          int64         `json:"wait_count"`
 	WaitDuration       time.Duration `json:"wait_duration"`
-	MaxIdleClosed      int64 `json:"max_idle_closed"`
-	MaxLifetimeClosed  int64 `json:"max_lifetime_closed"`
+	MaxIdleClosed      int64         `json:"max_idle_closed"`
+	MaxLifetimeClosed  int64         `json:"max_lifetime_closed"`
 }
 
 // ---------------------------------------------------------------------------
