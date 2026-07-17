@@ -25,6 +25,8 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"golang.org/x/time/rate"
+
+	"github.com/helixdevelopment/skill-system/internal/metrics"
 )
 
 // ---------------------------------------------------------------------------
@@ -183,6 +185,8 @@ func (trl *TenantRateLimiter) reapOnce() {
 // rate limits. The middleware MUST run AFTER TenantMiddleware so that the
 // tenant context is available.
 //
+// The tm parameter is optional — pass nil to skip tenant metrics recording.
+//
 // When the rate limit is exceeded the request is aborted with 429 and a
 // Retry-After header indicating when the client may retry.
 //
@@ -190,7 +194,7 @@ func (trl *TenantRateLimiter) reapOnce() {
 // unthrottled.
 //
 // §11.4.84 Tenant rate limiting middleware.
-func TenantRateLimitMiddleware(rl *TenantRateLimiter) gin.HandlerFunc {
+func TenantRateLimitMiddleware(rl *TenantRateLimiter, tm *metrics.TenantMetrics) gin.HandlerFunc {
 	logger := zap.L().Named("tenant_ratelimit")
 
 	return func(c *gin.Context) {
@@ -213,6 +217,11 @@ func TenantRateLimitMiddleware(rl *TenantRateLimiter) gin.HandlerFunc {
 				zap.String("request_id", requestIDFromContext(c)),
 				zap.String("path", c.Request.URL.Path),
 			)
+
+			// Record rate limit rejection metric.
+			if tm != nil && tm.Enabled() {
+				tm.RecordRateLimitRejection(tc.TenantID.String())
+			}
 
 			RespondErrorWithCode(c, http.StatusTooManyRequests, "rate_limit_exceeded",
 				"Tenant rate limit exceeded. Retry after the Retry-After interval.")

@@ -735,12 +735,12 @@ func TestScoreMatch(t *testing.T) {
 		file       string
 		wantMin    float64
 	}{
-		{"controller", "controller", "", "", 1.0},            // exact match
-		{"control", "controller", "", "", 0.8},               // name contains query
-		{"http", "rest-api", "net/http handler", "", 0.4},    // snippet match
-		{"main", "pattern", "", "/path/main.go", 0.2},        // file match
-		{"zzzz", "controller", "", "", 0},                    // no match
-		{"", "controller", "", "", 0},                        // empty query
+		{"controller", "controller", "", "", 1.0},         // exact match
+		{"control", "controller", "", "", 0.8},            // name contains query
+		{"http", "rest-api", "net/http handler", "", 0.4}, // snippet match
+		{"main", "pattern", "", "/path/main.go", 0.2},     // file match
+		{"zzzz", "controller", "", "", 0},                 // no match
+		{"", "controller", "", "", 0},                     // empty query
 	}
 
 	for _, tt := range tests {

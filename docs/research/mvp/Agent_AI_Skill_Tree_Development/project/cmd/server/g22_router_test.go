@@ -44,7 +44,8 @@ func newG22Router(cfg *config.Config) *gin.Engine {
 	reg := registry.NewRegistry(pool)
 	mcpServer := mcp.NewMCPServer(pool, store, reg, cfg, zap.NewNop())
 	mcpServer.RegisterTools()
-	return buildRouter(cfg, pool, store, reg, mcpServer, zap.NewNop())
+	router, _ := buildRouter(cfg, pool, store, reg, mcpServer, zap.NewNop())
+	return router
 }
 
 func doReqBody(r *gin.Engine, method, path string, body []byte, headers map[string]string) *httptest.ResponseRecorder {

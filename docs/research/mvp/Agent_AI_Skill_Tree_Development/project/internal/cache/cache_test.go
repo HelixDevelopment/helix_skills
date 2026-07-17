@@ -140,8 +140,8 @@ func TestEmbeddingKey(t *testing.T) {
 
 func TestNew_CacheDisabled(t *testing.T) {
 	c, err := New(config.CacheConfig{
-		Enabled:  false,
-		SkillTTL: 5 * time.Minute,
+		Enabled:   false,
+		SkillTTL:  5 * time.Minute,
 		SearchTTL: 1 * time.Minute,
 		TreeTTL:   10 * time.Minute,
 	})
@@ -155,9 +155,9 @@ func TestNew_CacheDisabled(t *testing.T) {
 
 func TestNew_EmptyRedisURL(t *testing.T) {
 	c, err := New(config.CacheConfig{
-		Enabled:  true,
-		RedisURL: "",
-		SkillTTL: 5 * time.Minute,
+		Enabled:   true,
+		RedisURL:  "",
+		SkillTTL:  5 * time.Minute,
 		SearchTTL: 1 * time.Minute,
 		TreeTTL:   10 * time.Minute,
 	})
@@ -171,9 +171,9 @@ func TestNew_EmptyRedisURL(t *testing.T) {
 
 func TestNew_InvalidRedisURL(t *testing.T) {
 	c, err := New(config.CacheConfig{
-		Enabled:  true,
-		RedisURL: "redis://invalid-host:9999",
-		SkillTTL: 5 * time.Minute,
+		Enabled:   true,
+		RedisURL:  "redis://invalid-host:9999",
+		SkillTTL:  5 * time.Minute,
 		SearchTTL: 1 * time.Minute,
 		TreeTTL:   10 * time.Minute,
 	})

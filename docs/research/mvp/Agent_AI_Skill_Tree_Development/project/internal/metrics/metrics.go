@@ -28,21 +28,26 @@ const (
 	Namespace = "skill"
 
 	// API metrics.
-	apiRequestsTotal   = "api_requests_total"
-	apiLatencySeconds  = "api_latency_seconds"
-	searchLatency      = "search_latency_seconds"
+	apiRequestsTotal  = "api_requests_total"
+	apiLatencySeconds = "api_latency_seconds"
+	searchLatency     = "search_latency_seconds"
 
 	// Worker metrics.
-	workerJobsTotal    = "worker_jobs_total"
+	workerJobsTotal = "worker_jobs_total"
 
 	// Embedding metrics.
-	embeddingLatency   = "embedding_latency_seconds"
+	embeddingLatency = "embedding_latency_seconds"
 
 	// Database metrics.
 	dbConnectionsActive = "db_connections_active"
 
 	// Cache metrics.
-	cacheHitsTotal     = "cache_hits_total"
+	cacheHitsTotal = "cache_hits_total"
+
+	// Tenant metrics.
+	tenantRequestsTotal          = "tenant_requests_total"
+	tenantRateLimitRejectedTotal = "tenant_rate_limit_rejected_total"
+	tenantAuditEntriesTotal      = "tenant_audit_entries_total"
 )
 
 // ---------------------------------------------------------------------------
@@ -52,9 +57,9 @@ const (
 // Metrics holds all Prometheus metric collectors for the skill system.
 type Metrics struct {
 	// API
-	APIRequestsTotal   *prometheus.CounterVec
-	APILatencySeconds  *prometheus.HistogramVec
-	SearchLatency      prometheus.Histogram
+	APIRequestsTotal  *prometheus.CounterVec
+	APILatencySeconds *prometheus.HistogramVec
+	SearchLatency     prometheus.Histogram
 
 	// Worker
 	WorkerJobsTotal *prometheus.CounterVec
@@ -67,6 +72,11 @@ type Metrics struct {
 
 	// Cache
 	CacheHitsTotal *prometheus.CounterVec
+
+	// Tenant
+	TenantRequestsTotal          *prometheus.CounterVec
+	TenantRateLimitRejectedTotal *prometheus.CounterVec
+	TenantAuditEntriesTotal      *prometheus.CounterVec
 
 	// Registry holds the custom prometheus.Registry that all metrics are
 	// registered with. Pass this to promhttp.HandlerFor to serve /metrics.
@@ -143,6 +153,30 @@ func NewRegistry(enabled bool) *Metrics {
 			},
 			[]string{"result"},
 		),
+		TenantRequestsTotal: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: Namespace,
+				Name:      tenantRequestsTotal,
+				Help:      "Total tenant-scoped API requests by tenant, method, path, and status.",
+			},
+			[]string{"tenant_id", "method", "path", "status"},
+		),
+		TenantRateLimitRejectedTotal: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: Namespace,
+				Name:      tenantRateLimitRejectedTotal,
+				Help:      "Total requests rejected by per-tenant rate limiting.",
+			},
+			[]string{"tenant_id"},
+		),
+		TenantAuditEntriesTotal: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: Namespace,
+				Name:      tenantAuditEntriesTotal,
+				Help:      "Total audit log entries recorded per tenant and action.",
+			},
+			[]string{"tenant_id", "action"},
+		),
 		Registry: reg,
 		enabled:  enabled,
 	}
@@ -156,6 +190,9 @@ func NewRegistry(enabled bool) *Metrics {
 			m.EmbeddingLatency,
 			m.DBConnectionsActive,
 			m.CacheHitsTotal,
+			m.TenantRequestsTotal,
+			m.TenantRateLimitRejectedTotal,
+			m.TenantAuditEntriesTotal,
 		)
 	}
 
@@ -226,6 +263,94 @@ func (m *Metrics) RecordCacheMiss() {
 		return
 	}
 	m.CacheHitsTotal.WithLabelValues("miss").Inc()
+}
+
+// ---------------------------------------------------------------------------
+// Tenant convenience methods (no-ops when disabled)
+// ---------------------------------------------------------------------------
+
+// RecordTenantRequest increments the per-tenant request counter.
+func (m *Metrics) RecordTenantRequest(tenantID, method, path, status string) {
+	if !m.Enabled() {
+		return
+	}
+	m.TenantRequestsTotal.WithLabelValues(tenantID, method, path, status).Inc()
+}
+
+// RecordTenantRateLimitRejection increments the per-tenant rate limit
+// rejection counter.
+func (m *Metrics) RecordTenantRateLimitRejection(tenantID string) {
+	if !m.Enabled() {
+		return
+	}
+	m.TenantRateLimitRejectedTotal.WithLabelValues(tenantID).Inc()
+}
+
+// RecordTenantAuditEntry increments the per-tenant audit entry counter.
+func (m *Metrics) RecordTenantAuditEntry(tenantID, action string) {
+	if !m.Enabled() {
+		return
+	}
+	m.TenantAuditEntriesTotal.WithLabelValues(tenantID, action).Inc()
+}
+
+// ---------------------------------------------------------------------------
+// TenantMetrics — focused tenant-scoped metrics helper
+// ---------------------------------------------------------------------------
+
+// TenantMetrics provides a tenant-scoped view of the metrics system. It
+// wraps the three tenant counters and a parent enabled-flag so that
+// callers (middleware, hooks) can record tenant events without touching
+// the full Metrics struct.
+type TenantMetrics struct {
+	requestsTotal         *prometheus.CounterVec
+	rateLimitRejectedTotal *prometheus.CounterVec
+	auditEntriesTotal     *prometheus.CounterVec
+	enabled               bool
+}
+
+// NewTenantMetrics returns a TenantMetrics backed by the counters in the
+// parent Metrics. Returns nil when m is nil (callers must nil-check).
+func NewTenantMetrics(m *Metrics) *TenantMetrics {
+	if m == nil {
+		return nil
+	}
+	return &TenantMetrics{
+		requestsTotal:          m.TenantRequestsTotal,
+		rateLimitRejectedTotal: m.TenantRateLimitRejectedTotal,
+		auditEntriesTotal:      m.TenantAuditEntriesTotal,
+		enabled:                m.enabled,
+	}
+}
+
+// Enabled reports whether metrics collection is active.
+func (tm *TenantMetrics) Enabled() bool {
+	return tm != nil && tm.enabled
+}
+
+// RecordRequest increments the per-tenant request counter.
+func (tm *TenantMetrics) RecordRequest(tenantID, method, path, status string) {
+	if !tm.Enabled() {
+		return
+	}
+	tm.requestsTotal.WithLabelValues(tenantID, method, path, status).Inc()
+}
+
+// RecordRateLimitRejection increments the per-tenant rate limit rejection
+// counter.
+func (tm *TenantMetrics) RecordRateLimitRejection(tenantID string) {
+	if !tm.Enabled() {
+		return
+	}
+	tm.rateLimitRejectedTotal.WithLabelValues(tenantID).Inc()
+}
+
+// RecordAuditEntry increments the per-tenant audit entry counter.
+func (tm *TenantMetrics) RecordAuditEntry(tenantID, action string) {
+	if !tm.Enabled() {
+		return
+	}
+	tm.auditEntriesTotal.WithLabelValues(tenantID, action).Inc()
 }
 
 // ---------------------------------------------------------------------------

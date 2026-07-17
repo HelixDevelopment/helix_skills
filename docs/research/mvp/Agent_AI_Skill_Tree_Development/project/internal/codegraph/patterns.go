@@ -22,9 +22,9 @@ import (
 type PatternCategory string
 
 const (
-	PatternAPIUsage    PatternCategory = "api_usage"
-	PatternArchitecture PatternCategory = "architecture"
-	PatternDependency  PatternCategory = "dependency"
+	PatternAPIUsage      PatternCategory = "api_usage"
+	PatternArchitecture  PatternCategory = "architecture"
+	PatternDependency    PatternCategory = "dependency"
 	PatternConfiguration PatternCategory = "configuration"
 )
 
@@ -39,7 +39,7 @@ type ExtractedPattern struct {
 	Files       []string        `json:"files"`
 	Confidence  float64         `json:"confidence"` // 0.0 – 1.0
 	// SkillID is set when the pattern maps to an existing skill.
-	SkillID     *uuid.UUID      `json:"skill_id,omitempty"`
+	SkillID *uuid.UUID `json:"skill_id,omitempty"`
 	// SuggestedSkillName is set when no existing skill matches.
 	SuggestedSkillName string `json:"suggested_skill_name,omitempty"`
 }
@@ -78,11 +78,11 @@ type SkillSearcher interface {
 // PatternExtractor analyzes CodeGraph index data and extracts skill-relevant
 // patterns.
 type PatternExtractor struct {
-	client  *MCPClient
-	index   *IndexManager
+	client   *MCPClient
+	index    *IndexManager
 	searcher SkillSearcher
-	cfg     PatternExtractorConfig
-	logger  *zap.Logger
+	cfg      PatternExtractorConfig
+	logger   *zap.Logger
 }
 
 // NewPatternExtractor creates a new pattern extractor.
@@ -328,7 +328,7 @@ func (pe *PatternExtractor) extractDependencyPatterns(ctx context.Context, proje
 	}
 
 	// Analyze dependencies per file.
-	depCounts := make(map[string]int)   // target package → count
+	depCounts := make(map[string]int)     // target package → count
 	depFiles := make(map[string][]string) // target package → source files
 
 	for _, file := range files {

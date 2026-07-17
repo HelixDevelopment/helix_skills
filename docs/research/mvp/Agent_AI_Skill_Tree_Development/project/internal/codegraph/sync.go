@@ -59,12 +59,12 @@ type EvidenceRecord struct {
 // updates. It supports two change-detection strategies: CodeGraph filesystem
 // watcher (preferred, when available) and periodic polling (fallback).
 type SyncManager struct {
-	client     *MCPClient
-	index      *IndexManager
-	evidence   EvidenceStore
-	registry   SkillRegistry
-	cfg        config.CodeGraphConfig
-	logger     *zap.Logger
+	client   *MCPClient
+	index    *IndexManager
+	evidence EvidenceStore
+	registry SkillRegistry
+	cfg      config.CodeGraphConfig
+	logger   *zap.Logger
 
 	// watchedPaths tracks registered watch roots so the manager can
 	// re-establish watchers after a reconnect.
