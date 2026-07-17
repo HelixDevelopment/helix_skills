@@ -199,30 +199,20 @@ func (p *Pipeline) DraftSkill(ctx context.Context, gap Gap) (*models.Skill, []mo
 		zap.String("parent_skill", gap.SkillName),
 	)
 
+	// Anti-bluff (G20): never persist a placeholder as a real skill. Check
+	// before buildContext so this path is verifiable without a database.
+	if p.llm == nil {
+		return nil, nil, fmt.Errorf("cannot draft skill without configured LLM client for %s", gap.MissingDepName)
+	}
+
 	// Build context from the parent skill and its neighbors
 	context, err := p.buildContext(ctx, gap)
 	if err != nil {
 		return nil, nil, fmt.Errorf("build context: %w", err)
 	}
 
-	// Use LLM to generate skill draft
-	if p.llm == nil {
-		// Fallback: create a minimal skill without LLM. CURRENT behavior;
-		// the minimal-draft fallback is slated for removal per G20
-		// (never-persist-a-placeholder -- GAPS_AND_RISKS_REGISTER.md:
-		// "Never persist a placeholder as a real skill ... Alternatives
-		// rejected: keeping the minimal-draft fallback for 'graceful
-		// degradation' -- degrades into bluff data"). This ticket lands
-		// only G20's OTHER half (the *OpenAILLM type-assertion removed
-		// below) -- the fallback itself is untouched, tracked separately
-		// under G20.
-		draft := p.createMinimalDraft(gap)
-		return draft, nil, nil
-	}
-
-	// F1 (G03 fix-round-2 -- lands G20's type-assertion half): draft
-	// through the LLMClient interface (generateSkillDraft, llm.go), never
-	// a concrete-type assertion. This used to assert p.llm.(*OpenAILLM)
+	// Draft through the LLMClient interface (generateSkillDraft, llm.go),
+	// never a concrete-type assertion. This used to assert p.llm.(*OpenAILLM)
 	// directly and error out ("unsupported LLM client type") for every
 	// OTHER LLMClient (*AnthropicLLM, and any future implementation) --
 	// even though NewLLMClientFromConfig already builds those correctly
@@ -231,12 +221,13 @@ func (p *Pipeline) DraftSkill(ctx context.Context, gap Gap) (*models.Skill, []mo
 	// configured LLMClient now drafts successfully here.
 	draft, resources, err := generateSkillDraft(ctx, p.llm, gap.MissingDepName, context)
 	if err != nil {
-		p.logger.Warn("LLM skill drafting failed, using fallback",
+		// G20 anti-bluff: surface the actual error, never silently degrade to a
+		// placeholder that would be persisted as real (but bluff) data.
+		p.logger.Warn("LLM skill drafting failed",
 			zap.Error(err),
 			zap.String("skill", gap.MissingDepName),
 		)
-		draft = p.createMinimalDraft(gap)
-		return draft, nil, nil
+		return nil, nil, fmt.Errorf("LLM skill drafting failed for %s: %w", gap.MissingDepName, err)
 	}
 
 	// Ensure the skill name matches the gap
@@ -326,12 +317,12 @@ Missing dependency: %s
 // Persist + cross-reference (worker-loop wiring, G03)
 // ---------------------------------------------------------------------------
 
-// draftPersistAndCrossReference drafts a skill for gap (via the LLM, or the
-// no-LLM minimal fallback per DraftSkill), persists it, and cross-references
-// it into the tree by adding a `requires` edge from the gap's parent skill
-// (gap.SkillName) to the newly drafted skill -- so the sub-skill this run
-// just created is reachable from the tree that reported the gap, instead of
-// floating unlinked in the skills table.
+// draftPersistAndCrossReference drafts a skill for a gap (via the LLM per
+// DraftSkill), persists it, and cross-references it into the tree by adding a
+// `requires` edge from the gap's parent skill (gap.SkillName) to the newly
+// drafted skill -- so the sub-skill this run just created is reachable from
+// the tree that reported the gap, instead of floating unlinked in the skills
+// table.
 //
 // The parent is resolved via the EXACT Store.GetByName lookup, never the
 // fuzzy hybrid Store.Search -- the identical rationale
@@ -359,11 +350,16 @@ func (p *Pipeline) draftPersistAndCrossReference(ctx context.Context, gap Gap, r
 		return nil, fmt.Errorf("create skill %s: %w", draft.Name, err)
 	}
 
-	// Add resources if any (persistence of the resources themselves is a
-	// separate, pre-existing follow-up -- see the SkillID-stamping loop this
-	// replaces; unchanged behaviour, carried over verbatim).
+	// Persist resources (G20): the LLM backend may return suggested
+	// resources alongside the skill draft; write them out now so they are
+	// immediately visible in the database alongside the new draft skill.
 	for i := range resources {
 		resources[i].SkillID = draft.ID
+	}
+	if len(resources) > 0 {
+		if err := p.store.BulkAddResources(ctx, draft.ID, resources); err != nil {
+			result.Errors = append(result.Errors, fmt.Sprintf("persist resources for %s: %v", draft.Name, err))
+		}
 	}
 
 	if parent, perr := p.store.GetByName(ctx, gap.SkillName); perr != nil {

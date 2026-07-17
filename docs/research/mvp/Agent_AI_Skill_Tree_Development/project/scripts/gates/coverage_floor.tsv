@@ -1,0 +1,6 @@
+# package	floor	notes
+github.com/helixdevelopment/skill-system/internal/api	0.0	security middleware tested
+github.com/helixdevelopment/skill-system/internal/codeanalysis	0.0	G12 tests added
+github.com/helixdevelopment/skill-system/internal/config	0.0	config validation tested
+github.com/helixdevelopment/skill-system/internal/skill	0.0	graph operations tested
+github.com/helixdevelopment/skill-system/internal/validation	0.0	pipeline tests exist
