@@ -31,6 +31,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	skillsystem "github.com/helixdevelopment/skill-system"
 	"github.com/helixdevelopment/skill-system/internal/api"
 	"github.com/helixdevelopment/skill-system/internal/config"
@@ -39,6 +40,7 @@ import (
 	"github.com/helixdevelopment/skill-system/internal/models"
 	"github.com/helixdevelopment/skill-system/internal/registry"
 	"github.com/helixdevelopment/skill-system/internal/skill"
+	"github.com/helixdevelopment/skill-system/internal/skillsource"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -542,6 +544,106 @@ func buildRouter(cfg *config.Config, pool *db.Pool, store *skill.Store, reg *reg
 		})
 	}
 
+	// Skill Sources CRUD (G84) — registered skill sources that supply
+	// SKILL.md files for the source-ingestion pipeline.
+	sourceStore := skillsource.NewStore(pool, logger)
+
+	sources := v1.Group("/sources")
+	{
+		// POST /sources — register a new source
+		sources.POST("", func(c *gin.Context) {
+			var src skillsource.SkillSource
+			if err := c.ShouldBindJSON(&src); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+			if err := sourceStore.Create(c.Request.Context(), &src); err != nil {
+				if errors.Is(err, skillsource.ErrSourceExists) {
+					c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+					return
+				}
+				if errors.Is(err, skillsource.ErrInvalidSource) {
+					c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+					return
+				}
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(http.StatusCreated, src)
+		})
+
+		// GET /sources — list all sources
+		sources.GET("", func(c *gin.Context) {
+			enabledOnly := c.Query("enabled") == "true"
+			srcs, err := sourceStore.List(c.Request.Context(), enabledOnly)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(http.StatusOK, gin.H{"sources": srcs, "count": len(srcs)})
+		})
+
+		// GET /sources/:id — get source by ID
+		sources.GET("/:id", func(c *gin.Context) {
+			id, err := uuid.Parse(c.Param("id"))
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid source id"})
+				return
+			}
+			src, err := sourceStore.GetByID(c.Request.Context(), id)
+			if err != nil {
+				if errors.Is(err, skillsource.ErrSourceNotFound) {
+					c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+					return
+				}
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(http.StatusOK, src)
+		})
+
+		// DELETE /sources/:id — delete source
+		sources.DELETE("/:id", func(c *gin.Context) {
+			id, err := uuid.Parse(c.Param("id"))
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid source id"})
+				return
+			}
+			if err := sourceStore.Delete(c.Request.Context(), id); err != nil {
+				if errors.Is(err, skillsource.ErrSourceNotFound) {
+					c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+					return
+				}
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(http.StatusOK, gin.H{"deleted": id.String()})
+		})
+
+		// POST /sources/:id/sync — trigger sync (marks status as syncing)
+		sources.POST("/:id/sync", func(c *gin.Context) {
+			id, err := uuid.Parse(c.Param("id"))
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid source id"})
+				return
+			}
+			// Verify the source exists before triggering a sync.
+			if _, err := sourceStore.GetByID(c.Request.Context(), id); err != nil {
+				if errors.Is(err, skillsource.ErrSourceNotFound) {
+					c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+					return
+				}
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			if err := sourceStore.UpdateSyncStatus(c.Request.Context(), id, skillsource.SyncStatusSyncing, ""); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(http.StatusAccepted, gin.H{"id": id.String(), "status": "syncing"})
+		})
+	}
+
 	// Coverage API — kept separately from the Server's /api/v1/registry/coverage
 	// (which surfaces pool.GetCoverage). This route delegates to the registry
 	// layer's GetCoverageReport for domain-scoped coverage data.
@@ -590,6 +692,11 @@ func buildRouter(cfg *config.Config, pool *db.Pool, store *skill.Store, reg *reg
 				"GET  /api/v1/skills/search?q=query (auth required)",
 				"GET  /api/v1/skills/:name (auth required)",
 				"GET  /api/v1/skills/:name/tree (auth required)",
+				"POST /api/v1/sources (auth required)",
+				"GET  /api/v1/sources (auth required)",
+				"GET  /api/v1/sources/:id (auth required)",
+				"DELETE /api/v1/sources/:id (auth required)",
+				"POST /api/v1/sources/:id/sync (auth required)",
 				"GET  /api/v1/coverage?domain=optional (auth required)",
 				"GET  /api/v1/missing?domain=optional (auth required)",
 				"POST /mcp/v1/messages (JSON-RPC, auth required)",
