@@ -507,9 +507,6 @@ violations, CM-gates + a §11.4.32 project sweep wired) is the terminal complian
 - **G55 (Bug; severity not independently assessed — see Summary counts note near the top of this file):** Phantom OpenAPI/doc-listed routes beyond the `G52`-fixed `/api/v1/health` (e.g. `/api/v1/graph`, `/skills/:id/{evidence,validate}`) are documented/listed but unimplemented — a `G09`-class contract-drift instance. Composes with `G09` (pervasive OpenAPI↔implementation drift, already tracked above). **STATUS:** Queued.
 - **G56 (Bug; severity not independently assessed — see Summary counts note near the top of this file):** `docker-compose` app-profile deployment contract is broken: double `ENTRYPOINT`/`command` argv-stacking defeats `--config`; the worker container re-runs the server binary; compose passes nonexistent `--db-*` flags; `config.toml`'s `host="db"` is a dangling retired service name; `INSTALL.md`'s example keys don't match the real struct. Composes with `G13` (landed, `9b85df2`) — explicitly pre-existing, NOT a `G13` regression. **STATUS:** Queued.
 - **G57 (Bug — un-wired flagship, §11.4.108/§11.4.124; newly minted this session, no prior id existed):** `internal/mcp.ACPAdapter` — the `--mcp acp` stdio transport was unwired; fixed by wiring the transport in + an idempotent-`Stop` fix. The ledger only ever referred to this as "NEW-2" before this session; this is its first-time filing. **STATUS:** `CLOSED (commit 8fa4e27)`.
-- **G58 (Bug; newly minted this session, no prior id existed):** Migration `003` `pg_trgm` extension + restore of `Store.Search` on a genuinely clean deploy. Distinct defect from `G29`'s hybrid-vector-wiring finding, though it touches the same function — kept as its own id per §11.4.186 anti-divergence (`composes_with: ["G29"]`). **STATUS:** `CLOSED (commit 68e7d2f)`.
-
----
 
 ## Adjudication of the 8 mandated open items
 
