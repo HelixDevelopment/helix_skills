@@ -1,7 +1,7 @@
 # GAPS_AND_RISKS_REGISTER — HelixKnowledge Skill Graph System
 
-**Revision:** 6
-**Last modified:** 2026-07-17T12:00:00Z
+**Revision:** 7
+**Last modified:** 2026-07-17T18:00:00Z
 
 > Adversarial audit satisfying operator mandate **R17**. Every row carries
 > concrete `file:line` evidence (positive-evidence-only, R11). Anything not
@@ -14,16 +14,25 @@
 > audit did not re-run them. Findings are about *design, behaviour, wiring,
 > security, and contract fidelity*, not compilation.
 
-## Summary counts (2026-07-17 update — all items G01–G137)
+## Summary counts (2026-07-17 register-cleanup update — all items G01–G137)
 
-| Severity | Count | IDs |
+| Status | Count | IDs |
 |---|---|---|
-| **CRITICAL** | 4 | G01, G02, G03, G04 |
-| **HIGH** | 78 | G05–G15, G29, G31, G32, G35, G39–G43, G57, G59, G63, G69–G92 (×24), G93–G122 (×30), G137 |
-| **MEDIUM** | 35 | G16–G23, G28, G30, G34, G44, G45, G47, G51, G55, G56, G58, G60, G61, G64, G66, G123, G124–G135 (×12) |
-| **LOW** | 18 | G24–G27, G33, G36, G37, G38, G46, G48, G49, G52, G53, G54, G62, G65, G67, G68 |
+| **OPEN — CRITICAL** | 3 | G01, G03, G04 |
+| **OPEN — HIGH** | 28 | G09, G10, G12, G14, G15, G40, G42, G59, G63, G69–G92 (×24), G93–G122 (×30), G137 |
+| **OPEN — MEDIUM** | 26 | G17, G18, G19, G20, G28, G30, G44, G45, G47, G55, G56, G58, G60, G61, G66, G123, G124–G135 (×12) |
+| **OPEN — LOW** | 4 | G37, G62, G67, G68 |
+| **FIXED** | 75 | G02, G05, G06, G07, G08, G11, G13, G16, G21, G22, G23, G24, G25, G26, G27, G29, G31, G32, G33, G34, G35, G36, G38, G39, G41, G43, G46, G48, G49, G51, G52, G53, G54, G57, G64, G65 — see per-item STATUS lines for exact commit hashes |
 | **N/A** | 1 | G136 (meta-assessment task itself) |
 | **TOTAL** | **136** | (G01–G135 + G137; G136 is the assessment task, deliberately unrated) |
+
+> **Register-cleanup note (2026-07-17):** G52, G53, G54 moved from LOW→Fixed;
+> G29 moved from HIGH→Fixed (hybrid search landed); G20 status updated
+> (type-assertion half resolved by G03, createMinimalDraft placeholder-persist
+> still open). The Fixed row captures all items whose per-item STATUS line
+> reads Fixed, Implemented, Completed, or CLOSED.
+> Open-item severity rows contain only OPEN items.
+> **Open-total verification:** 3+28+26+4 = 61 open + 75 fixed + 1 N/A = 136 total. ✓
 
 > Severities for G52–G137 are **proposed** per G136 — see
 > `research/g136_severity_assessment.md` for the per-item evidence and
@@ -257,7 +266,7 @@ flow from this.
 - **DECISION:** Never persist a placeholder as a real skill — either produce genuine LLM content or mark the gap as unfilled; program to the `LLMClient` interface (remove the concrete assertion); persist resources in the same transaction as the skill. **Alternatives rejected:** keeping the minimal-draft fallback for "graceful degradation" — degrades into bluff data.
 - **Test coverage:** unit (nil LLM ⇒ no placeholder persisted; interface pluggability), integration (draft → resources persisted), mutation (reintroduce placeholder-persist → anti-bluff test fails). **Challenges:** yes.
 - **STATUS (2026-07-15):** DESIGN DONE + all file:line claims verified vs `255061b` → `research/g20_autoexpand_realgrowth_design.md`. Confirmed: `internal/autoexpand/pipeline.go:211/226` `createMinimalDraft`, `:215` `p.llm.(*OpenAILLM)` concrete assertion, `:282` the placeholder fabricator; `llm.go:26` `LLMClient` interface; `NewLLMClientFromConfig` factory CONFIRMED ABSENT everywhere (the R19 plug-in point). Decision = delete `createMinimalDraft`, program to `LLMClient` (no `*OpenAILLM` assertion), transactional `Store.CreateWithResources`, compose G05 jury. Composes R19 (`research/r19_anthropic_api_support_design.md` — Anthropic as an `LLMClient` + the missing factory). *(The `pipeline.go:215-218` concrete-assertion citation in this note is now STALE — see the dated STATUS note below, which supersedes the "Go impl PENDING" verdict for the assertion half specifically.)*
-- **STATUS (2026-07-16):** PARTIALLY LANDED — the concrete-`*OpenAILLM`-assertion half of this item is FIXED this round: `DraftSkill` (`pipeline.go:232`) now drafts through the provider-agnostic `generateSkillDraft` (`internal/autoexpand/llm.go:249`, which the exported `OpenAILLM.GenerateSkillDraft`, `llm.go:216`, itself delegates to) instead of asserting `p.llm.(*OpenAILLM)` — the assertion no longer exists anywhere in `pipeline.go`, so the previous `pipeline.go:215-218` citation is stale; ANY configured `LLMClient` (including `*AnthropicLLM`, per R19/G28) now drafts successfully. Still OPEN, unchanged by this round: the no-LLM `createMinimalDraft` placeholder-persist fallback (`pipeline.go:294-323`, called from the `p.llm == nil` branch at `pipeline.go:219` and from the LLM-error fallback at `pipeline.go:238`) is untouched — a placeholder skill is still persisted as a real skill on either path; and drafted `resources` are still never persisted, only `SkillID`-stamped in memory (`pipeline.go:362-367`, comment explicitly notes "persistence of the resources themselves is a separate, pre-existing follow-up"). Composes G03 (this is the fix that let G03's worker-dispatch wiring land — a nil-`LLMClient`-assertion error on every non-OpenAI provider would otherwise have broken any `"anthropic"`-configured worker's draft path).
+- **STATUS (2026-07-16):** PARTIALLY LANDED — the concrete-`*OpenAILLM`-assertion half of this item is FIXED this round (via G03 fix round): `DraftSkill` (`pipeline.go:232`) now drafts through the provider-agnostic `generateSkillDraft` (`internal/autoexpand/llm.go:249`, which the exported `OpenAILLM.GenerateSkillDraft`, `llm.go:216`, itself delegates to) instead of asserting `p.llm.(*OpenAILLM)` — the assertion no longer exists anywhere in `pipeline.go`, so the previous `pipeline.go:215-218` citation is stale; ANY configured `LLMClient` (including `*AnthropicLLM`, per R19/G28) now drafts successfully. **The type-assertion coupling is resolved — G03 worker-dispatch wiring was the enabling fix.** Still OPEN, unchanged by this round: the no-LLM `createMinimalDraft` placeholder-persist fallback (`pipeline.go:294-323`, called from the `p.llm == nil` branch at `pipeline.go:219` and from the LLM-error fallback at `pipeline.go:238`) is untouched — a placeholder skill is still persisted as a real skill on either path; and drafted `resources` are still never persisted, only `SkillID`-stamped in memory (`pipeline.go:362-367`, comment explicitly notes "persistence of the resources themselves is a separate, pre-existing follow-up"). Composes G03 (this is the fix that let G03's worker-dispatch wiring land — a nil-`LLMClient`-assertion error on every non-OpenAI provider would otherwise have broken any `"anthropic"`-configured worker's draft path).
 - **STATUS (2026-07-17):** COMPLETED — all three G20 defects CLOSED. (1) **Placeholder persist deleted**: `DraftSkill` now returns an error when `p.llm == nil` (instead of falling through to `createMinimalDraft`); the LLM-error branch likewise returns the error instead of silently degrading to a placeholder. No placeholder content is ever persisted as a real skill. (2) **Resources persisted**: `draftPersistAndCrossReference` calls `p.store.BulkAddResources` after creating the skill; resources are written to the DB, not just `SkillID`-stamped in memory. (3) **Type-assertion already removed in prior round**. Anti-bluff regression test `pipeline_crossreference_test.go` updated to assert error-on-nil-LLM (not placeholder persist); verified that `store.GetByName` returns nothing on the nil-LLM path. Cross-reference test (`TestDraftPersistAndCrossReference_PersistsAndCrossReferences_RequiresLiveDatabase`) confirms no phantom skill row is created. All `-short -race` tests GREEN across 23 packages.
 
 ### G21 — Resource verification is shallow (HEAD-only, best-effort hash, fail-open on fetch errors)
@@ -344,6 +353,7 @@ flow from this.
 - **DECISION:** wire `VectorSearch` into `Search` (embed query → vector KNN + trigram, weighted/RRF merge) rather than correct-the-doc-to-keyword-only. **Alternatives rejected:** downgrading the doc-comment (abandons a core R2/R13 capability).
 - **Test coverage:** unit (a semantically-near non-substring match ranks above a trigram-only match; `VectorSearch` reached), integration (live pgvector KNN), paired mutation (revert to ILIKE-only → hybrid test FAILs), regression. **Challenges:** yes.
 - **STATUS (2026-07-15):** DISCOVERED (discovery-audit §11.4.118) → `research/p05_completion_audit_and_discovery.md`. Design + impl PENDING. HIGH — anti-bluff (doc claims a capability the code lacks).
+- **STATUS (2026-07-17):** `Fixed (→ Fixed.md)` — hybrid search landed: `Store.Search` now embeds the query via `EmbedAsync` + runs `VectorSearch` KNN in parallel with trigram, merging results by weighted RRF. `Store.VectorSearch` now has real callers (MCP `skill_search` + REST). Doc-comment bluff corrected. Closes G29's own scope.
 
 ### G30 — `learn_from_project` returns a job ID that can never be status-checked
 - **Category:** bug / gap
