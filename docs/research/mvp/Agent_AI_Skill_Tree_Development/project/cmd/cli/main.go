@@ -145,6 +145,7 @@ trigger expansions, and submit learning jobs - all from your terminal.`,
 	rootCmd.AddCommand(commands.NewExpandCommand())
 	rootCmd.AddCommand(commands.NewLearnCommand())
 	rootCmd.AddCommand(newConfigCommand())
+	commands.RegisterSourceCmd(rootCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)

@@ -10,13 +10,12 @@ package mcp
 // Each source is registered with a unique name, a type (github, filesystem,
 // or url), and a type-specific configuration blob. The source_list tool
 // enumerates registered sources, and source_sync triggers a rescan of a
-// single source's SKILL.md files.
+// single source's SKILL.md files via the sync orchestrator (G82).
 //
-// The sourceStore is an in-memory registry (analogous to codeGraphStore in
-// codegraph_tools.go). Persistence to a database table (skill_sources) is a
-// separate, later integration step — these tools expose the management
-// surface now so agents can begin registering and syncing sources
-// immediately.
+// All state is persisted in the skill_sources database table via
+// internal/skillsource.Store (G74). The sync pipeline
+// (fetch → parse → map → dedup → import) is coordinated by
+// internal/skillsource.Orchestrator (G82).
 // ============================================================================
 
 import (

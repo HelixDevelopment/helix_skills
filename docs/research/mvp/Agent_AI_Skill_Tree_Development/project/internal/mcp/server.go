@@ -45,9 +45,8 @@ type MCPServer struct {
 	acp               *ACPAdapter
 	validator         skillValidator
 	validationEnabled bool
-	codeGraphResults  *codeGraphStore // in-memory cache for codegraph_analyze results
-	sourceStore       *sourceStore    // in-memory registry of skill sources (G86, legacy)
-	skillSourceStore  *skillsource.Store       // DB-backed skill source registry (G74)
+	codeGraphResults   *codeGraphStore // in-memory cache for codegraph_analyze results
+	skillSourceStore   *skillsource.Store       // DB-backed skill source registry (G74)
 	sourceOrchestrator *skillsource.Orchestrator // source sync orchestrator (G82)
 }
 
@@ -133,7 +132,6 @@ func NewMCPServer(pool *db.Pool, store *skill.Store, reg *registry.Registry, cfg
 		validator:          validation.NewPipeline(store, cfg.Validation, logger),
 		validationEnabled:  cfg.Validation.Enabled,
 		codeGraphResults:   newCodeGraphStore(),
-		sourceStore:        newSourceStore(),
 		skillSourceStore:   ssStore,
 		sourceOrchestrator: ssOrch,
 	}
