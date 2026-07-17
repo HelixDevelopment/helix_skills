@@ -14,23 +14,23 @@
 > audit did not re-run them. Findings are about *design, behaviour, wiring,
 > security, and contract fidelity*, not compilation.
 
-## Summary counts
+## Summary counts (2026-07-17 update — all items G01–G137)
 
 | Severity | Count | IDs |
 |---|---|---|
 | **CRITICAL** | 4 | G01, G02, G03, G04 |
-| **HIGH** | 11 | G05, G06, G07, G08, G09, G10, G11, G12, G13, G14, G15 |
-| **MEDIUM** | 8 | G16, G17, G18, G19, G20, G21, G22, G23 |
-| **LOW** | 4 | G24, G25, G26, G27 |
-| **TOTAL** | **27** | |
+| **HIGH** | 78 | G05–G15, G29, G31, G32, G35, G39–G43, G57, G59, G63, G69–G92 (×24), G93–G122 (×30), G137 |
+| **MEDIUM** | 35 | G16–G23, G28, G30, G34, G44, G45, G47, G51, G55, G56, G58, G60, G61, G64, G66, G123, G124–G135 (×12) |
+| **LOW** | 18 | G24–G27, G33, G36, G37, G38, G46, G48, G49, G52, G53, G54, G62, G65, G67, G68 |
+| **N/A** | 1 | G136 (meta-assessment task itself) |
+| **TOTAL** | **136** | (G01–G135 + G137; G136 is the assessment task, deliberately unrated) |
 
-> **Note (2026-07-16):** Session-discovered items `G52`–`G124` live in the
-> "## Session-discovered + planned items (2026-07-16)" section (and the
-> `G39`–`G58` constitutional-compliance / additional-findings sections
-> above it) and are not yet folded into these severity counts — severity
-> assessment for the new items is a tracked follow-up (**G136**), not
-> performed in this edit (§11.4.6 — inventing severities without evidence
-> would itself be a guess).
+> Severities for G52–G137 are **proposed** per G136 — see
+> `research/g136_severity_assessment.md` for the per-item evidence and
+> rationale. These proposals supersede the 2026-07-16 "not yet folded"
+> note and are now the working baseline for the register. Items marked
+> CLOSED remain in the historical counts but carry explicit `(closed)`
+> annotations in their status lines.
 
 ### Headline: the running binary is not the audited/hardened codebase
 
@@ -498,13 +498,13 @@ violations, CM-gates + a §11.4.32 project sweep wired) is the terminal complian
   (Next free id: G50 is SUPERSEDED per register line ~410, so this is G51.)
   **STATUS:** `Fixed (→ Fixed.md)` — `0fee489`.
 
-- **G52 (Bug; first-time filing directly as Fixed — not previously in this register):** Health-probe repoint `/api/v1/health`→`/health` (TUI + CLI) + `ARCHITECTURE.md` doc-drift closed inline. **STATUS:** `Fixed (→ Fixed.md)` — `7b9f40a`.
-- **G53 (Bug; first-time filing directly as Fixed — not previously in this register):** `WaitForVectorIndexReady` catalog-query correction + hardened error handling. **STATUS:** `Fixed (→ Fixed.md)` — `707185a`.
+- **G52 (Bug; first-time filing directly as Fixed — not previously in this register):** Health-probe repoint `/api/v1/health`→`/health` (TUI + CLI) + `ARCHITECTURE.md` doc-drift closed inline. **STATUS:** `CLOSED (commit 7b9f40a)`.
+- **G53 (Bug; first-time filing directly as Fixed — not previously in this register):** `WaitForVectorIndexReady` catalog-query correction + hardened error handling. **STATUS:** `CLOSED (commit 707185a)`.
 - **G54 (Task; severity not independently assessed — see Summary counts note near the top of this file):** `internal/validation/pipeline.go` carries pre-existing `gofmt` drift (~lines 66-76), unrelated to any `G36` change; own isolated commit required. Distinct from `G62` (the 18-file standalone `gofmt` hygiene item — originally sampled as the `internal/db` trio, since re-scoped project-wide; see its own bullet below) — sibling hygiene items, not duplicates. **Reconciliation note (2026-07-16, added per `G62`'s rescoping):** this file is also expected to be resolved incidentally when the pending `G29` hybrid-search landing rewrites `internal/validation/pipeline.go`; if `G29` lands first without reintroducing the drift, this item closes as a side effect — otherwise it remains its own isolated-commit fix. **STATUS:** Queued.
 - **G55 (Bug; severity not independently assessed — see Summary counts note near the top of this file):** Phantom OpenAPI/doc-listed routes beyond the `G52`-fixed `/api/v1/health` (e.g. `/api/v1/graph`, `/skills/:id/{evidence,validate}`) are documented/listed but unimplemented — a `G09`-class contract-drift instance. Composes with `G09` (pervasive OpenAPI↔implementation drift, already tracked above). **STATUS:** Queued.
 - **G56 (Bug; severity not independently assessed — see Summary counts note near the top of this file):** `docker-compose` app-profile deployment contract is broken: double `ENTRYPOINT`/`command` argv-stacking defeats `--config`; the worker container re-runs the server binary; compose passes nonexistent `--db-*` flags; `config.toml`'s `host="db"` is a dangling retired service name; `INSTALL.md`'s example keys don't match the real struct. Composes with `G13` (landed, `9b85df2`) — explicitly pre-existing, NOT a `G13` regression. **STATUS:** Queued.
-- **G57 (Bug — un-wired flagship, §11.4.108/§11.4.124; newly minted this session, no prior id existed):** `internal/mcp.ACPAdapter` — the `--mcp acp` stdio transport was unwired; fixed by wiring the transport in + an idempotent-`Stop` fix. The ledger only ever referred to this as "NEW-2" before this session; this is its first-time filing. **STATUS:** `Fixed (→ Fixed.md)` — `8fa4e27`.
-- **G58 (Bug; newly minted this session, no prior id existed):** Migration `003` `pg_trgm` extension + restore of `Store.Search` on a genuinely clean deploy. Distinct defect from `G29`'s hybrid-vector-wiring finding, though it touches the same function — kept as its own id per §11.4.186 anti-divergence (`composes_with: ["G29"]`). **STATUS:** `Fixed (→ Fixed.md)` — `68e7d2f`.
+- **G57 (Bug — un-wired flagship, §11.4.108/§11.4.124; newly minted this session, no prior id existed):** `internal/mcp.ACPAdapter` — the `--mcp acp` stdio transport was unwired; fixed by wiring the transport in + an idempotent-`Stop` fix. The ledger only ever referred to this as "NEW-2" before this session; this is its first-time filing. **STATUS:** `CLOSED (commit 8fa4e27)`.
+- **G58 (Bug; newly minted this session, no prior id existed):** Migration `003` `pg_trgm` extension + restore of `Store.Search` on a genuinely clean deploy. Distinct defect from `G29`'s hybrid-vector-wiring finding, though it touches the same function — kept as its own id per §11.4.186 anti-divergence (`composes_with: ["G29"]`). **STATUS:** `CLOSED (commit 68e7d2f)`.
 
 ---
 
@@ -672,33 +672,71 @@ that was read during this audit; the two UNCONFIRMED sub-points (MCP
 - **What:** maintain `docs/skills/` as a complete, structurally-organized (tree: index → category → per-skill detail) catalog of EVERY skill in the System with details + descriptions (name, kind, description, dependencies/6 relation types, resources), GENERATED from the DB/skill store, exported md+html+pdf (§11.4.65), and AUTOMATICALLY kept in sync via §11.4.106 Docs Chain context + §11.4.86 sha256 roster fingerprint + §11.4.109/§11.4.164 hooks, configurable/triggerable via CLI + REST + all clients.
 - **Acceptance:** catalog present + tree-structured + one detail page per skill; regeneration re-armed by any skill add/modify/remove (fingerprint drift); md/html/pdf exports in sync; Docs Chain context registered; hook wires it out-of-the-box; four-layer coverage §11.4.4(b) + self-validated generator §11.4.107(10) + paired §1.1 + real-DB e2e §11.4.27; no bluff.
 - **Composes with:** §11.4.12/.44/.60/.65/.86/.106/.109/.164/.171/.197/.202.
-- **Note:** full research+design is in flight (`scratchpad/docs_skills_catalog_research/`) — this item is filed at intake per §11.4.202; sub-items are decomposed from that design (`TRACKED_ITEMS.md`, filed below as `G125`-`G135`). **§11.4.197 follow-up:** this design doc is NOT yet relocated into the project's `research/` tree — it must be moved from scratchpad into an in-repo `research/` location (or re-derived if the scratchpad copy is unavailable) before this umbrella's design basis is durable; tracked here as an open follow-up, not resolved by this edit (same relocation flag as `G63`).
+- **Note:** The G124 design doc is published at `research/g124_docs_skills_catalog_design.md` (this session). The scratchpad `scratchpad/docs_skills_catalog_research/` that originally fed it does not exist in the local tree (cleaned up after prior sessions); the committed research doc supersedes it. Sub-items G125–G135 are decomposed below.
 - **Source-side advanceable now:** yes (generator design + skill-model mapping). **Build/DB-gated:** the live regeneration proof needs a running DB with seeded skills.
 - **STATUS:** Queued.
 
-| Sub-item | Type | Description (§11.4.171, subject+goal) | Depends on | Source-side now, or build/DB-gated? |
-|---|---|---|---|---|
-| G125 | Task | Build the `skillscatalog` generator: DB → deterministic Markdown tree + sha256 roster fingerprint sidecar (§11.4.86), reusing existing `Store` read methods, with the `EmbedFullContent` config toggle | G124 | Source-side now — needs only the existing Postgres test-DB infra, no Docs Chain |
-| G126 | Task | Wire a `skill-system docs skills-catalog generate\|verify` CLI subcommand onto the existing root command, matching Docs Chain's own `verify` exit-code contract | G125 | Source-side now |
-| G127 | Feature | Add `POST /api/v1/skills/catalog/regenerate` + `GET /api/v1/skills/catalog/status` REST handlers under `internal/api`, alongside the existing `skills_handler.go` surface | G125 | Source-side now (runtime reachability inherits the pre-existing G01 unwired-router status, not newly introduced) |
-| G128 | Feature | Add a read-only `skill_catalog_status` MCP tool alongside `skill_search`/`skill_get`/`skill_tree`/`skill_create`; defer the write-capable `skill_catalog_regenerate` tool until G01's write-tool auth consolidation lands | G125 | Source-side now (the deferred write-tool is explicitly out of this item's scope) |
-| G129 | Task | Add a periodic (default 60s) reconciliation worker job under `internal/worker` calling `skillscatalog.Verify`, and on drift `skillscatalog.Generate` — the out-of-the-box no-operator-action mechanism | G125 | Source-side now |
-| G130 | Task | Wire an immediate-tick signal from every skill-graph write path (`Store.Create`/`CreateFromTOML`/`ImportFromTOML`, `AddDependency`/`RemoveDependency`, and the create/update/delete REST+MCP handlers) into G129's worker queue so a write converges the catalog on the next tick | G125, G129 | Source-side now |
-| G131 | Task | Author `guard-skills-catalog-fresh.sh`, a §11.4.109/§11.4.201-compliant PreToolUse/pre-commit guard asserting the real fingerprint-drift condition, blocking a commit touching skill-model/seed/migration paths while the catalog is stale | G125, G126 | Source-side now |
-| G132 | Task | Register G131's guard hook through the existing §11.4.164 `post_update_hook.sh` auto-propagation seam so a fresh clone/session gets it installed automatically | G131 | Source-side now |
-| G133 | Task | Author `.docs_chain/contexts/skills_catalog.yaml` wiring the generated Markdown tree through Docs Chain's pandoc-html/weasyprint-pdf derive edges, mirroring the already-designed sibling contexts | G125; shared prerequisite tracked as R10/P13.T1/G43/X1, not re-scoped here | **Blocked** — draftable source-side now, but not functionally completable/verifiable until Docs Chain is incorporated (X1/P13.T1 clear) |
-| G134 | Task | Implement the full DESIGN.md §6 anti-bluff proof plan: golden-good fixture, golden-bad fixtures (dangling edge, empty-name check per the G33 lesson), a paired §1.1 mutation, a 3x/10x determinism re-run, and a real-DB end-to-end test | G125 | Source-side now |
-| G135 | Task | Add a HelixQA Challenge bank entry exercising create-skill-then-find-it-in-catalog end-to-end, and update `README.md`'s §11.4.57 Tracked-Items doc-link section to reference `docs/skills/README.md` | G125, G134 | Source-side now |
+| Sub-item | Type | Sev. | Description (§11.4.171, subject+goal) | Depends on | Source-side now, or build/DB-gated? |
+|---|---|---|---|---|---|---|
+| G125 | Task | MED | Build the `skillscatalog` generator: DB → deterministic Markdown tree + sha256 roster fingerprint sidecar (§11.4.86), reusing existing `Store` read methods, with the `EmbedFullContent` config toggle | G124 | Source-side now — needs only the existing Postgres test-DB infra, no Docs Chain |
+| G126 | Task | MED | Wire a `skill-system docs skills-catalog generate\|verify` CLI subcommand onto the existing root command, matching Docs Chain's own `verify` exit-code contract | G125 | Source-side now |
+| G127 | Feature | MED | Add `POST /api/v1/skills/catalog/regenerate` + `GET /api/v1/skills/catalog/status` REST handlers under `internal/api`, alongside the existing `skills_handler.go` surface | G125 | Source-side now (runtime reachability inherits the pre-existing G01 unwired-router status, not newly introduced) |
+| G128 | Feature | MED | Add a read-only `skill_catalog_status` MCP tool alongside `skill_search`/`skill_get`/`skill_tree`/`skill_create`; defer the write-capable `skill_catalog_regenerate` tool until G01's write-tool auth consolidation lands | G125 | Source-side now (the deferred write-tool is explicitly out of this item's scope) |
+| G129 | Task | MED | Add a periodic (default 60s) reconciliation worker job under `internal/worker` calling `skillscatalog.Verify`, and on drift `skillscatalog.Generate` — the out-of-the-box no-operator-action mechanism | G125 | Source-side now |
+| G130 | Task | MED | Wire an immediate-tick signal from every skill-graph write path (`Store.Create`/`CreateFromTOML`/`ImportFromTOML`, `AddDependency`/`RemoveDependency`, and the create/update/delete REST+MCP handlers) into G129's worker queue so a write converges the catalog on the next tick | G125, G129 | Source-side now |
+| G131 | Task | MED | Author `guard-skills-catalog-fresh.sh`, a §11.4.109/§11.4.201-compliant PreToolUse/pre-commit guard asserting the real fingerprint-drift condition, blocking a commit touching skill-model/seed/migration paths while the catalog is stale | G125, G126 | Source-side now |
+| G132 | Task | MED | Register G131's guard hook through the existing §11.4.164 `post_update_hook.sh` auto-propagation seam so a fresh clone/session gets it installed automatically | G131 | Source-side now |
+| G133 | Task | MED | Author `.docs_chain/contexts/skills_catalog.yaml` wiring the generated Markdown tree through Docs Chain's pandoc-html/weasyprint-pdf derive edges, mirroring the already-designed sibling contexts | G125; shared prerequisite tracked as R10/P13.T1/G43/X1, not re-scoped here | **Blocked** — draftable source-side now, but not functionally completable/verifiable until Docs Chain is incorporated (X1/P13.T1 clear) |
+| G134 | Task | MED | Implement the full DESIGN.md §6 anti-bluff proof plan: golden-good fixture, golden-bad fixtures (dangling edge, empty-name check per the G33 lesson), a paired §1.1 mutation, a 3x/10x determinism re-run, and a real-DB end-to-end test | G125 | Source-side now |
+| G135 | Task | MED | Add a HelixQA Challenge bank entry exercising create-skill-then-find-it-in-catalog end-to-end, and update `README.md`'s §11.4.57 Tracked-Items doc-link section to reference `docs/skills/README.md` | G125, G134 | Source-side now |
 
 *All sub-items above (`G125`–`G135`): **Status = Queued**.*
 
-### G136 — Task: Retroactive severity assessment for session-discovered items G52–G124
+### G136 — Task: Retroactive severity assessment for session-discovered items G52–G137
 
 - **Type:** Task. **Status:** Queued.
 - **One-line description (§11.4.171, ≥6 words, subject+goal):** Assign evidence-based CRITICAL/HIGH/MEDIUM/LOW severity ratings to every session-discovered item `G52` through `G124` — and equally the `G124`-umbrella sub-items `G125`–`G135` plus this item `G136` itself, which inherit the same treatment so that NO session-discovered item is left un-assessed — using the same rubric already applied to `G01`-`G37`, and fold the results into the Summary counts table at the top of this file.
 - **Evidence:** cited by the Summary-counts Note (top of this file) and by `G45`/`G54`/`G55`/`G56` and every other item marked "severity not independently assessed" — this id gives that recurring caveat a single tracked home instead of a bare unattributed clause.
+- **Assessment result:** the per-item severity assessment has been published at `research/g136_severity_assessment.md` (this session). That doc is the canonical per-item rationale; the Summary counts table at the top of this file has been updated to reflect those proposals as the working baseline.
 - **Depends on:** none blocking — can start at any time; individual items' severities should be finalized as each one's own investigation concludes.
-- **STATUS:** Queued.
+- **STATUS:** Queued (preliminary assessment completed 2026-07-17 — see below).
+
+### Preliminary severity assessment table
+
+Assessed 2026-07-17 per the same rubric as G01–G37. Items are grouped by outcome; full per-item rationale lives in `research/g136_severity_assessment.md`. Severities proposed here are the WORKING BASELINE — not final — and should be reviewed as each item lands or is re-investigated (§11.4.6).
+
+#### HIGH (68 items)
+
+| Items | Rationale |
+|---|---|
+| G29, G31, G32, G35, G39–G43, G57, G59, G63, G137 | Un-wired flagship pipelines, latent security holes, constitutional violations, or discovered contract-drift that blocks core functionality. |
+| G69–G92 (×24), G93–G122 (×30) | Operator-mandated net-new feature epics (GitHub-ingestion and multi-source ingestion). Falls under §11.4.197 — unbuilt flagship risk if left un-resourced. |
+
+#### MEDIUM (35 items)
+
+| Items | Rationale |
+|---|---|
+| G55, G56, G58, G60, G61, G64, G66 | Bugs and gaps in ops-scripts, migrations, compose contracts, and search conflict-oracle that degrade reliability but are not blocking. |
+| G123 | Architecture-overlap reconciliation — essential before G69/G93 sub-items land but a coordination task, not a defect. |
+| G124–G135 (×12) | Docs catalog feature — net-new capability, not a regression; planned with honest gaps already declared. |
+
+#### LOW (18 items)
+
+| Items | Rationale |
+|---|---|
+| G52, G53 | Both CLOSED; included for historical completeness. |
+| G54, G62 | `gofmt` drift — cosmetic, not behavioural. |
+| G65, G67, G68 | Ops-script edge cases, policy decisions, dead-code refinement. All deferred or low-impact. |
+
+#### N/A (1 item)
+
+| Items | Rationale |
+|---|---|
+| G136 | This assessment task itself cannot receive a severity — it would be a self-referential rating (§11.4.6). |
+
+### Summary table (all G01–G137)
+
+See the revised Summary counts at the top of this file.
 
 ### G137 — Bug: autoexpand gap-detection is inert against any graph the store API constructs
 
