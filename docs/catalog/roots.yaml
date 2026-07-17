@@ -18,3 +18,15 @@ roots:
   - root: constitution/scripts/gates
     type: meta-test-mutation
     glob: "*_mutation_test.sh"
+
+  - root: constitution/scripts/multitrack
+    type: multitrack_test
+    glob: "test_*.sh"
+
+  - root: constitution/scripts/workable-items/cmd/workable-items
+    type: workable_items_test
+    glob: "*_test.go"
+
+  - root: constitution
+    type: constitution_gate
+    glob: "meta_test_*.sh"

@@ -8,6 +8,8 @@ clusters:
   - testing
   - hooks
   - meta-test-mutation
+  - multitrack
+  - workable_items
 
 keyword_cluster:
   constitution: governance
@@ -33,3 +35,34 @@ keyword_cluster:
   work_track: hooks
   mutation: meta-test-mutation
   cm_: meta-test-mutation
+  multitrack: multitrack
+  conductor: multitrack
+  ruler: multitrack
+  alias_priority: multitrack
+  fallback: multitrack
+  bootstrap: multitrack
+  host_budget: multitrack
+  reconcile: multitrack
+  supervisor: multitrack
+  sessions: multitrack
+  workable: workable_items
+  items: workable_items
+  atm: workable_items
+  import: workable_items
+  export: workable_items
+  crud: workable_items
+  diary: workable_items
+  roundtrip: workable_items
+  classify: workable_items
+  assign: workable_items
+  validate: workable_items
+  obsolete: workable_items
+  reopen: workable_items
+  migrate: workable_items
+  mutate: workable_items
+  subtask: workable_items
+  group: workable_items
+  sync_diff: workable_items
+  repair: workable_items
+  gap: workable_items
+  attribution: workable_items
