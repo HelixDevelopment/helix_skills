@@ -1,7 +1,7 @@
 # CONTINUATION.md — Helix Skills
 
-**Revision:** 4
-**Last modified:** 2026-07-18T00:30:00Z
+**Revision:** 5
+**Last modified:** 2026-07-18T01:15:00Z
 
 ---
 
@@ -16,7 +16,7 @@ development with 95 open findings (2 CRITICAL, 64 HIGH, 25 MEDIUM,
 
 ## §2 — Session State
 
-- **HEAD:** `f9934c3` (chore: bump constitution submodule — Go test coverage audit)
+- **HEAD:** `ee685c8` (merge: resolve register conflict — testing-infra stress+chaos tests)
 - **Branch:** `main`
 - **Constitution submodule:** present at `constitution/`
 - **Skills installed:** 7 active (action-prefix-system, media-validator,
@@ -29,6 +29,12 @@ development with 95 open findings (2 CRITICAL, 64 HIGH, 25 MEDIUM,
 ## §3 — Active Work
 
 ### Just completed (this session)
+- T1-RESTART: full test suite — 24 Go packages PASS, constitution gates PASS
+- T1-RESTART: verified all commits pushed to all 5 remotes (origin, github, gitflic, gitlab, gitverse)
+- T1-RESTART: all 3 feature branches (deep-research, catalog-docs, testing-infra) fully merged into main
+- T1-RESTART: CONTINUATION.md stale HEAD fixed (f9934c3 → ee685c8), revision bumped to Rev 5
+- MERGE: `feature/testing-infra` merged into main (ee685c8) — stress+chaos tests + HelixQA banks
+  (15 files, +2196 lines)
 - MERGE: `feature/catalog-docs` merged into main (ed31e4a) — test catalog
   generation from real corpus (34 records across 4 types)
 - MERGE: `feature/deep-research` merged into main (1ad3cce) — enterprise

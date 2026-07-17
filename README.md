@@ -1,7 +1,7 @@
 # Helix Skills
 
-**Revision:** 2
-**Last modified:** 2026-07-18T00:30:00Z
+**Revision:** 3
+**Last modified:** 2026-07-18T01:15:00Z
 
 Skills system for CLI AI Agents. Inherits the
 [Helix Constitution](https://github.com/HelixDevelopment/HelixConstitution)
