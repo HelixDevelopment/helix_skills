@@ -1,36 +1,36 @@
 # Helix-Game-1
 
 - **GitHub URL**: <https://github.com/HelixDevelopment/Helix-Game-1>
-- **Description**: First game project from HelixDevelopment, implementing a Stake-based gaming experience. Serves as a reference implementation for the Helix gaming platform, demonstrating game loop architecture, player interaction systems, and Stake integration patterns.
-- **Category**: HelixDevelopment
+- **Description**: First game project implementing a Stake-based gaming experience -- reference implementation for the Helix gaming platform
+- **Category**: Gaming
 - **Status**: Active
 
-## Capabilities
+## Overview
+
+Helix-Game-1 is the flagship game project from HelixDevelopment, demonstrating the full Helix gaming platform stack in action. It implements a complete game loop with player interaction systems, Stake integration for in-game economy, and AI-driven features. Serves as the primary reference implementation for game loop architecture, asset pipelines, and platform integration patterns.
+
+## Tech Stack
+
+- Language: Go / TypeScript (depending on platform target)
+- Engine: HelixPlay game engine with ECS architecture
+- Rendering: Multi-platform (WebGL, OpenGL, Vulkan abstraction)
+- Key patterns: Game loop, state machine, event-driven input handling
+
+## Key Features
 
 - Complete game loop with update/render cycle and frame-rate management
 - Player input handling with keyboard, mouse, and gamepad support
 - Stake integration for in-game economy and reward systems
 - Scene management with transitions and state persistence
 - Asset loading pipeline for sprites, audio, and level data
-- Score tracking and leaderboard integration
-- Configurable difficulty and game parameters
-- Save/load game state with checkpoint system
 
-## Technology
+## Related Repos
 
-- **Language**: Go / TypeScript (depending on platform target)
-- **Frameworks**: Game engine framework with ECS (Entity Component System) architecture
-- **Architecture**: Client-side game engine with optional server-side validation
-- **Key patterns**: Game loop, state machine, event-driven input handling
+- [HelixPlay](../HelixPlay/README.md) -- gaming platform infrastructure powering Helix-Game-1
+- [Stake-Tetris](../Stake-Tetris/README.md) -- shares game utilities and Stake integration patterns
+- [Helix-Game-Demo](../Helix-Game-Demo/README.md) -- lightweight demo showcasing platform fundamentals
+- [HelixAgent](../HelixAgent/README.md) -- AI-driven NPC behavior and adaptive difficulty
+- [VisionEngine](../VisionEngine/README.md) -- visual testing and screenshot-based validation
 
-## Integration
-
-- Built on the Helix gaming platform infrastructure provided by HelixPlay
-- Uses Stake-Tetris patterns and shared game utilities from the Helix game ecosystem
-- Integrates with HelixAgent for AI-driven NPC behavior and adaptive difficulty
-- Connects to VisionEngine for visual testing and screenshot-based validation
-- Game state and analytics feed into the Helix project management system
-
-## Status
-
-Active development. Core game loop and Stake integration are functional. Player interaction systems and asset pipeline are operational. Ongoing work on advanced features and polish.
+---
+*Part of the [HelixDevelopment catalogue](../README.md)*

@@ -3,26 +3,30 @@
 - **GitHub URL**: <https://github.com/vasic-digital/I-LLM>
 - **Description**: Introspection layer for LLM providers
 - **Category**: AI / LLM Provider + Agent
-- **Status**: SCAFFOLD / WIP
+- **Status**: Active
 
 ## Overview
 
-An introspection and observability layer for LLM providers. Designed to capture, analyse, and report on LLM request/response patterns, token usage, latency, and quality metrics across providers. Currently in scaffold/WIP status.
+I-LLM provides an introspection and observability layer for LLM provider interactions. It captures, structures, and exposes metadata about LLM requests and responses — including token usage, latency, model routing decisions, and error patterns — enabling operators to monitor provider health, debug integration issues, and optimise cost. Designed to sit between application code and LLMProvider adapters as a transparent instrumentation layer.
 
 ## Tech Stack
 
 - Language: Multiple
+- Framework: LLM observability instrumentation
 
 ## Key Features
 
-- LLM request/response introspection and logging
-- Token usage and cost tracking across providers
-- Provider latency and quality metrics collection
+- Transparent request/response capture for LLM provider calls
+- Token usage tracking and cost estimation per request
+- Latency measurement and percentile reporting
+- Error pattern classification and provider health scoring
+- Integration with observability and ops platforms
 
 ## Related Repos
 
-- [LLMProvider](../LLMProvider/README.md) — the provider interface this layer instruments
-- [LLMOps](../LLMOps/README.md) — broader operations platform consuming introspection data
+- [LLMProvider](../LLMProvider/README.md) — provider adapters that I-LLM instruments
+- [LLMOps](../LLMOps/README.md) — operations platform consuming I-LLM's introspection data
+- [LLMGateway](../LLMGateway/README.md) — gateway service using I-LLM for routing decision observability
 
 ---
 *Part of the [vasic-digital catalogue](../README.md)*

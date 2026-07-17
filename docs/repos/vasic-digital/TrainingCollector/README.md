@@ -7,22 +7,26 @@
 
 ## Overview
 
-A reusable module for collecting and organising training data from visual testing and automation sessions. Captures UI states, interactions, and outcomes as structured training examples for visual AI model development and fine-tuning.
+TrainingCollector gathers and structures visual training data from automated test runs and UI interactions. It captures screenshots, interaction sequences, and UI state transitions into organised datasets suitable for training visual regression models and improving automated test generation. Works as a data-collection layer in the visual testing pipeline.
 
 ## Tech Stack
 
 - Language: Multiple
+- Framework: Visual testing pipeline
 
 ## Key Features
 
-- Structured training data collection from UI sessions
-- Labelled example generation for visual model training
-- Dataset organisation and export for ML pipelines
+- Automated capture of UI screenshots and interaction sequences
+- Structured dataset generation from test run artifacts
+- State transition tracking for UI workflow documentation
+- Integration with visual regression and replay testing pipelines
+- Configurable capture frequency and output formats
 
 ## Related Repos
 
-- [ReplayBuffer](../ReplayBuffer/README.md) — replay buffer providing raw interaction data
-- [Panoptic](../Panoptic/README.md) — UI recording tool producing training source data
+- [ReplayBuffer](../ReplayBuffer/README.md) — replay storage for captured interaction sequences
+- [ScreenDiff](../ScreenDiff/README.md) — visual diff analysis applied to collected training data
+- [VisualRegression](../VisualRegression/README.md) — regression detection that consumes training datasets
 
 ---
 *Part of the [vasic-digital catalogue](../README.md)*

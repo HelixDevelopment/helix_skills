@@ -1,36 +1,35 @@
 # Helix-Game-Demo
 
 - **GitHub URL**: <https://github.com/HelixDevelopment/Helix-Game-Demo>
-- **Description**: Demonstration and showcase project for the Helix gaming platform. Provides a lightweight, self-contained game demo that illustrates core platform capabilities including game loop, rendering, input handling, and Stake integration patterns for new developers and stakeholders.
-- **Category**: HelixDevelopment
+- **Description**: Demonstration and showcase project for the Helix gaming platform -- lightweight self-contained game demo
+- **Category**: Gaming
 - **Status**: Active
 
-## Capabilities
+## Overview
 
-- Minimal game demo showcasing the Helix gaming platform fundamentals
+Helix-Game-Demo is a lightweight, self-contained game demo that illustrates core Helix gaming platform capabilities for new developers and stakeholders. It provides a minimal reference implementation for game loop, rendering, input handling, and Stake integration patterns -- designed as both a quick-start template for new Helix game projects and a visual showcase for stakeholder presentations.
+
+## Tech Stack
+
+- Language: TypeScript / JavaScript
+- Rendering: Canvas/WebGL (web-based)
+- Architecture: Client-side demo with optional server-side Stake integration
+- Key patterns: Minimal game loop, event-driven rendering, asset preloading
+
+## Key Features
+
+- Minimal game demo showcasing Helix gaming platform fundamentals
 - Reference implementation for game loop, rendering, and input handling patterns
 - Stake integration demonstration with economy and reward examples
 - Quick-start template for new Helix game projects
-- Visual showcase of platform capabilities for stakeholder presentations
-- Lightweight footprint -- runs in browser and on desktop without heavy dependencies
 - Tutorial-style code with extensive comments explaining platform patterns
-- Automated visual regression testing via screenshot comparison
 
-## Technology
+## Related Repos
 
-- **Language**: TypeScript / JavaScript
-- **Frameworks**: Web-based game framework (Canvas/WebGL rendering)
-- **Architecture**: Client-side demo with optional server-side Stake integration
-- **Key patterns**: Minimal game loop, event-driven rendering, asset preloading
+- [HelixPlay](../HelixPlay/README.md) -- gaming platform infrastructure demonstrated by this demo
+- [Helix-Game-1](../Helix-Game-1/README.md) -- full game project using the same platform patterns
+- [Stake-Tetris](../Stake-Tetris/README.md) -- another game built on the same foundations
+- [VisionEngine](../VisionEngine/README.md) -- automated visual testing of demo screens
 
-## Integration
-
-- Demonstrates patterns used by Helix-Game-1, Stake-Tetris, and HelixPlay
-- Uses the Helix gaming platform shared libraries for rendering and input
-- Integrates with VisionEngine for automated visual testing of demo screens
-- Serves as onboarding material for developers joining the Helix game ecosystem
-- Connects to Stake systems for demonstrating in-game economy flows
-
-## Status
-
-Active. Maintained as a stable reference implementation. Updated when core platform APIs change to keep the demo current. Used for developer onboarding and stakeholder demonstrations.
+---
+*Part of the [HelixDevelopment catalogue](../README.md)*

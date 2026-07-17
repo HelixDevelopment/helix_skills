@@ -1,38 +1,36 @@
 # HelixPlay
 
 - **GitHub URL**: <https://github.com/HelixDevelopment/HelixPlay>
-- **Description**: Ultimate gaming experience platform providing the core gaming infrastructure for the Helix ecosystem. Delivers game engine foundations, rendering pipelines, input management, audio systems, and Stake integration for building immersive gaming experiences.
-- **Category**: HelixDevelopment
+- **Description**: Gaming platform providing engine foundations, rendering pipelines, input management, audio systems, and Stake integration for building immersive games
+- **Category**: Gaming
 - **Status**: Active
 
-## Capabilities
+## Overview
+
+HelixPlay is the core gaming infrastructure for the Helix ecosystem. It delivers a configurable game engine with multi-platform rendering (WebGL, OpenGL, Vulkan abstraction), input management, spatial audio, scene graph, and Stake integration. All Helix games (Helix-Game-1, Stake-Tetris, Helix-Game-Demo) are built on HelixPlay as their shared platform layer.
+
+## Tech Stack
+
+- Language: Go (engine core), TypeScript (web rendering), C++ (performance-critical paths)
+- Rendering: WebGL/WebGPU for browser, native rendering for desktop
+- Architecture: Layered engine with pluggable subsystems (render, audio, input, physics)
+- Key patterns: Entity Component System, command pattern for input, observer pattern for events
+
+## Key Features
 
 - Game engine core with configurable update/render loop and frame pacing
 - Multi-platform rendering pipeline (WebGL, OpenGL, Vulkan abstraction layer)
 - Input management system supporting keyboard, mouse, touch, and gamepad
 - Audio engine with spatial sound, mixing, and streaming playback
-- Scene graph management with hierarchical transforms and culling
-- Asset pipeline with hot-reload support for rapid iteration
 - Stake integration layer for in-game economy, rewards, and transactions
-- Physics integration with configurable simulation stepping
-- UI framework for in-game HUD, menus, and overlays
 
-## Technology
+## Related Repos
 
-- **Language**: Go (engine core), TypeScript (web rendering), C++ (performance-critical paths)
-- **Frameworks**: Custom ECS architecture, WebGL/WebGPU for browser, native rendering for desktop
-- **Architecture**: Layered engine with pluggable subsystems (render, audio, input, physics)
-- **Key patterns**: Entity Component System, command pattern for input, observer pattern for events
+- [Helix-Game-1](../Helix-Game-1/README.md) -- flagship game built on HelixPlay
+- [Stake-Tetris](../Stake-Tetris/README.md) -- puzzle game using HelixPlay infrastructure
+- [Helix-Game-Demo](../Helix-Game-Demo/README.md) -- demo showcasing HelixPlay fundamentals
+- [VisionEngine](../VisionEngine/README.md) -- visual testing and automated screenshot validation
+- [HelixAgent](../HelixAgent/README.md) -- AI-driven gameplay features (NPCs, adaptive difficulty)
 
-## Integration
-
-- Foundation for all Helix games (Helix-Game-1, Stake-Tetris, Helix-Game-Demo)
-- Uses VisionEngine for visual testing and automated screenshot validation
-- Integrates with HelixAgent for AI-driven gameplay features (NPCs, adaptive difficulty)
-- Connects to Stake systems for economy and reward integration
-- Consumed by helixqa for game-specific automated testing
-- Shared game utilities library used across the Helix game portfolio
-
-## Status
-
-Active development. Core engine with rendering, input, and audio subsystems operational. WebGL rendering stable for browser targets. Stake integration layer functional. Ongoing work on Vulkan backend and advanced rendering features.
+---
+*Part of the [HelixDevelopment catalogue](../README.md)*

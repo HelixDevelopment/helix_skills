@@ -7,23 +7,26 @@
 
 ## Overview
 
-An implementation of advanced AI planning algorithms for agent systems. Includes HiPlan (hierarchical planning), Monte Carlo Tree Search (MCTS), and Tree of Thoughts — enabling agents to decompose complex tasks and search for optimal solution paths.
+Planning implements advanced AI planning algorithms for multi-step reasoning and decision-making. It includes HiPlan for hierarchical task decomposition, Monte Carlo Tree Search (MCTS) for exploration-exploitation trade-offs, and Tree of Thoughts for structured LLM reasoning. These algorithms enable agents to plan complex action sequences rather than relying on single-step prompting.
 
 ## Tech Stack
 
 - Language: Multiple
+- Framework: AI planning and search algorithms
 
 ## Key Features
 
-- HiPlan hierarchical task decomposition
-- Monte Carlo Tree Search (MCTS) implementation
-- Tree of Thoughts reasoning framework
+- HiPlan hierarchical task decomposition for complex goal planning
+- Monte Carlo Tree Search for optimal action sequence exploration
+- Tree of Thoughts for structured multi-branch LLM reasoning
+- Composable planning primitives for custom agent architectures
+- Configurable search depth and branching strategies
 
 ## Related Repos
 
-- [Optimization](../Optimization/README.md) — optimization primitives used by planning algorithms
-- [SelfImprove](../SelfImprove/README.md) — self-improvement feedback loops for planning agents
-- [SkillRegistry](../SkillRegistry/README.md) — skill registration for plan execution
+- [Agentic](../Agentic/README.md) — graph-based orchestration that can use planning algorithms for workflow generation
+- [conversation](../conversation/README.md) — conversation context providing the reasoning history that planning algorithms extend
+- [LLMProvider](../LLMProvider/README.md) — provider adapters for LLM calls within planning loops
 
 ---
 *Part of the [vasic-digital catalogue](../README.md)*

@@ -1,37 +1,37 @@
 # HelixSpecifier
 
 - **GitHub URL**: <https://github.com/HelixDevelopment/HelixSpecifier>
-- **Description**: Spec-Driven Development Fusion Engine -- a unified specification intelligence system fusing SpecKit, Superpowers, and GSD (Get Stuff Done) for HelixAgent AI debate ensemble. Transforms natural language requirements into structured, testable specifications with full traceability from requirement to implementation to test.
-- **Category**: HelixDevelopment
+- **Description**: Spec-Driven Development Fusion Engine -- unified specification intelligence fusing SpecKit + Superpowers + GSD for HelixAgent AI debate ensemble
+- **Category**: AI / Development Tools
 - **Status**: Active
 
-## Capabilities
+## Overview
+
+HelixSpecifier transforms natural language requirements into structured, testable specifications with full traceability from requirement to implementation to test. By fusing SpecKit, Superpowers, and GSD (Get Stuff Done), it provides specification intelligence that drives the entire development lifecycle -- from initial requirement parsing through AI debate-driven review to acceptance criteria auto-generation.
+
+## Tech Stack
+
+- Language: Go (core engine), with NLP pipelines for requirement parsing
+- Analysis: LLM integration for semantic analysis, debate-driven validation
+- Architecture: Fusion engine combining multiple specification intelligence sources
+- Key patterns: Debate-driven validation, traceability graphs, specification templates
+
+## Key Features
 
 - Natural language requirement parsing into structured specification objects
 - Specification-to-test traceability -- every spec maps to executable acceptance criteria
 - AI debate ensemble for specification review and conflict resolution
-- Spec diff analysis -- detects semantic changes between specification versions
 - Acceptance criteria auto-generation with edge case enumeration
-- Specification completeness scoring with gap identification
-- Integration with development workflows for spec-driven implementation tracking
 - Multi-format specification export (Markdown, OpenAPI, JSON Schema, Gherkin)
 
-## Technology
+## Related Repos
 
-- **Language**: Go (core engine), with NLP pipelines for requirement parsing
-- **Frameworks**: Go standard library, LLM integration for semantic analysis
-- **Architecture**: Fusion engine combining multiple specification intelligence sources
-- **Key patterns**: Debate-driven validation, traceability graphs, specification templates
+- [HelixAgent](../HelixAgent/README.md) -- AI-driven specification analysis and generation
+- [DebateOrchestrator](../DebateOrchestrator/README.md) -- multi-agent specification review and consensus
+- [DocProcessor](../DocProcessor/README.md) -- extracting specifications from existing documentation
+- [HelixCode](../HelixCode/README.md) -- implementation from specifications
+- [helixqa](../helixqa/README.md) -- test generation from specifications
+- [HelixMemory](../HelixMemory/README.md) -- specification history and decision recall
 
-## Integration
-
-- Built on HelixAgent for AI-driven specification analysis and generation
-- Uses DebateOrchestrator for multi-agent specification review and consensus
-- Consumes DocProcessor for extracting specifications from existing documentation
-- Feeds specifications to HelixCode for implementation and helixqa for test generation
-- Integrates with HelixMemory for specification history and decision recall
-- Connects to LLMProvider for multi-model specification analysis
-
-## Status
-
-Active development. Core specification parsing and generation operational. AI debate ensemble for spec review is functional. Traceability system connecting requirements to tests is in active development. Multi-format export capabilities expanding.
+---
+*Part of the [HelixDevelopment catalogue](../README.md)*

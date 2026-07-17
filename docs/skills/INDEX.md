@@ -7,10 +7,10 @@
 | Name | Kind | Status | Domain | Complexity | Version | #Deps | #Resources | Link |
 |---|---|---|---|---|---|---|---|---|
 | action-prefix-system | atomic | active | agent-infrastructure | intermediate | 0.1.0 | 2 | 2 | [link](../repos/skills/action-prefix-system.md) |
-| android.overview | atomic | draft | android | beginner | 0.1.0 | 2 | 2 | *(detail page pending)* |
-| java.language | atomic | draft | language | beginner | 0.1.0 | 0 | 2 | *(detail page pending)* |
-| kotlin.language | atomic | draft | language | intermediate | 0.1.0 | 1 | 2 | *(detail page pending)* |
-| linux.os | atomic | draft | os | beginner | 0.1.0 | 0 | 2 | *(detail page pending)* |
+| android.overview | atomic | draft | android | beginner | 0.1.0 | 2 | 2 | [link](../repos/skills/android-overview.md) |
+| java.language | atomic | draft | language | beginner | 0.1.0 | 0 | 2 | [link](../repos/skills/java-language.md) |
+| kotlin.language | atomic | draft | language | intermediate | 0.1.0 | 1 | 2 | [link](../repos/skills/kotlin-language.md) |
+| linux.os | atomic | draft | os | beginner | 0.1.0 | 0 | 2 | [link](../repos/skills/linux-os.md) |
 | media-validator | atomic | active | validation | intermediate | 0.1.0 | 0 | 3 | [link](../repos/skills/media-validator.md) |
 | multitrack | atomic | active | agent-infrastructure | advanced | 0.1.0 | 1 | 1 | [link](../repos/skills/multitrack.md) |
 | reporting-workable-items | atomic | active | agent-infrastructure | intermediate | 0.1.0 | 2 | 1 | [link](../repos/skills/reporting-workable-items.md) |

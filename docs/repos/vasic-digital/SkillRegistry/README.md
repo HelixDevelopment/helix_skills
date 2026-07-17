@@ -7,22 +7,26 @@
 
 ## Overview
 
-A registration and discovery system for CLI agent skills. Enables AI agents to register, discover, and invoke reusable skills at runtime, forming the backbone of composable agent architectures.
+SkillRegistry provides a centralised registry for discovering, loading, and managing skills available to CLI-based AI coding agents. It handles skill metadata, version tracking, dependency resolution, and runtime activation so agent orchestrators can dynamically compose capabilities without hardcoding skill references. The registry is designed to be consumed by any agent framework that needs pluggable skill discovery.
 
 ## Tech Stack
 
-- Language: Multiple
+- Language: Go
+- Module: digital.vasic.skillregistry
 
 ## Key Features
 
-- Skill registration and metadata management
-- Runtime skill discovery and invocation
-- Versioning and dependency resolution for skills
+- Centralised skill registration with metadata and version tracking
+- Dynamic skill discovery and runtime activation
+- Dependency resolution between skills
+- Pluggable skill loader supporting multiple source formats
+- Integration hooks for agent orchestrators and workflow engines
 
 ## Related Repos
 
-- [ToolSchema](../ToolSchema/README.md) — tool schema definitions for registered skills
-- [Planning](../Planning/README.md) — planning algorithms selecting skills for execution
+- [ToolSchema](../ToolSchema/README.md) — defines the schema and validation for tool invocations that skills expose
+- [Agentic](../Agentic/README.md) — graph-based orchestration that composes registered skills into workflows
+- [LLMOrchestrator](../LLMOrchestrator/README.md) — headless agent management that loads skills from the registry
 
 ---
 *Part of the [vasic-digital catalogue](../README.md)*
