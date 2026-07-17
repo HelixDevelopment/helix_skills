@@ -14,15 +14,15 @@
 > audit did not re-run them. Findings are about *design, behaviour, wiring,
 > security, and contract fidelity*, not compilation.
 
-## Summary counts (2026-07-17 Rev 8 register-cleanup — field verification + status corrections — all items G01–G137)
+## Summary counts (2026-07-17 Rev 9 — G03 fully wired — all items G01–G137)
 
 | Status | Count | IDs |
 |---|---|---|
-| **OPEN — CRITICAL** | 3 | G01, G03, G04 |
+| **OPEN — CRITICAL** | 2 | G01, G04 |
 | **OPEN — HIGH** | 64 | G09, G10, G12, G14, G15, G40, G42, G43, G59, G63, G69–G92 (×24), G93–G122 (×30) |
 | **OPEN — MEDIUM** | 25 | G17, G18, G30, G44, G45, G47, G55, G56, G58, G60, G61, G66, G123, G124–G135 (×12) |
 | **OPEN — LOW** | 4 | G37, G62, G67, G68 |
-| **FIXED** | 39 | G02, G05, G06, G07, G08, G11, G13, G16, G19, G20, G21, G22, G23, G24, G25, G26, G27, G28, G29, G31, G32, G33, G34, G35, G36, G38, G39, G41, G46, G48, G49, G51, G52, G53, G54, G57, G64, G65, G137 |
+| **FIXED** | 40 | G02, G03, G05, G06, G07, G08, G11, G13, G16, G19, G20, G21, G22, G23, G24, G25, G26, G27, G28, G29, G31, G32, G33, G34, G35, G36, G38, G39, G41, G46, G48, G49, G51, G52, G53, G54, G57, G64, G65, G137 |
 | **N/A** | 1 | G136 (meta-assessment task itself) |
 | **TOTAL** | **136** | (G01–G135 + G137; G136 is the assessment task, deliberately unrated) |
 
@@ -105,7 +105,14 @@ flow from this.
 - **Why it matters:** every skill created (REST or MCP) is written straight to the DB as `draft` with **no** resource-verify / sandbox / jury / cross-ref. The "zero-bluff guarantee" (`internal/validation/pipeline.go:1-4`) is not in force anywhere.
 - **DECISION:** Wire `validation.Pipeline.Validate` and `autoexpand.Pipeline.Run` into the worker's real `handleValidate`/`handleAutoExpand` and into the create path; delete the stub comments; the worker cycles must call the pipelines, not log. Gate a "no skill reaches `validated`/`active` without a recorded jury verdict" invariant. **Alternatives rejected:** leaving pipelines as libraries "to be wired later" is the §11.4.197 un-wired-research failure the Constitution forbids.
 - **Test coverage:** unit (pipeline stage state machine), integration (draft → jury → merge on real DB), e2e (create → validated only after ≥2 approvals), mutation (a fabricated skill must be rejected; strip a stage → test fails), regression. **Challenges:** yes (fabricated-skill-must-fail). **HelixQA:** yes (autonomous QA session over the pipeline).
-- **STATUS (2026-07-17):** PARTIALLY LANDED — the `internal/autoexpand` job-queue/worker-dispatch half is LANDED: `NewRunner` now wires a real `autoexpand.NewPipeline` into `Runner.autoexpand` (`runner.go:220`, via the `autoExpander` seam, `runner.go:66-92`); `handleAutoExpand` (`runner.go:552-587`) dispatches through it end-to-end (`r.autoexpand.Run(...)`) instead of unmarshaling-and-logging; and `DraftSkill` drafts via the provider-agnostic `generateSkillDraft` (`internal/autoexpand/llm.go:249`) rather than a concrete-type assertion (composes G20). **NEW (2026-07-17):** Worker embedder seam wired — `NewRunner` now calls `db.NewEmbedderFromConfig(cfg.Embedding)` and passes the embedder to both `store.WithEmbedder(emb)` (enabling hybrid vector+trigram search on the worker's Store instance, matching the MCP server wiring pattern `mcp/server.go:81-82`) and `autoexpand.NewPipeline(store, aeEmbedder, ...)` (replacing the prior `nil` embedder). The worker's Store now participates in §G29 hybrid search when an embedding provider is configured, and degrades gracefully to keyword-only when it is not. Still OPEN, unchanged by this round: `handleValidate` (`runner.go:589-601`) and `handleCodeAnalysis` (`runner.go:603-615`) remain job-handler stubs (the `internal/validation` pipeline is still never dispatched through the worker job queue); the ticker cycles `runAutoExpandCycle` (`runner.go:692-733`) and `runValidationCycle` (`runner.go:735-759`) remain log-only (no dispatch to either pipeline); and even with the dispatch wiring landed, `autoexpand.Pipeline.Run`'s own top-level gap-detection is structurally inert against any graph the store API constructs, tracked separately as `G137` — so the auto-growth pipeline is wired end-to-end but a practical no-op in production until `G137` is resolved. `internal/validation` (jury) wiring/instantiation is untouched by this round and not re-verified here.
+- **STATUS (2026-07-17):** FULLY LANDED — all three G03 dispatch paths are now wired end-to-end:
+  1. **Job-queue path**: `handleAutoExpand` (`runner.go`) dispatches through `r.autoexpand.Run(...)`; `handleValidate` dispatches through `r.validator.Validate(...)`; `handleCodeAnalysis` dispatches through `r.codeAnalyzer.AnalyzeProject(...)`.
+  2. **Auto-expand ticker cycle**: `runAutoExpandCycle` now dispatches through `r.autoexpand.Run()` for each gap found (was log-only).
+  3. **Validation ticker cycle**: `runValidationCycle` now dispatches through `r.validator.Validate()` AND promotes validated skills to active via the new `store.UpdateStatus` method (was log-only with a TODO for promotion).
+  - `store.UpdateStatus` method added — transactional status change with audit log, used by validation worker to promote skills draft → active after passing all stages.
+  - Worker embedder seam wired (prior round) — `NewRunner` calls `db.NewEmbedderFromConfig(cfg.Embedding)` and passes to both `store.WithEmbedder(emb)` and `autoexpand.NewPipeline(store, aeEmbedder, ...)`.
+  - `DraftSkill` drafts via provider-agnostic `generateSkillDraft` (prior round).
+  - **Remaining G03 items**: `autoexpand.Pipeline.Run`'s own top-level gap-detection is structurally inert against any graph the store API constructs (tracked as G137); `internal/validation` package's own internal gaps tracked separately.
 
 ### G04 — Zero automated tests exist; the R1 security fixes and every behaviour have no proof
 - **Category:** test-coverage
