@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tenant Dashboard — HelixKnowledge</title>
+  <!-- OpenDesign od-design-tokens/v1 binding -->
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .tenant-layout {
+      display: grid;
+      grid-template-rows: var(--topbar-height) 1fr;
+      grid-template-columns: 1fr 380px;
+      min-height: 100vh;
+    }
+    .tenant-layout .topbar { grid-column: 1 / -1; }
+
+    .tenant-main {
+      padding: var(--sp-xl);
+      overflow-y: auto;
+    }
+    .tenant-side {
+      background: var(--od-surface);
+      border-left: 1px solid var(--od-border);
+      overflow-y: auto;
+      padding: var(--sp-lg);
+    }
+
+    /* Stats row */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--sp-md);
+      margin-bottom: var(--sp-xl);
+    }
+    .stat-card {
+      background: var(--od-surface);
+      border: 1px solid var(--od-border);
+      border-radius: var(--od-radius-md);
+      padding: var(--sp-lg);
+      box-shadow: var(--od-shadow-card);
+    }
+    .stat-card__label {
+      font-size: var(--od-font-size-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--od-muted);
+      margin-bottom: var(--sp-xs);
+    }
+    .stat-card__value {
+      font-size: var(--od-font-size-2xl);
+      font-weight: 700;
+      color: var(--od-fg);
+    }
+    .stat-card__delta {
+      font-size: var(--od-font-size-xs);
+      margin-top: var(--sp-xs);
+    }
+    .stat-card__delta--up   { color: var(--od-success); }
+    .stat-card__delta--down { color: var(--od-error); }
+
+    /* Tenant table */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--sp-md);
+    }
+    .section-header h2 { font-size: var(--od-font-size-lg); }
+
+    /* Rate limit gauge */
+    .gauge-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--sp-md);
+      margin-bottom: var(--sp-xl);
+    }
+    .gauge-card {
+      background: var(--od-surface);
+      border: 1px solid var(--od-border);
+      border-radius: var(--od-radius-md);
+      padding: var(--sp-lg);
+      box-shadow: var(--od-shadow-card);
+    }
+    .gauge-card__title {
+      font-size: var(--od-font-size-sm);
+      font-weight: 600;
+      margin-bottom: var(--sp-md);
+      color: var(--od-fg);
+    }
+    .gauge {
+      width: 100%;
+      height: 24px;
+      background: var(--od-bg);
+      border-radius: var(--od-radius-sm);
+      overflow: hidden;
+      margin-bottom: var(--sp-sm);
+    }
+    .gauge__fill {
+      height: 100%;
+      border-radius: var(--od-radius-sm);
+      transition: width 0.4s ease;
+    }
+    .gauge__fill--ok     { background: var(--od-success); }
+    .gauge__fill--warn   { background: var(--od-warning); }
+    .gauge__fill--danger { background: var(--od-error); }
+    .gauge__label {
+      display: flex;
+      justify-content: space-between;
+      font-size: var(--od-font-size-xs);
+      color: var(--od-muted);
+    }
+
+    /* Detail panel */
+    .detail-section {
+      margin-bottom: var(--sp-xl);
+    }
+    .detail-section__title {
+      font-size: var(--od-font-size-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--od-muted);
+      margin-bottom: var(--sp-md);
+      padding-bottom: var(--sp-xs);
+      border-bottom: 1px solid var(--od-border);
+    }
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: var(--sp-xs) 0;
+      font-size: var(--od-font-size-sm);
+    }
+    .detail-row__key {
+      color: var(--od-muted);
+    }
+    .detail-row__val {
+      color: var(--od-fg);
+      font-weight: 600;
+    }
+
+    /* Tenant row highlight */
+    .tenant-row--selected {
+      background: rgba(15,52,96,0.4);
+    }
+
+    @media (max-width: 1024px) {
+      .tenant-layout { grid-template-columns: 1fr; }
+      .tenant-side { display: none; }
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .tenant-main { padding: var(--sp-md); }
+      .stats-row { grid-template-columns: 1fr; }
+      .gauge-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#tenant-table">Skip to tenant list</a>
+
+  <div class="tenant-layout">
+    <!-- Topbar -->
+    <header class="topbar" role="banner">
+      <span class="topbar__brand" aria-label="HelixKnowledge">hx://skill-graph</span>
+      <nav aria-label="Primary navigation">
+        <ul class="topbar__nav">
+          <li><a href="index.html">Overview</a></li>
+          <li><a href="skill-tree.html">Skill Tree</a></li>
+          <li><a href="gap-dashboard.html">Gaps</a></li>
+          <li><a href="evidence-browser.html">Evidence</a></li>
+          <li><a href="skill-editor.html">Editor</a></li>
+          <li><a href="search.html">Search</a></li>
+          <li><a href="tenant-dashboard.html" aria-current="page">Tenants</a></li>
+          <li><a href="codegraph-viewer.html">Code Graph</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <!-- Main content -->
+    <div class="tenant-main">
+      <h1 style="margin-bottom:var(--sp-lg)">Tenant <span style="color:var(--od-accent)">Dashboard</span></h1>
+
+      <!-- Stats row -->
+      <div class="stats-row" role="list" aria-label="Tenant statistics">
+        <div class="stat-card" role="listitem">
+          <div class="stat-card__label">Total Tenants</div>
+          <div class="stat-card__value">24</div>
+          <div class="stat-card__delta stat-card__delta--up">+3 this month</div>
+        </div>
+        <div class="stat-card" role="listitem">
+          <div class="stat-card__label">Active API Keys</div>
+          <div class="stat-card__value">87</div>
+          <div class="stat-card__delta stat-card__delta--up">+12 this month</div>
+        </div>
+        <div class="stat-card" role="listitem">
+          <div class="stat-card__label">Requests (24h)</div>
+          <div class="stat-card__value">1.2M</div>
+          <div class="stat-card__delta stat-card__delta--down">-4% vs yesterday</div>
+        </div>
+        <div class="stat-card" role="listitem">
+          <div class="stat-card__label">Avg Latency</div>
+          <div class="stat-card__value">42ms</div>
+          <div class="stat-card__delta stat-card__delta--up">-8ms vs last week</div>
+        </div>
+      </div>
+
+      <!-- Rate limit gauges -->
+      <div class="gauge-row">
+        <div class="gauge-card">
+          <div class="gauge-card__title">helix-corp — Rate Limit Usage</div>
+          <div class="gauge"><div class="gauge__fill gauge__fill--ok" style="width:34%"></div></div>
+          <div class="gauge__label"><span>3,400 / 10,000 req/hr</span><span>34%</span></div>
+        </div>
+        <div class="gauge-card">
+          <div class="gauge-card__title">acme-ml — Rate Limit Usage</div>
+          <div class="gauge"><div class="gauge__fill gauge__fill--warn" style="width:78%"></div></div>
+          <div class="gauge__label"><span>7,800 / 10,000 req/hr</span><span>78%</span></div>
+        </div>
+      </div>
+
+      <!-- Tenant list -->
+      <div class="section-header">
+        <h2>Tenants</h2>
+        <div class="search-bar" style="width:280px">
+          <span class="search-bar__icon" aria-hidden="true">[Q]</span>
+          <input class="input" type="search" placeholder="Search tenants..." aria-label="Search tenants">
+        </div>
+      </div>
+
+      <div class="table-wrap" id="tenant-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Tenant ID</th>
+              <th>API Keys</th>
+              <th>Quota Used</th>
+              <th>Status</th>
+              <th>Created</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="tenant-row--selected">
+              <td><strong>helix-corp</strong></td>
+              <td><code style="font-size:0.75rem;color:var(--od-muted)">tn_8a3f…c210</code></td>
+              <td>12</td>
+              <td>
+                <div class="progress" style="width:120px;display:inline-block;vertical-align:middle">
+                  <div class="progress__bar progress__bar--success" style="width:34%"></div>
+                </div>
+                <span style="font-size:0.75rem;margin-left:var(--sp-xs)">34%</span>
+              </td>
+              <td><span class="badge badge--success">active</span></td>
+              <td style="font-size:0.8rem;color:var(--od-muted)">2025-11-03</td>
+            </tr>
+            <tr>
+              <td><strong>acme-ml</strong></td>
+              <td><code style="font-size:0.75rem;color:var(--od-muted)">tn_b2c7…e914</code></td>
+              <td>8</td>
+              <td>
+                <div class="progress" style="width:120px;display:inline-block;vertical-align:middle">
+                  <div class="progress__bar progress__bar--warning" style="width:78%"></div>
+                </div>
+                <span style="font-size:0.75rem;margin-left:var(--sp-xs)">78%</span>
+              </td>
+              <td><span class="badge badge--success">active</span></td>
+              <td style="font-size:0.8rem;color:var(--od-muted)">2025-12-15</td>
+            </tr>
+            <tr>
+              <td><strong>data-forge</strong></td>
+              <td><code style="font-size:0.75rem;color:var(--od-muted)">tn_d4e1…a703</code></td>
+              <td>5</td>
+              <td>
+                <div class="progress" style="width:120px;display:inline-block;vertical-align:middle">
+                  <div class="progress__bar" style="width:52%"></div>
+                </div>
+                <span style="font-size:0.75rem;margin-left:var(--sp-xs)">52%</span>
+              </td>
+              <td><span class="badge badge--success">active</span></td>
+              <td style="font-size:0.8rem;color:var(--od-muted)">2026-01-22</td>
+            </tr>
+            <tr>
+              <td><strong>quantum-labs</strong></td>
+              <td><code style="font-size:0.75rem;color:var(--od-muted)">tn_f6a9…b428</code></td>
+              <td>3</td>
+              <td>
+                <div class="progress" style="width:120px;display:inline-block;vertical-align:middle">
+                  <div class="progress__bar progress__bar--success" style="width:12%"></div>
+                </div>
+                <span style="font-size:0.75rem;margin-left:var(--sp-xs)">12%</span>
+              </td>
+              <td><span class="badge badge--success">active</span></td>
+              <td style="font-size:0.8rem;color:var(--od-muted)">2026-03-08</td>
+            </tr>
+            <tr>
+              <td><strong>neon-sys</strong></td>
+              <td><code style="font-size:0.75rem;color:var(--od-muted)">tn_c8b2…d156</code></td>
+              <td>2</td>
+              <td>
+                <div class="progress" style="width:120px;display:inline-block;vertical-align:middle">
+                  <div class="progress__bar progress__bar--warning" style="width:91%"></div>
+                </div>
+                <span style="font-size:0.75rem;margin-left:var(--sp-xs)">91%</span>
+              </td>
+              <td><span class="badge badge--warning">throttled</span></td>
+              <td style="font-size:0.8rem;color:var(--od-muted)">2026-04-19</td>
+            </tr>
+            <tr>
+              <td><strong>old-project</strong></td>
+              <td><code style="font-size:0.75rem;color:var(--od-muted)">tn_0e4f…c890</code></td>
+              <td>0</td>
+              <td>
+                <div class="progress" style="width:120px;display:inline-block;vertical-align:middle">
+                  <div class="progress__bar" style="width:0%"></div>
+                </div>
+                <span style="font-size:0.75rem;margin-left:var(--sp-xs)">0%</span>
+              </td>
+              <td><span class="badge badge--error">suspended</span></td>
+              <td style="font-size:0.8rem;color:var(--od-muted)">2025-08-01</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Audit log -->
+      <div class="section-header" style="margin-top:var(--sp-xl)">
+        <h2>Audit Log</h2>
+        <div style="display:flex;gap:var(--sp-sm)">
+          <span class="chip chip--active">All</span>
+          <span class="chip">auth</span>
+          <span class="chip">api</span>
+          <span class="chip">admin</span>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Action</th>
+              <th>Tenant</th>
+              <th>Resource</th>
+              <th>Actor</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="font-size:0.8rem;color:var(--od-muted)">2026-07-17 14:32:08</td>
+              <td><span class="badge badge--info">api.call</span></td>
+              <td>helix-corp</td>
+              <td><code style="font-size:0.75rem">/v1/skills/search</code></td>
+              <td style="font-size:0.8rem;color:var(--od-muted)">key_8a3f</td>
+            </tr>
+            <tr>
+              <td style="font-size:0.8rem;color:var(--od-muted)">2026-07-17 14:31:55</td>
+              <td><span class="badge badge--warning">rate.limit</span></td>
+              <td>neon-sys</td>
+              <td><code style="font-size:0.75rem">/v1/skills/list</code></td>
+              <td style="font-size:0.8rem;color:var(--od-muted)">key_c8b2</td>
+            </tr>
+            <tr>
+              <td style="font-size:0.8rem;color:var(--od-muted)">2026-07-17 14:30:12</td>
+              <td><span class="badge badge--success">key.rotate</span></td>
+              <td>acme-ml</td>
+              <td><code style="font-size:0.75rem">key_b2c7_new</code></td>
+              <td style="font-size:0.8rem;color:var(--od-muted)">admin@acme.ml</td>
+            </tr>
+            <tr>
+              <td style="font-size:0.8rem;color:var(--od-muted)">2026-07-17 14:28:44</td>
+              <td><span class="badge badge--error">auth.fail</span></td>
+              <td>old-project</td>
+              <td><code style="font-size:0.75rem">/v1/skills/get</code></td>
+              <td style="font-size:0.8rem;color:var(--od-muted)">key_0e4f</td>
+            </tr>
+            <tr>
+              <td style="font-size:0.8rem;color:var(--od-muted)">2026-07-17 14:25:03</td>
+              <td><span class="badge badge--info">api.call</span></td>
+              <td>data-forge</td>
+              <td><code style="font-size:0.75rem">/v1/gaps/analyze</code></td>
+              <td style="font-size:0.8rem;color:var(--od-muted)">key_d4e1</td>
+            </tr>
+            <tr>
+              <td style="font-size:0.8rem;color:var(--od-muted)">2026-07-17 14:22:19</td>
+              <td><span class="badge badge--info">api.call</span></td>
+              <td>quantum-labs</td>
+              <td><code style="font-size:0.75rem">/v1/tree/render</code></td>
+              <td style="font-size:0.8rem;color:var(--od-muted)">key_f6a9</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Sidebar: tenant detail -->
+    <aside class="tenant-side" role="complementary" aria-label="Tenant detail panel">
+      <div class="detail-section">
+        <h3 class="detail-section__title">Tenant Detail — helix-corp</h3>
+        <div class="detail-row">
+          <span class="detail-row__key">Name</span>
+          <span class="detail-row__val">helix-corp</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-row__key">Tenant ID</span>
+          <span class="detail-row__val"><code style="font-size:0.75rem">tn_8a3f…c210</code></span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-row__key">Plan</span>
+          <span class="detail-row__val">Enterprise</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-row__key">API Keys</span>
+          <span class="detail-row__val">12 / 20</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-row__key">Rate Limit</span>
+          <span class="detail-row__val">10,000 req/hr</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-row__key">Quota Used</span>
+          <span class="detail-row__val">34%</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-row__key">Status</span>
+          <span class="detail-row__val"><span class="badge badge--success">active</span></span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-row__key">Created</span>
+          <span class="detail-row__val">2025-11-03</span>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <h3 class="detail-section__title">API Keys</h3>
+        <div style="margin-bottom:var(--sp-sm)">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:var(--sp-xs) 0;font-size:var(--od-font-size-sm)">
+            <span><code style="font-size:0.75rem">key_8a3f_live</code></span>
+            <span class="badge badge--success">active</span>
+          </div>
+          <div style="font-size:var(--od-font-size-xs);color:var(--od-muted)">Created: 2025-11-03 &middot; Last used: 2min ago</div>
+        </div>
+        <div style="margin-bottom:var(--sp-sm)">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:var(--sp-xs) 0;font-size:var(--od-font-size-sm)">
+            <span><code style="font-size:0.75rem">key_8a3f_test</code></span>
+            <span class="badge badge--success">active</span>
+          </div>
+          <div style="font-size:var(--od-font-size-xs);color:var(--od-muted)">Created: 2025-11-03 &middot; Last used: 1h ago</div>
+        </div>
+        <div style="margin-bottom:var(--sp-sm)">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:var(--sp-xs) 0;font-size:var(--od-font-size-sm)">
+            <span><code style="font-size:0.75rem">key_8a3f_ci</code></span>
+            <span class="badge badge--warning">rotating</span>
+          </div>
+          <div style="font-size:var(--od-font-size-xs);color:var(--od-muted)">Created: 2026-01-15 &middot; Last used: 3d ago</div>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <h3 class="detail-section__title">Quick Actions</h3>
+        <div style="display:flex;flex-direction:column;gap:var(--sp-sm)">
+          <button class="btn btn--primary" style="width:100%">Rotate API Keys</button>
+          <button class="btn" style="width:100%">Adjust Rate Limit</button>
+          <button class="btn" style="width:100%">View Full Audit Log</button>
+          <button class="btn" style="width:100%;border-color:var(--od-error);color:var(--od-error)">Suspend Tenant</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+</body>
+</html>

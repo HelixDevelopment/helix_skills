@@ -40,6 +40,8 @@
     .wireframe-card__icon--evidence{ background: rgba(52,152,219,0.15); color: var(--info); }
     .wireframe-card__icon--editor  { background: rgba(155,89,182,0.15); color: var(--domain-kotlin); }
     .wireframe-card__icon--search  { background: rgba(241,196,15,0.15); color: var(--domain-python); }
+    .wireframe-card__icon--tenant  { background: rgba(26,188,156,0.15); color: var(--domain-infra); }
+    .wireframe-card__icon--graph   { background: rgba(230,126,34,0.15); color: var(--domain-linux); }
     .wireframe-card__title {
       font-size: 1.15rem;
       font-weight: 700;
@@ -99,6 +101,8 @@
         <li><a href="evidence-browser.html">Evidence</a></li>
         <li><a href="skill-editor.html">Editor</a></li>
         <li><a href="search.html">Search</a></li>
+        <li><a href="tenant-dashboard.html">Tenants</a></li>
+        <li><a href="codegraph-viewer.html">Code Graph</a></li>
       </ul>
     </nav>
   </header>
@@ -110,7 +114,7 @@
       <div class="meta-info" aria-label="Project metadata">
         <span><span class="status-dot status-dot--info"></span> Phase: DESIGN</span>
         <span>v0.1.0-wireframe</span>
-        <span>6 screens</span>
+        <span>8 screens</span>
       </div>
     </section>
 
@@ -151,6 +155,20 @@
           <h3 class="wireframe-card__title">Search Interface</h3>
           <p class="wireframe-card__desc">Hybrid vector+keyword search across all skills. Autocomplete, domain/complexity/status filters, relevance scoring, and similar skill recommendations.</p>
           <a href="search.html" class="wireframe-card__link" aria-label="Open Search Interface wireframe">Open wireframe &rarr;</a>
+        </article>
+
+        <article class="wireframe-card" role="listitem">
+          <div class="wireframe-card__icon wireframe-card__icon--tenant" aria-hidden="true">[TNT]</div>
+          <h3 class="wireframe-card__title">Tenant Dashboard</h3>
+          <p class="wireframe-card__desc">Enterprise tenant management with search/filter, rate-limit gauges, API key lifecycle, quota tracking, and audit log table.</p>
+          <a href="tenant-dashboard.html" class="wireframe-card__link" aria-label="Open Tenant Dashboard wireframe">Open wireframe &rarr;</a>
+        </article>
+
+        <article class="wireframe-card" role="listitem">
+          <div class="wireframe-card__icon wireframe-card__icon--graph" aria-hidden="true">[GRF]</div>
+          <h3 class="wireframe-card__title">Code Graph Viewer</h3>
+          <p class="wireframe-card__desc">D3.js force-directed graph of code entities. Project selector, entity list, relationship visualization, language breakdown, and detail panel.</p>
+          <a href="codegraph-viewer.html" class="wireframe-card__link" aria-label="Open Code Graph Viewer wireframe">Open wireframe &rarr;</a>
         </article>
 
       </div>
