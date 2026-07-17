@@ -1,7 +1,7 @@
 # CONTINUATION.md — Helix Skills
 
-**Revision:** 5
-**Last modified:** 2026-07-18T01:15:00Z
+**Revision:** 6
+**Last modified:** 2026-07-18T02:30:00Z
 
 ---
 
@@ -16,8 +16,8 @@ development with 95 open findings (2 CRITICAL, 64 HIGH, 25 MEDIUM,
 
 ## §2 — Session State
 
-- **HEAD:** `ee685c8` (merge: resolve register conflict — testing-infra stress+chaos tests)
-- **Branch:** `main`
+- **HEAD:** `a52eccc` (docs: update CONTINUATION.md Rev 5 + README.md Rev 3 — T1 restart doc-sync)
+- **Branch:** `feature/testing-infra` (merged origin/main, fast-forward)
 - **Constitution submodule:** present at `constitution/`
 - **Skills installed:** 7 active (action-prefix-system, media-validator,
   multitrack, reporting-workable-items, scheduled-work-queue, session-sync,
@@ -29,6 +29,11 @@ development with 95 open findings (2 CRITICAL, 64 HIGH, 25 MEDIUM,
 ## §3 — Active Work
 
 ### Just completed (this session)
+- T3-RESTART: full test suite on main — 24/24 Go packages PASS, pre-build verification 7/7 PASS, meta-test mutation PASS, stress+chaos+fuzz all GREEN
+- T3-RESTART: G12 tree-sitter verified COMPLETE — 5/5 tests PASS (kotlin compilePatterns, csharp compilePatterns, fidelity, normalizeLanguage, fidelity constants)
+- T3-RESTART: G20 autoexpand verified COMPLETE — 2 PASS + 1 SKIP (live-DB-gated, correct §11.4.3); nil-LLM guard + resource persistence confirmed
+- T3-RESTART: merged origin/main into feature/testing-infra (fast-forward, 3 commits: catalog expansion + CONTINUATION/README updates)
+- T3-RESTART: pushed to all 4 upstreams (gitflic, github, gitlab, gitverse)
 - T1-RESTART: full test suite — 24 Go packages PASS, constitution gates PASS
 - T1-RESTART: verified all commits pushed to all 5 remotes (origin, github, gitflic, gitlab, gitverse)
 - T1-RESTART: all 3 feature branches (deep-research, catalog-docs, testing-infra) fully merged into main
