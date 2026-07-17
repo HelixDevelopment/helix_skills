@@ -1,6 +1,7 @@
 // Package mcp implements the Model Context Protocol server for the HelixKnowledge
-// Skill Graph System. It provides 10 tools for AI agents to query, create, and
-// manage skills and analyze codebases through stdio and HTTP transports.
+// Skill Graph System. It provides 13 tools for AI agents to query, create, and
+// manage skills, analyze codebases, and manage skill sources through stdio and
+// HTTP transports.
 package mcp
 
 import (
@@ -44,6 +45,7 @@ type MCPServer struct {
 	validator         skillValidator
 	validationEnabled bool
 	codeGraphResults  *codeGraphStore // in-memory cache for codegraph_analyze results
+	sourceStore       *sourceStore    // in-memory registry of skill sources (G86)
 }
 
 // NewMCPServer creates a new MCP server with all dependencies.
@@ -124,6 +126,7 @@ func NewMCPServer(pool *db.Pool, store *skill.Store, reg *registry.Registry, cfg
 		validator:         validation.NewPipeline(store, cfg.Validation, logger),
 		validationEnabled: cfg.Validation.Enabled,
 		codeGraphResults:  newCodeGraphStore(),
+		sourceStore:       newSourceStore(),
 	}
 }
 
@@ -190,8 +193,8 @@ func (s *MCPServer) validateForCreate(ctx context.Context, tomlData []byte) map[
 	}
 }
 
-// RegisterTools sets up all 10 MCP tool handlers (7 skill-graph tools + 3
-// CodeGraph analysis tools).
+// RegisterTools sets up all 13 MCP tool handlers (7 skill-graph tools +
+// 3 CodeGraph analysis tools + 3 source management tools).
 func (s *MCPServer) RegisterTools() {
 	// Skill graph tools (1-7)
 	s.registerSkillSearch()
@@ -207,7 +210,12 @@ func (s *MCPServer) RegisterTools() {
 	s.registerCodeGraphSearch()
 	s.registerCodeGraphStats()
 
-	s.logger.Info("All 10 MCP tools registered",
+	// Skill source management tools (11-13, G86)
+	s.registerSourceRegister()
+	s.registerSourceList()
+	s.registerSourceSync()
+
+	s.logger.Info("All 13 MCP tools registered",
 		zap.String("transport", s.transport),
 	)
 }
