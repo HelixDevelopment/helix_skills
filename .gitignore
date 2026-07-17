@@ -32,3 +32,6 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# Multitrack workspace state (ephemeral, per-host)
+.ws_state/
