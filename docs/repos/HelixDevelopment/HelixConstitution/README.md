@@ -1,37 +1,36 @@
 # HelixConstitution
 
 - **GitHub URL**: <https://github.com/HelixDevelopment/HelixConstitution>
-- **Description**: Universal agent rules, constraints, and governance framework providing the constitutional foundation for all Helix AI agents. Defines CLAUDE.md, AGENTS.md, and equivalent governance files that enforce anti-bluff policies, testing mandates, safety constraints, and operational discipline across every agent and project in the ecosystem.
-- **Category**: HelixDevelopment
+- **Description**: Universal agent rules, constraints, and governance framework providing the constitutional foundation for all Helix AI agents
+- **Category**: Governance / Framework
 - **Status**: Active
 
-## Capabilities
+## Overview
+
+HelixConstitution defines the CLAUDE.md, AGENTS.md, and equivalent governance files that enforce anti-bluff policies, testing mandates, safety constraints, and operational discipline across every agent and project in the Helix ecosystem. With over 213 numbered constitutional anchors, it is the single source of truth for how agents must behave -- ensuring every output carries positive evidence, every test produces captured proof, and every operation respects host and data safety.
+
+## Tech Stack
+
+- Language: Markdown (governance files), Bash (enforcement scripts), Go (tooling)
+- Distribution: Git submodule with auto-propagation hooks
+- Architecture: Constitutional hierarchy with universal rules in the submodule and project-specific extensions in consuming repos
+- Key patterns: Submodule inheritance, paired mutation testing, gate-based enforcement
+
+## Key Features
 
 - Universal governance rules applicable to any AI agent platform (Claude, Cursor, Aider, etc.)
 - Anti-bluff covenant enforcement -- every agent output must carry positive evidence
 - Testing mandate framework with four-layer coverage requirements
 - Host-session safety constraints preventing destructive operations
-- Documentation sync mandates ensuring all docs stay current
 - Workable-item tracking with SQLite-backed single source of truth
-- Auto-propagation hooks for distributing rule changes across consuming projects
-- Multi-track orchestration rules for parallel development workflows
 
-## Technology
+## Related Repos
 
-- **Language**: Markdown (governance files), Bash (enforcement scripts), Go (tooling)
-- **Frameworks**: Git submodule distribution, hook-based enforcement
-- **Architecture**: Constitutional hierarchy with universal rules in the submodule and project-specific extensions in consuming repos
-- **Key patterns**: Submodule inheritance, paired mutation testing, gate-based enforcement
+- [HelixAgent](../HelixAgent/README.md) -- governed by HelixConstitution rules
+- [helixqa](../helixqa/README.md) -- enforces testing mandates and validates compliance
+- [LLMOrchestrator](../LLMOrchestrator/README.md) -- multi-track orchestration rules (§11.4.187)
+- [HelixGitpx](../HelixGitpx/README.md) -- enforcement hooks for branch consistency and commit discipline
+- [HelixSpecifier](../HelixSpecifier/README.md) -- specification-driven governance compliance
 
-## Integration
-
-- Used as a git submodule by every Helix project and consuming repository
-- Provides governance rules consumed by HelixAgent, HelixCode, and all other agents
-- Enforcement scripts integrate with git hooks (pre-commit, pre-push, PreToolUse)
-- Pairs with helixqa for testing mandate enforcement and validation
-- Feeds the workable-items system via reporting directives (ISSUE/BUG/TASK/FEATURE)
-- Auto-propagation via post_update_hook.sh on constitution pulls
-
-## Status
-
-Active development. Over 213 numbered constitutional anchors covering anti-bluff, testing, safety, documentation, and operational discipline. Continuous expansion driven by operator mandates and forensic incident remediation. Revision 55+ of the core governance files.
+---
+*Part of the [HelixDevelopment catalogue](../README.md)*

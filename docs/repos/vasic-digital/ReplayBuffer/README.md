@@ -7,23 +7,26 @@
 
 ## Overview
 
-A reusable module implementing replay buffer patterns for visual testing and automation. Stores sequences of UI interactions and visual states, enabling deterministic replay of test scenarios and training data collection for visual AI models.
+ReplayBuffer provides a storage and replay mechanism for UI interaction sequences captured during automated test runs. It records user interactions (clicks, inputs, navigation) into structured buffers that can be deterministically replayed for regression testing, debugging, and training data generation. Designed as the persistence layer in the visual testing pipeline between capture and replay.
 
 ## Tech Stack
 
 - Language: Multiple
+- Framework: Visual testing pipeline, interaction recording
 
 ## Key Features
 
-- UI interaction sequence recording and storage
-- Deterministic replay of recorded test scenarios
-- Training data collection for visual AI models
+- Structured recording of UI interaction sequences
+- Deterministic replay of captured interaction buffers
+- Buffer management with configurable retention and compression
+- Integration with visual regression and training data pipelines
+- Support for cross-platform interaction format normalisation
 
 ## Related Repos
 
-- [Panoptic](../Panoptic/README.md) — UI recording tool producing replay buffer data
-- [TrainingCollector](../TrainingCollector/README.md) — training data collection using replay buffers
-- [VisualRegression](../VisualRegression/README.md) — visual regression testing with replay support
+- [TrainingCollector](../TrainingCollector/README.md) — captures interaction data that ReplayBuffer stores
+- [VisualRegression](../VisualRegression/README.md) — regression testing that replays buffers against current UI state
+- [ScreenDiff](../ScreenDiff/README.md) — visual comparison applied to replayed interaction screenshots
 
 ---
 *Part of the [vasic-digital catalogue](../README.md)*

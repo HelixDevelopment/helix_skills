@@ -7,23 +7,26 @@
 
 ## Overview
 
-A reusable module for visual regression testing that compares screenshots across application versions or environments. Automates the detection of unintended visual changes in UI, integrating with CI/CD pipelines for continuous visual quality assurance.
+VisualRegression provides a complete visual regression testing framework that compares current UI renders against baseline images to detect unintended visual changes. It orchestrates screenshot capture, comparison, threshold management, and reporting — producing structured verdicts that integrate into CI pipelines. Designed as the top-level harness in the visual testing pipeline that composes ScreenDiff, ReplayBuffer, and TrainingCollector.
 
 ## Tech Stack
 
 - Language: Multiple
+- Framework: Visual regression testing harness
 
 ## Key Features
 
-- Automated visual regression detection across versions
-- Baseline management for screenshot comparisons
-- CI/CD integration for continuous visual QA
+- Automated baseline capture and comparison workflow
+- Configurable pixel and perceptual diff thresholds
+- Structured pass/fail verdicts with diff image artifacts
+- CI pipeline integration for continuous visual regression detection
+- Cross-platform support for web, desktop, and mobile targets
 
 ## Related Repos
 
-- [ScreenDiff](../ScreenDiff/README.md) — underlying diff engine for screenshot comparison
-- [Panoptic](../Panoptic/README.md) — screenshot capture across platforms for regression testing
-- [ReplayBuffer](../ReplayBuffer/README.md) — replay buffer for consistent test scenario execution
+- [ScreenDiff](../ScreenDiff/README.md) — core image comparison engine used by VisualRegression
+- [ReplayBuffer](../ReplayBuffer/README.md) — interaction replay for deterministic UI state reproduction
+- [VisionEngine](../VisionEngine/README.md) — computer vision engine providing advanced visual analysis
 
 ---
 *Part of the [vasic-digital catalogue](../README.md)*

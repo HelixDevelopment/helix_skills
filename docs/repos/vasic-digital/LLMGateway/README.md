@@ -1,28 +1,32 @@
 # LLMGateway
 
 - **GitHub URL**: <https://github.com/vasic-digital/LLMGateway>
-- **Description**: (no description)
+- **Description**: Gateway service for routing, load balancing, and managing LLM provider traffic
 - **Category**: AI / LLM Provider + Agent
 - **Status**: Active
 
 ## Overview
 
-A gateway service providing a unified entry point for LLM API requests. Routes requests to appropriate providers, handles load balancing, failover, and rate limiting across multiple LLM backends.
+LLMGateway acts as a centralised gateway for routing LLM requests across multiple providers. It handles load balancing, failover, rate limiting, and request transformation so downstream consumers interact with a single endpoint regardless of which provider serves the request. Designed for production deployments where provider reliability, cost optimisation, and traffic management are critical.
 
 ## Tech Stack
 
 - Language: Multiple
+- Framework: Gateway / reverse proxy pattern
 
 ## Key Features
 
-- Unified API gateway for LLM request routing
-- Provider load balancing and automatic failover
-- Rate limiting and request throttling
+- Centralised routing across multiple LLM providers
+- Load balancing and automatic failover on provider errors
+- Rate limiting and quota management per provider
+- Request transformation and response normalisation
+- Health monitoring and provider status tracking
 
 ## Related Repos
 
-- [LLMProvider](../LLMProvider/README.md) — underlying provider adapters consumed by the gateway
-- [I-LLM](../I-LLM/README.md) — introspection layer for observability
+- [LLMProvider](../LLMProvider/README.md) — provider adapters that the gateway routes through
+- [I-LLM](../I-LLM/README.md) — introspection layer for gateway observability
+- [LLMOps](../LLMOps/README.md) — operations platform for gateway metrics and experiment tracking
 
 ---
 *Part of the [vasic-digital catalogue](../README.md)*

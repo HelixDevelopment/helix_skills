@@ -1,37 +1,37 @@
 # HelixCode
 
 - **GitHub URL**: <https://github.com/HelixDevelopment/HelixCode>
-- **Description**: AI coding agent that autonomously writes, reviews, tests, and refactors code across multiple programming languages. Provides intelligent code generation with context-aware completions, automated code review with security and quality analysis, and self-healing test generation that adapts to project conventions.
-- **Category**: HelixDevelopment
+- **Description**: AI coding agent that autonomously writes, reviews, tests, and refactors code across multiple programming languages
+- **Category**: AI / Development Tools
 - **Status**: Active
 
-## Capabilities
+## Overview
+
+HelixCode is an autonomous coding agent that provides intelligent code generation with context-aware completions, automated code review with security and quality analysis, and self-healing test generation that adapts to project conventions. Built on HelixAgent as its cognitive substrate, it understands git context, project structure, and coding conventions to produce high-quality code across multiple languages.
+
+## Tech Stack
+
+- Language: Go (core engine), TypeScript (editor integrations)
+- Protocols: LSP for editor integration, git for version control awareness
+- Architecture: Agent-based with tool-use for file operations, terminal commands, and git
+- Key patterns: RAG-based code context, tree-sitter AST analysis
+
+## Key Features
 
 - Autonomous code generation from natural language specifications and task descriptions
 - Context-aware code completions that understand project structure and conventions
 - Automated code review with security vulnerability detection and quality scoring
 - Self-healing test generation -- writes tests that catch real regressions, not just syntax
 - Multi-language support across Go, Python, TypeScript, Java, Rust, and more
-- Refactoring engine with blast-radius analysis and safe transformation guarantees
-- Git-aware operations -- understands branches, diffs, and merge contexts
-- Interactive debugging assistance with error diagnosis and fix suggestions
 
-## Technology
+## Related Repos
 
-- **Language**: Go (core engine), TypeScript (editor integrations)
-- **Frameworks**: Go concurrency, LSP protocol integration
-- **Architecture**: Agent-based with tool-use for file operations, terminal commands, and git
-- **Key patterns**: RAG-based code context, tree-sitter AST analysis
+- [HelixAgent](../HelixAgent/README.md) -- cognitive substrate powering HelixCode
+- [LLMProvider](../LLMProvider/README.md) -- multi-model code generation (different models for different tasks)
+- [HelixMemory](../HelixMemory/README.md) -- project context persistence across sessions
+- [HelixGitpx](../HelixGitpx/README.md) -- advanced git operations and branch management
+- [VisionEngine](../VisionEngine/README.md) -- screenshot-to-code and UI-driven development
+- [HelixBuilder](../HelixBuilder/README.md) -- consumes HelixCode for AI-assisted build pipeline code generation
 
-## Integration
-
-- Built on HelixAgent as its cognitive substrate
-- Consumes LLMProvider for multi-model code generation (different models for different tasks)
-- Uses HelixMemory for project context persistence across sessions
-- Integrates with HelixGitpx for advanced git operations and branch management
-- Connects to VisionEngine for screenshot-to-code and UI-driven development
-- Consumed by HelixBuilder for AI-assisted build pipeline code generation
-
-## Status
-
-Active development. Core code generation and review capabilities are stable. Multi-language support expanding. Integration with editor environments (VS Code, JetBrains) via LSP protocol. Self-healing test generation is a key differentiator under continuous improvement.
+---
+*Part of the [HelixDevelopment catalogue](../README.md)*

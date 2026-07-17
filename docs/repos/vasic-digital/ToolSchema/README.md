@@ -7,22 +7,26 @@
 
 ## Overview
 
-A library for defining, validating, and executing tool schemas in AI agent systems. Provides a standardised format for declaring agent-callable tools with input/output validation, enabling reliable tool use across different agent frameworks.
+ToolSchema provides a unified schema format for defining, validating, and executing tools that AI agents can invoke. It standardises how tool inputs and outputs are described, validates arguments against declared schemas before execution, and provides a common execution harness. This ensures agent tool integrations are type-safe and self-documenting, reducing the surface area for runtime errors in tool-calling loops.
 
 ## Tech Stack
 
-- Language: Multiple
+- Language: Go
+- Module: digital.vasic.toolschema
 
 ## Key Features
 
-- Declarative tool schema definition format
-- Input and output validation against schemas
-- Tool execution orchestration and error handling
+- Declarative tool schema definition with JSON Schema compatibility
+- Input argument validation before tool execution
+- Common execution harness with error handling and result formatting
+- Self-documenting tool descriptions for LLM function-calling integration
+- Composable schema registry for multi-tool agent environments
 
 ## Related Repos
 
-- [SkillRegistry](../SkillRegistry/README.md) — skill registration using tool schemas
-- [JVM-Toolkit](../JVM-Toolkit/README.md) — JVM-level abstractions for tool implementations
+- [SkillRegistry](../SkillRegistry/README.md) — registers skills whose tool invocations are validated by ToolSchema
+- [LLMProvider](../LLMProvider/README.md) — provider adapters that use tool schemas for function-calling APIs
+- [conversation](../conversation/README.md) — conversation context that tracks tool call results validated by this module
 
 ---
 *Part of the [vasic-digital catalogue](../README.md)*

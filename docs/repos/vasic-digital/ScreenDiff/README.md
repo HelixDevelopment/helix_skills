@@ -7,22 +7,26 @@
 
 ## Overview
 
-A reusable module for computing and analysing differences between screenshots. Detects visual changes between screen captures, produces diff images, and provides metrics for determining whether visual changes are intentional or regressions.
+ScreenDiff provides pixel-level and perceptual image comparison for detecting visual regressions in UI applications. It compares captured screenshots against baseline images, highlights differences, and produces structured verdicts with configurable sensitivity thresholds. Designed as the core comparison engine for visual regression testing pipelines across web, desktop, and mobile targets.
 
 ## Tech Stack
 
 - Language: Multiple
+- Framework: Image comparison, visual testing pipeline
 
 ## Key Features
 
-- Pixel-level and semantic screenshot comparison
-- Diff image generation with highlighted changes
-- Configurable sensitivity thresholds for change detection
+- Pixel-level and perceptual hash-based image comparison
+- Configurable sensitivity thresholds for diff detection
+- Structured diff output with highlighted change regions
+- Baseline management for regression tracking over time
+- Integration with visual testing and CI pipelines
 
 ## Related Repos
 
-- [VisualRegression](../VisualRegression/README.md) — visual regression testing using screen diff analysis
-- [Panoptic](../Panoptic/README.md) — screenshot capture feeding diff analysis
+- [VisualRegression](../VisualRegression/README.md) — regression testing harness that uses ScreenDiff for change detection
+- [VisionEngine](../VisionEngine/README.md) — computer vision engine that uses ScreenDiff for UI state comparison
+- [TrainingCollector](../TrainingCollector/README.md) — captures screenshots that ScreenDiff compares against baselines
 
 ---
 *Part of the [vasic-digital catalogue](../README.md)*

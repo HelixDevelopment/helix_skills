@@ -1,28 +1,32 @@
 # Chutes-Toolkit
 
 - **GitHub URL**: <https://github.com/vasic-digital/Chutes-Toolkit>
-- **Description**: Chutes Toolkit
+- **Description**: Toolkit for integrating with Chutes LLM inference platform
 - **Category**: AI / LLM Provider + Agent
 - **Status**: Active
 
 ## Overview
 
-A toolkit for working with the Chutes AI platform. Provides utilities and integrations for deploying, managing, and interacting with Chutes-based inference services and models.
+Chutes-Toolkit provides client libraries and utilities for interacting with the Chutes LLM inference platform. It wraps Chutes' API into reusable components with authentication, request formatting, response parsing, and error handling. Designed as a provider adapter within the LLMProvider ecosystem, enabling seamless switching between inference backends.
 
 ## Tech Stack
 
 - Language: Multiple
+- Framework: Chutes API integration
 
 ## Key Features
 
-- Chutes platform integration utilities
-- Service deployment and management helpers
-- API client abstractions for Chutes services
+- Client library wrapping Chutes inference API
+- Authentication and credential management
+- Request formatting and response parsing for inference endpoints
+- Error handling with retry logic for transient failures
+- Provider adapter interface compatible with LLMProvider
 
 ## Related Repos
 
-- [SiliconFlow-Toolkit](../SiliconFlow-Toolkit/README.md) — similar platform-specific toolkit pattern
-- [LLMProvider](../LLMProvider/README.md) — shared provider interface used alongside
+- [LLMProvider](../LLMProvider/README.md) — unified provider interface that Chutes-Toolkit plugs into
+- [SiliconFlow-Toolkit](../SiliconFlow-Toolkit/README.md) — sibling toolkit for another inference platform
+- [LLMGateway](../LLMGateway/README.md) — gateway service that can route through Chutes adapter
 
 ---
 *Part of the [vasic-digital catalogue](../README.md)*

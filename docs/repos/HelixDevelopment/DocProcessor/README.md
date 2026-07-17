@@ -1,36 +1,36 @@
 # DocProcessor
 
 - **GitHub URL**: <https://github.com/HelixDevelopment/DocProcessor>
-- **Description**: Documentation processing and feature map extraction engine for QA automation. Parses project documentation, extracts structured feature inventories, and generates feature maps that drive automated test planning and coverage analysis. Bridges the gap between written specifications and executable test strategies.
-- **Category**: HelixDevelopment
+- **Description**: Documentation processing and feature map extraction engine for QA automation
+- **Category**: QA / Documentation
 - **Status**: Active
 
-## Capabilities
+## Overview
 
-- Multi-format document parsing (Markdown, HTML, PDF, DOCX, plain text)
+DocProcessor bridges the gap between written specifications and executable test strategies. It parses project documentation in multiple formats, extracts structured feature inventories with dependency graphs, and generates feature maps that drive automated test planning and coverage analysis. The engine enables specification-driven QA by transforming prose requirements into testable artifacts.
+
+## Tech Stack
+
+- Language: Go
+- Parsing: Multi-format document parsers (Markdown, HTML, PDF, DOCX, plain text)
+- Architecture: Pipeline-based processing with pluggable format parsers and extractors
+- Key patterns: AST-based document analysis, structured output schemas
+
+## Key Features
+
+- Multi-format document parsing with incremental update support
 - Feature map extraction -- identifies testable features, acceptance criteria, and edge cases from prose
-- Structured feature inventory generation with dependency graphs
 - Coverage gap analysis -- compares extracted features against existing test suites
 - Auto-generation of test case skeletons from extracted acceptance criteria
 - Document diff tracking -- detects specification changes between versions
-- Integration with QA pipelines for specification-driven test planning
-- Batch processing of documentation trees with incremental update support
 
-## Technology
+## Related Repos
 
-- **Language**: Go
-- **Frameworks**: Go standard library, document parsing libraries
-- **Architecture**: Pipeline-based processing with pluggable format parsers and extractors
-- **Key patterns**: AST-based document analysis, structured output schemas
+- [helixqa](../helixqa/README.md) -- consumes DocProcessor for specification-driven QA orchestration
+- [HelixSpecifier](../HelixSpecifier/README.md) -- feeds extracted feature maps into spec-driven development
+- [HelixBuilder](../HelixBuilder/README.md) -- uses DocProcessor to extract build requirements
+- [HelixAgent](../HelixAgent/README.md) -- integrates for documentation-aware reasoning
+- [VisionEngine](../VisionEngine/README.md) -- provides visual document analysis and OCR extraction
 
-## Integration
-
-- Consumed by helixqa for specification-driven QA orchestration and test planning
-- Feeds extracted feature maps into HelixSpecifier for spec-driven development workflows
-- Integrates with HelixAgent for documentation-aware reasoning and context injection
-- Used by HelixBuilder to extract requirements from project documentation during build planning
-- Outputs feed the workable-items system for tracking specification coverage
-
-## Status
-
-Active development. Core document parsing and feature extraction pipelines are operational. Supports Markdown and HTML natively with PDF/DOCX via conversion layers. Feature map extraction accuracy is continuously improved through corpus-based training.
+---
+*Part of the [HelixDevelopment catalogue](../README.md)*
