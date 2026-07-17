@@ -46,6 +46,7 @@
 | [continuum](continuum.md) | Go submodule | `constitution/submodules/continuum/` |
 | [session_orchestrator](session-orchestrator.md) | Go submodule | `constitution/submodules/session_orchestrator/` |
 | [token_optimizer](token-optimizer.md) | Go submodule | `constitution/submodules/token_optimizer/` |
+| clickup_sync | Design only (Phase 0) | `constitution/submodules/clickup_sync/` |
 
 ### Declared Dependencies
 
