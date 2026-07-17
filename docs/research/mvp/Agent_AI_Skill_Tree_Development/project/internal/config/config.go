@@ -672,6 +672,29 @@ func validate(cfg *Config) error {
 		issues = append(issues, fmt.Sprintf("invalid registry.coverage_threshold: %f (must be 0-1)", cfg.Registry.CoverageThreshold))
 	}
 
+	// G17: Validate closed-set enum fields (ops_hardening_design.md §3.2).
+	// A typo in any of these fails late, deep in the call stack; catching it
+	// at startup with a clear message is the entire point.
+	validEmbeddingProviders := map[string]bool{"openai": true, "local": true, "helixllm": true}
+	if cfg.Embedding.Provider != "" && !validEmbeddingProviders[cfg.Embedding.Provider] {
+		issues = append(issues, fmt.Sprintf("invalid embedding.provider: %q (must be one of: openai, local, helixllm)", cfg.Embedding.Provider))
+	}
+
+	validLLMProviders := map[string]bool{"openai": true, "anthropic": true, "local": true, "helixllm": true}
+	if cfg.AutoExpand.LLMProvider != "" && !validLLMProviders[cfg.AutoExpand.LLMProvider] {
+		issues = append(issues, fmt.Sprintf("invalid autoexpand.llm_provider: %q (must be one of: openai, anthropic, local, helixllm)", cfg.AutoExpand.LLMProvider))
+	}
+
+	validTransports := map[string]bool{"stdio": true, "http": true, "acp": true}
+	if cfg.MCP.Transport != "" && !validTransports[cfg.MCP.Transport] {
+		issues = append(issues, fmt.Sprintf("invalid mcp.transport: %q (must be one of: stdio, http, acp)", cfg.MCP.Transport))
+	}
+
+	validLogLevels := map[string]bool{"debug": true, "info": true, "warn": true, "error": true}
+	if cfg.Logging.Level != "" && !validLogLevels[cfg.Logging.Level] {
+		issues = append(issues, fmt.Sprintf("invalid logging.level: %q (must be one of: debug, info, warn, error)", cfg.Logging.Level))
+	}
+
 	if len(issues) > 0 {
 		return fmt.Errorf("validation failed: %s", strings.Join(issues, "; "))
 	}
