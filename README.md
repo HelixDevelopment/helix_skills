@@ -1,5 +1,8 @@
 # Helix Skills
 
+**Revision:** 2
+**Last modified:** 2026-07-18T00:30:00Z
+
 Skills system for CLI AI Agents. Inherits the
 [Helix Constitution](https://github.com/HelixDevelopment/HelixConstitution)
 as the `constitution/` submodule — every universal rule from
@@ -78,8 +81,17 @@ unconditionally.
 - [Skills Catalog](docs/repos/skills.md) — full repo/tool/skill inventory
 - [Skills Index](docs/skills/INDEX.md) — auto-generated skill graph index
 - [Skills-Bearing Repos](docs/repos/skills/README.md) — per-repo detail pages
-- [Gaps & Risks Register](docs/research/mvp/Agent_AI_Skill_Tree_Development/GAPS_AND_RISKS_REGISTER.md) — 136 tracked findings (96 open, 39 fixed, 1 N/A)
+- [Gaps & Risks Register](docs/research/mvp/Agent_AI_Skill_Tree_Development/GAPS_AND_RISKS_REGISTER.md) — 136 tracked findings (95 open, 40 fixed, 1 N/A)
 - [Constitution Integration Guide](docs/guides/HELIX_SKILLS_CONSTITUTION.md)
+
+### Tracked-Items + Status Documents
+
+| Document | Last modified | Revision | Markdown | HTML | PDF |
+|---|---|---|---|---|---|
+| Gaps & Risks Register | 2026-07-17T22:00:00Z | 9 | [md](docs/research/mvp/Agent_AI_Skill_Tree_Development/GAPS_AND_RISKS_REGISTER.md) | — | — |
+| CONTINUATION | 2026-07-18T00:30:00Z | 4 | [md](CONTINUATION.md) | — | — |
+| Skills Catalog | — | — | [md](docs/skills/README.md) | — | — |
+| Repo Detail Index | — | — | [md](docs/repos/skills/README.md) | — | — |
 
 ---
 

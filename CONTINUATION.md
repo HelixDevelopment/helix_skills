@@ -1,7 +1,7 @@
 # CONTINUATION.md — Helix Skills
 
-**Revision:** 3
-**Last modified:** 2026-07-17T23:45:00Z
+**Revision:** 4
+**Last modified:** 2026-07-18T00:30:00Z
 
 ---
 
@@ -9,14 +9,14 @@
 
 Documentation sync + catalog maintenance. The MVP skill-graph system
 (`docs/research/mvp/Agent_AI_Skill_Tree_Development/`) is in active
-development with 96 open findings (3 CRITICAL, 64 HIGH, 25 MEDIUM,
+development with 95 open findings (2 CRITICAL, 64 HIGH, 25 MEDIUM,
 4 LOW) across 136 tracked items in the GAPS_AND_RISKS_REGISTER.md.
 
 ---
 
 ## §2 — Session State
 
-- **HEAD:** `ed31e4a` (Merge remote-tracking branch 'origin/feature/catalog-docs')
+- **HEAD:** `f9934c3` (chore: bump constitution submodule — Go test coverage audit)
 - **Branch:** `main`
 - **Constitution submodule:** present at `constitution/`
 - **Skills installed:** 7 active (action-prefix-system, media-validator,
@@ -45,12 +45,14 @@ development with 96 open findings (3 CRITICAL, 64 HIGH, 25 MEDIUM,
 - AUDIT: all 39 FIXED items have matching per-item STATUS annotations
 - AUDIT: G58 remains placeholder (TBD, UNCONFIRMED) — needs real finding
 - DOC-SYNC: CONTINUATION.md revision bumped to Rev 3
+- DOC-SYNC: README.md — added revision header + Tracked-Items section (§11.4.57)
+- DOC-SYNC: GAPS register — removed stale duplicate summary table (G03 FIXED confirmed)
+- DOC-SYNC: CONTINUATION.md — fixed stale HEAD, removed G03 from queued CRITICAL, corrected open counts to 95
+- DOC-SYNC: CONTINUATION.md revision bumped to Rev 4
 
-### Queued — CRITICAL (G01, G03, G04)
+### Queued — CRITICAL (G01, G04)
 - **G01** — Dead `internal/api.Server` consolidation (runtime security hole
   already closed; only dead-server cleanup remains)
-- **G03** — Wire `internal/validation` (jury) pipeline into worker
-  (autoexpand half landed; validation half untouched)
 - **G04** — Zero automated tests (bootstrap `go test`, per-package coverage)
 
 ### Queued — Key HIGH items
