@@ -1,7 +1,7 @@
 # G136 — Retroactive Severity Assessment for G52–G137
 
-**Revision:** 1
-**Last modified:** 2026-07-17
+**Revision:** 2
+**Last modified:** 2026-07-17T12:00:00Z
 **Status:** preliminary assessment (not independently re-verified per item;
 see GAPS register Summary-counts note)
 **Method:** category-based rubric applied to each item's stated type +
