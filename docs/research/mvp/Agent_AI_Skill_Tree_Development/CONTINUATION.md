@@ -1,7 +1,7 @@
 # CONTINUATION — HelixKnowledge Skill Graph System (MVP)
 
-**Revision:** 11
-**Last modified:** 2026-07-17T22:30:00Z
+**Revision:** 12
+**Last modified:** 2026-07-17T23:15:00Z
 **Purpose:** §12.10 / §11.4.131 standing session-resumption file. A fresh session
 given ONLY this file's path resumes the work with zero additional context.
 Keep in sync on every material state change.
@@ -19,6 +19,13 @@ Read this file + `REQUIREMENTS.md` + `IMPLEMENTATION_PLAN.md` + `GAPS_AND_RISKS_
 correctness gaps from the R17 register) as a single serialized Go-mutator lane with a
 mandatory **§11.4.209 Fable-xhigh review before every commit**, keeping 2–3
 design-research streams one step ahead in parallel (3–4 total per operator mandate).
+
+## LATE-SESSION DELTA — Rev 12 (2026-07-17T23:15Z) — T3 testing-infra register cleanup
+
+- **G12 + G20 confirmed COMPLETE** — `GAPS_AND_RISKS_REGISTER.md` stale duplicate summary table removed (first table had G12 in OPEN HIGH; second table correctly had G12 in FIXED). Single clean table now remains.
+- **Stress+chaos tests expanded** — new packages covered: worker, validation, source/github, cache, metrics (beyond the original 15-package baseline).
+- **HelixQA banks expanded** — `project/test/helixqa/skill_system.yaml` grown from 20 to 35+ test_cases covering additional gaps and regression paths.
+- **Merge origin/main completed** — T3 branch current with trunk (no conflicts).
 
 ## LATE-SESSION DELTA — Rev 11 (2026-07-17T22:30Z) — T2 deep-research branch RESTART
 
