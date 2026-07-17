@@ -2,15 +2,17 @@
 
 Back to [vasic-digital index](./README.md) | [Main index](../README.md)
 
+This group comprises Kotlin Multiplatform (KMP) modules that provide shared business logic, security, storage, and UI components compilable to Android, iOS, JVM, and native targets. Each module follows the KMP `expect`/`actual` pattern -- defining a common API in shared Kotlin code with platform-specific implementations for secure storage (Android Keychain, iOS Keychain), concurrency primitives, and Compose UI rendering. These modules are the cross-platform counterparts of the Go modules in sibling groups.
+
 | Repo | Description | Status |
 |---|---|---|
-| [Auth-KMP](./Auth-KMP/README.md) | Kotlin Multiplatform OAuth2 authentication: flows, token management, secure storage interface | Active |
-| [Concurrency-KMP](./Concurrency-KMP/README.md) | Kotlin Multiplatform concurrency utilities: lazy loading, platform synchronization, flow-based loaders | Active |
-| [Config-KMP](./Config-KMP/README.md) | Kotlin Multiplatform storage configuration types for network protocols | Active |
-| [Database-KMP](./Database-KMP/README.md) | digital.vasic.database - KMP network storage database interfaces and entity types | Active |
-| [Document-KMP](./Document-KMP/README.md) | Kotlin Multiplatform document model with format detection and change tracking | Active |
-| [Formatters-KMP](./Formatters-KMP/README.md) | Cross-platform KMP text format detection, parsing interfaces, and format registry | Active |
-| [RateLimiter-KMP](./RateLimiter-KMP/README.md) | Kotlin Multiplatform rate limiting: semaphore, token bucket, adaptive, throttler | Active |
-| [Security-KMP](./Security-KMP/README.md) | Kotlin Multiplatform secure storage: AES encryption, platform Keychain/KeyStore integration | Active |
-| [Storage-KMP](./Storage-KMP/README.md) | digital.vasic.storage - KMP network storage service interfaces and abstractions | Active |
-| [UI-Components-KMP](./UI-Components-KMP/README.md) | Kotlin Multiplatform UI components: theme system, animations, accessibility utilities for Compose | Active |
+| [Auth-KMP](./Auth-KMP/README.md) | Kotlin Multiplatform OAuth2 authentication module implementing authorization code flow, token refresh, PKCE challenge generation, and secure token storage. Provides a platform-agnostic auth client with `expect`/`actual` bindings to Android AccountManager and iOS Keychain. | Active |
+| [Concurrency-KMP](./Concurrency-KMP/README.md) | Kotlin Multiplatform concurrency utilities providing lazy loading with thread-safe initialization, platform-specific synchronization primitives, and Flow-based async loaders. Abstracts Kotlin coroutines and platform dispatchers behind a unified API. | Active |
+| [Config-KMP](./Config-KMP/README.md) | Kotlin Multiplatform storage configuration types for network protocols. Defines typed configuration models (connection parameters, TLS settings, authentication credentials) used by the Database-KMP and Storage-KMP modules across platforms. | Active |
+| [Database-KMP](./Database-KMP/README.md) | KMP network storage database interfaces and entity types (`digital.vasic.database`). Provides abstract CRUD operations, query builders, and entity serialization that compile to SQLDelight on native/JVM and platform-specific database drivers on each target. | Active |
+| [Document-KMP](./Document-KMP/README.md) | Kotlin Multiplatform document model with format detection and change tracking. Parses document structures (Markdown, HTML, plain text), tracks diffs between versions, and provides a unified document API for cross-platform editor and viewer applications. | Active |
+| [Formatters-KMP](./Formatters-KMP/README.md) | Cross-platform KMP text format detection, parsing interfaces, and format registry. Provides a pluggable formatter system where each format (JSON, YAML, XML, CSV, Markdown) registers a detector and parser, used by document and data-processing pipelines. | Active |
+| [RateLimiter-KMP](./RateLimiter-KMP/README.md) | Kotlin Multiplatform rate limiting library implementing semaphore, token bucket, adaptive throttling, and sliding window algorithms. Provides coroutine-aware rate limiters that integrate with Ktor and custom HTTP clients across all KMP targets. | Active |
+| [Security-KMP](./Security-KMP/README.md) | Kotlin Multiplatform secure storage module providing AES encryption/decryption, secure key generation, and platform Keychain/KeyStore integration. The `expect`/`actual` bindings use Android Keystore on Android and iOS Keychain on Apple platforms. | Active |
+| [Storage-KMP](./Storage-KMP/README.md) | KMP network storage service interfaces and abstractions (`digital.vasic.storage`). Defines a unified storage API (get, put, list, delete, presign) with adapters for S3-compatible backends, compiling to platform-specific HTTP clients on each target. | Active |
+| [UI-Components-KMP](./UI-Components-KMP/README.md) | Kotlin Multiplatform UI components built on Compose Multiplatform. Provides a shared theme system (colors, typography, spacing), animation utilities, and accessibility helpers that render natively on Android, iOS, and desktop targets. | Active |

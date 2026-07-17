@@ -2,31 +2,35 @@
 
 Back to [vasic-digital index](./README.md) | [Main index](../README.md)
 
+This group is the core AI and LLM infrastructure layer, spanning provider abstraction, model benchmarking, embeddings, vector storage, RAG pipelines, adversarial testing, planning algorithms, agent skill management, and platform toolkits. It provides the shared Go modules and language-specific SDKs that every AI-powered application, agent, and workflow in the ecosystem builds on -- from raw LLM API calls through conversation management to computer-vision-driven UI automation.
+
 | Repo | Description | Status |
 |---|---|---|
-| [Android-Toolkit](./Android-Toolkit/README.md) | Commonly used set of abstractions and implementations. | Active |
-| [Benchmark](./Benchmark/README.md) | LLM benchmarking: SWE-bench, HumanEval, MMLU, leaderboard | Active |
-| [Chutes-Toolkit](./Chutes-Toolkit/README.md) | Chutes Toolkit | Active |
-| [Embeddings](./Embeddings/README.md) | Generic reusable Go module: digital.vasic.embeddings | Active |
-| [I-LLM](./I-LLM/README.md) | Introspection layer for LLM providers | SCAFFOLD / WIP |
-| [JVM-Toolkit](./JVM-Toolkit/README.md) | Commonly used set of abstractions and implementations. | Active |
-| [LLMGateway](./LLMGateway/README.md) | (no description) | Active |
-| [LLMOps](./LLMOps/README.md) | LLM operations: evaluation, experiments, datasets, prompt versioning | Active |
-| [LLMProvider](./LLMProvider/README.md) | Shared LLM provider interface, 40+ provider adapters, retry, circuit breaker, health monitoring | Active |
-| [LLMsVerifier](./LLMsVerifier/README.md) | Benchmark and verify LLMs | Active |
-| [Memory](./Memory/README.md) | Generic reusable Go module: digital.vasic.memory | Active |
-| [Normalize](./Normalize/README.md) | Adversarial-input canonicalisation library for defensive LLM guardrail pipelines | Active |
-| [Open-Rag-Material-Android](./Open-Rag-Material-Android/README.md) | Material for RAG for Android development | Active |
-| [Optimization](./Optimization/README.md) | Generic reusable Go module: digital.vasic.optimization | Active |
-| [Planning](./Planning/README.md) | AI planning algorithms: HiPlan, MCTS, Tree of Thoughts | Active |
-| [RAG](./RAG/README.md) | Generic reusable Go module: digital.vasic.rag | Active |
-| [RedTeam](./RedTeam/README.md) | YAML-driven adversarial prompt fixture harness for defensive LLM guardrail regression testing | Active |
-| [SelfImprove](./SelfImprove/README.md) | AI self-improvement: reward modelling, RLHF, optimizer | Active |
-| [SiliconFlow-Toolkit](./SiliconFlow-Toolkit/README.md) | SiliconFlow Toolkit | Active |
-| [SkillRegistry](./SkillRegistry/README.md) | CLI agent skill registration and management for AI agent systems | Active |
-| [Storage](./Storage/README.md) | Generic reusable Go module: digital.vasic.storage | Active |
-| [TOON](./TOON/README.md) | Generic reusable Go module: digital.vasic.toon - Token-Oriented Object Notation wrapper | Active |
-| [ToolSchema](./ToolSchema/README.md) | Generic tool schema definition, validation, and execution for AI agent tool systems | Active |
-| [VectorDB](./VectorDB/README.md) | Generic reusable Go module: digital.vasic.vectordb | Active |
-| [VisionEngine](./VisionEngine/README.md) | Computer vision and LLM Vision for UI analysis and navigation | Active |
-| [conversation](./conversation/README.md) | Conversation context management, infinite context compression, and event sourcing for AI agents | Active |
+| [Android-Toolkit](./Android-Toolkit/README.md) | Kotlin/Java library of commonly used Android abstractions and implementations -- network clients, lifecycle helpers, UI utilities, and platform integration primitives shared across all Android applications in the ecosystem. | Active |
+| [Benchmark](./Benchmark/README.md) | LLM benchmarking framework supporting SWE-bench, HumanEval, MMLU, and custom evaluation suites with automated leaderboard generation. Runs models through standardized task sets, collects pass/fail metrics, and produces comparative quality reports. | Active |
+| [Chutes-Toolkit](./Chutes-Toolkit/README.md) | Integration toolkit for the Chutes AI inference platform, providing client libraries, authentication helpers, and deployment utilities for running model workloads on Chutes infrastructure. | Active |
+| [Embeddings](./Embeddings/README.md) | Generic reusable Go module (`digital.vasic.embeddings`) providing a pluggable embedding-generation interface with adapters for OpenAI, Cohere, local ONNX models, and other providers. Used by RAG pipelines and vector search across the ecosystem. | Active |
+| [I-LLM](./I-LLM/README.md) | Introspection layer for LLM providers -- aims to expose internal provider state (token usage, rate-limit headers, model routing decisions) through a uniform observable interface for monitoring and debugging LLM call chains. | SCAFFOLD / WIP |
+| [JVM-Toolkit](./JVM-Toolkit/README.md) | Kotlin/Java library of commonly used JVM abstractions and implementations -- coroutine helpers, serialization utilities, dependency injection primitives, and platform integration code shared across all JVM-based projects. | Active |
+| [LLMGateway](./LLMGateway/README.md) | API gateway for LLM traffic providing request routing, rate limiting, usage tracking, and failover across multiple upstream LLM providers. Acts as a single entry point that abstracts provider-specific endpoints and authentication. | Active |
+| [LLMOps](./LLMOps/README.md) | LLM operations platform covering evaluation pipelines, experiment tracking, dataset management, and prompt versioning. Provides a structured workflow for iterating on prompts and measuring their impact against defined quality metrics. | Active |
+| [LLMProvider](./LLMProvider/README.md) | Shared Go interface for LLM providers with 40+ provider adapters (OpenAI, Anthropic, Google, Mistral, local models, etc.), automatic retry with exponential backoff, circuit breaker pattern, health monitoring, and streaming response support. The foundational module for all LLM calls in the ecosystem. | Active |
+| [LLMsVerifier](./LLMsVerifier/README.md) | Benchmarking and verification tool for LLMs that runs models through standardized test suites, compares outputs against expected results, and produces quality/compliance reports for model selection and regression detection. | Active |
+| [Memory](./Memory/README.md) | Generic reusable Go module (`digital.vasic.memory`) providing in-memory and persistent key-value storage with TTL expiration, LRU eviction, and thread-safe concurrent access. Used as a caching and short-term state layer by agent runtimes. | Active |
+| [Normalize](./Normalize/README.md) | Adversarial-input canonicalisation library written in Go for defensive LLM guardrail pipelines. Sanitizes and normalizes user inputs to defeat prompt-injection, encoding-based bypass, and Unicode-confusion attacks before they reach the LLM. | Active |
+| [Open-Rag-Material-Android](./Open-Rag-Material-Android/README.md) | Curated reference material and code examples for building RAG (Retrieval-Augmented Generation) pipelines targeting Android development workflows, including document chunking strategies, embedding storage, and context retrieval patterns. | Active |
+| [Optimization](./Optimization/README.md) | Generic reusable Go module (`digital.vasic.optimization`) providing numerical optimization primitives -- gradient descent, grid search, Bayesian optimization, and constraint solvers -- used by hyperparameter tuning and resource allocation subsystems. | Active |
+| [Planning](./Planning/README.md) | AI planning algorithms library implementing HiPlan, MCTS (Monte Carlo Tree Search), and Tree of Thoughts. Provides structured reasoning frameworks for multi-step problem decomposition and action-sequence selection in agentic workflows. | Active |
+| [RAG](./RAG/README.md) | Generic reusable Go module (`digital.vasic.rag`) implementing Retrieval-Augmented Generation pipelines -- document ingestion, chunking, embedding, vector retrieval, and context assembly -- with pluggable storage and embedding backends. | Active |
+| [RedTeam](./RedTeam/README.md) | YAML-driven adversarial prompt fixture harness for defensive LLM guardrail regression testing. Defines attack scenarios as declarative fixtures, runs them against guardrail pipelines, and asserts that defences hold -- used to verify Normalize and related security modules. | Active |
+| [SelfImprove](./SelfImprove/README.md) | AI self-improvement framework implementing reward modelling, RLHF (Reinforcement Learning from Human Feedback), and optimizer loops. Provides the training infrastructure for fine-tuning models based on human preference signals. | Active |
+| [SiliconFlow-Toolkit](./SiliconFlow-Toolkit/README.md) | Integration toolkit for the SiliconFlow inference platform, providing client libraries, model deployment helpers, and usage monitoring for running workloads on SiliconFlow infrastructure. | Active |
+| [SkillRegistry](./SkillRegistry/README.md) | CLI agent skill registration and management system. Provides a registry where agents declare, discover, version, and load skills at runtime -- the backbone of the Helix Skills ecosystem's skill-discovery mechanism. | Active |
+| [Storage](./Storage/README.md) | Generic reusable Go module (`digital.vasic.storage`) providing a unified storage interface with adapters for local filesystem, S3-compatible object stores, and in-memory backends. Used as the persistence layer by multiple sibling modules. | Active |
+| [TOON](./TOON/README.md) | Token-Oriented Object Notation -- a Go module (`digital.vasic.toon`) that wraps structured data in a token-efficient serialization format optimized for LLM context windows, reducing token consumption compared to JSON while preserving schema fidelity. | Active |
+| [ToolSchema](./ToolSchema/README.md) | Generic tool schema definition, validation, and execution framework for AI agent tool systems. Provides JSON Schema-based tool declarations, input/output validation, and dispatch routing so agents can invoke tools with type-safe contracts. | Active |
+| [VectorDB](./VectorDB/README.md) | Generic reusable Go module (`digital.vasic.vectordb`) providing a vector database interface with adapters for Pinecone, Qdrant, Chroma, and local in-memory stores. Used by RAG pipelines and embedding-based search across the ecosystem. | Active |
+| [VisionEngine](./VisionEngine/README.md) | Computer vision and LLM Vision engine for UI analysis and navigation. Combines OCR, template matching, and multimodal LLM calls to read screen content, locate UI elements, and drive interactions on non-introspectable surfaces. | Active |
+| [conversation](./conversation/README.md) | Conversation context management module for AI agents, implementing infinite context compression, event sourcing, and token-budget-aware truncation. Ensures agents maintain coherent multi-turn dialogue without exceeding context window limits. | Active |
+
+**Related skills:** [llmprovider](../skills/llmprovider.md), [llmorchestrator](../skills/llmorchestrator.md), [normalize](../skills/normalize.md), [toon](../skills/toon.md), [embeddings](../skills/embeddings.md), [vectordb](../skills/vectordb.md), [conversation](../skills/conversation.md), [skillregistry](../skills/skillregistry.md), [toolschema](../skills/toolschema.md), [token-optimizer](../skills/token-optimizer.md)

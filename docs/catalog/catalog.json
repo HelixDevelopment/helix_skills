@@ -1,8 +1,8 @@
 {
   "meta": {
     "title": "Helix Skills Test Catalog",
-    "generated_at": "2026-07-17T17:09:45Z",
-    "fingerprint": "53ee3c634a3909f3c3ca2f81f6b517894b0ffc200fee0e50310474b48aaff8e1"
+    "generated_at": "2026-07-17T18:02:58Z",
+    "fingerprint": "8a7dfe6a36717d0bfcf1ada800abe0e49321e85527706fd04517b8e23b45337e"
   },
   "summary": {
     "records": 89,
@@ -24,7 +24,7 @@
       },
       "multitrack_test": {
         "records": 16,
-        "bluff_proofed": 0,
+        "bluff_proofed": 13,
         "physical_evidence": 0
       },
       "pre_build": {
@@ -34,17 +34,20 @@
       },
       "workable_items_test": {
         "records": 38,
-        "bluff_proofed": 0,
+        "bluff_proofed": 13,
         "physical_evidence": 0
       }
     },
-    "bluff_proofed": 0,
+    "bluff_proofed": 26,
     "physical_evidence": 0,
     "with_derivation_gaps": 89,
     "gate_mutation_pairs": 0,
     "gap_census": {
       "version-UNCONFIRMED": 89,
-      "created_date-UNCONFIRMED": 89
+      "created_date-UNCONFIRMED": 85,
+      "no-step-by-step-derivable": 68,
+      "no-description-header(§11.4.18)": 38,
+      "cluster-uncategorised": 10
     },
     "feature_class_set": [],
     "clusters": [
@@ -58,19 +61,43 @@
       "uncategorised",
       "workable_items"
     ],
-    "fingerprint": "53ee3c634a3909f3c3ca2f81f6b517894b0ffc200fee0e50310474b48aaff8e1",
-    "generated_at": "2026-07-17T17:09:45Z"
+    "fingerprint": "8a7dfe6a36717d0bfcf1ada800abe0e49321e85527706fd04517b8e23b45337e",
+    "generated_at": "2026-07-17T18:02:58Z"
   },
   "records": [
     {
       "id": "test_action_prefix_grammar",
-      "name": "\u00a711.4.140 GRAMMAR_ADDENDUM (2026",
+      "name": "§11.4.140 GRAMMAR_ADDENDUM (2026",
       "type": "constitution_gate",
       "subtypes": [],
-      "description": "\u00a711.4.140 GRAMMAR_ADDENDUM (2026 06-09) + arrow form (2026-07-02) \u2014 full test",
+      "description": "06-09) + arrow form (2026-07-02) — full test",
       "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
+      "step_by_step": [
+        {
+          "what": "`ACTION :: rest`           (2) `PREFIX::ACTION :: rest`",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "header-numbered"
+        },
+        {
+          "what": "`/ACTION rest`             (4) `/PREFIX::ACTION rest`",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "header-numbered"
+        },
+        {
+          "what": "`ACTION ---> rest`          (+ `PREFIX::ACTION ---> rest`)",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "header-numbered"
+        }
+      ],
+      "how_tokens": [
+        "cat"
+      ],
       "bluff_proofed": false,
       "bluff_proofed_reasons": [],
       "physical_evidence": false,
@@ -92,10 +119,10 @@
     },
     {
       "id": "meta_test_action_prefix_grammar",
-      "name": "\u00a71.1 paired",
+      "name": "§1.1 paired",
       "type": "constitution_gate",
       "subtypes": [],
-      "description": "\u00a71.1 paired mutation meta-test for the \u00a711.4.140 GRAMMAR_ADDENDUM grammar suite.",
+      "description": "mutation meta-test for the §11.4.140 GRAMMAR_ADDENDUM grammar suite.",
       "description_quality": "title-header",
       "step_by_step": [],
       "how_tokens": [],
@@ -110,6 +137,7 @@
       "sources_anti_bluff": false,
       "source_path": "constitution/tests/action_prefix/meta_test_action_prefix_grammar.sh",
       "derivation_gaps": [
+        "no-step-by-step-derivable",
         "version-UNCONFIRMED",
         "created_date-UNCONFIRMED"
       ],
@@ -120,13 +148,15 @@
     },
     {
       "id": "test_subsystem_shortcuts",
-      "name": "\u00a711.4.140 sub",
+      "name": "§11.4.140 sub",
       "type": "constitution_gate",
       "subtypes": [],
-      "description": "\u00a711.4.140 sub system-shortcut extension (2026-07-14) \u2014 runtime functional test",
+      "description": "system-shortcut extension (2026-07-14) — runtime functional test",
       "description_quality": "title-header",
       "step_by_step": [],
-      "how_tokens": [],
+      "how_tokens": [
+        "cat"
+      ],
       "bluff_proofed": false,
       "bluff_proofed_reasons": [],
       "physical_evidence": false,
@@ -138,6 +168,7 @@
       "sources_anti_bluff": false,
       "source_path": "constitution/tests/action_prefix/test_subsystem_shortcuts.sh",
       "derivation_gaps": [
+        "no-step-by-step-derivable",
         "version-UNCONFIRMED",
         "created_date-UNCONFIRMED"
       ],
@@ -147,14 +178,47 @@
       "component": "action_prefix/subsystem_shortcuts"
     },
     {
-      "id": "test_hook_e2e",
-      "name": "\u00a711.4.140 LAYER",
+      "id": "meta_test_inheritance",
+      "name": "meta_test_inheritance.sh",
       "type": "constitution_gate",
       "subtypes": [],
-      "description": "\u00a711.4.140 LAYER 2 end-to-end proof: the Claude Code UserPromptSubmit hook",
+      "description": "Constitution-side meta-test that proves",
       "description_quality": "title-header",
       "step_by_step": [],
-      "how_tokens": [],
+      "how_tokens": [
+        "grep"
+      ],
+      "bluff_proofed": false,
+      "bluff_proofed_reasons": [],
+      "physical_evidence": false,
+      "physical_evidence_which": [],
+      "feature_class": null,
+      "version": "unversioned",
+      "atm_id": null,
+      "status": "active",
+      "sources_anti_bluff": false,
+      "source_path": "constitution/meta_test_inheritance.sh",
+      "derivation_gaps": [
+        "no-step-by-step-derivable",
+        "version-UNCONFIRMED",
+        "created_date-UNCONFIRMED"
+      ],
+      "created_date": "UNCONFIRMED",
+      "updated_date": "UNCONFIRMED",
+      "cluster": "governance",
+      "component": "governance/meta_test_inheritance"
+    },
+    {
+      "id": "test_hook_e2e",
+      "name": "§11.4.140 LAYER",
+      "type": "constitution_gate",
+      "subtypes": [],
+      "description": "2 end-to-end proof: the Claude Code UserPromptSubmit hook",
+      "description_quality": "title-header",
+      "step_by_step": [],
+      "how_tokens": [
+        "grep"
+      ],
       "bluff_proofed": false,
       "bluff_proofed_reasons": [],
       "physical_evidence": false,
@@ -166,6 +230,7 @@
       "sources_anti_bluff": false,
       "source_path": "constitution/tests/action_prefix/test_hook_e2e.sh",
       "derivation_gaps": [
+        "no-step-by-step-derivable",
         "version-UNCONFIRMED",
         "created_date-UNCONFIRMED"
       ],
@@ -176,10 +241,10 @@
     },
     {
       "id": "meta_test_token_efficiency",
-      "name": "\u00a71.1 PAIRED",
+      "name": "§1.1 PAIRED",
       "type": "constitution_gate",
       "subtypes": [],
-      "description": "\u00a71.1 PAIRED MUTATION meta-test for the \u00a711.4.141 token-efficiency harness.",
+      "description": "MUTATION meta-test for the §11.4.141 token-efficiency harness.",
       "description_quality": "title-header",
       "step_by_step": [],
       "how_tokens": [],
@@ -194,6 +259,7 @@
       "sources_anti_bluff": false,
       "source_path": "constitution/tests/token_efficiency/meta_test_token_efficiency.sh",
       "derivation_gaps": [
+        "no-step-by-step-derivable",
         "version-UNCONFIRMED",
         "created_date-UNCONFIRMED"
       ],
@@ -204,13 +270,37 @@
     },
     {
       "id": "test_token_efficiency_integration",
-      "name": "\u00a711.4.141 INTEGRATION test (\u00a711.4.27",
+      "name": "§11.4.141 INTEGRATION test (§11.4.27",
       "type": "constitution_gate",
       "subtypes": [],
-      "description": "\u00a711.4.141 INTEGRATION test (\u00a711.4.27 NO fakes beyond unit; this drives the",
+      "description": "NO fakes beyond unit; this drives the",
       "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
+      "step_by_step": [
+        {
+          "what": "the captured `usage` object carries the four real fields (input /",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "header-numbered"
+        },
+        {
+          "what": "on a steady-state (cache-warm) turn, cache_read_input_tokens > 0 AND the",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "header-numbered"
+        },
+        {
+          "what": "real four-field usage present",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "header-numbered"
+        }
+      ],
+      "how_tokens": [
+        "input"
+      ],
       "bluff_proofed": false,
       "bluff_proofed_reasons": [],
       "physical_evidence": false,
@@ -232,10 +322,10 @@
     },
     {
       "id": "test_token_efficiency_unit",
-      "name": "\u00a711.4.141 UNIT tests (\u00a711.4.27",
+      "name": "§11.4.141 UNIT tests (§11.4.27",
       "type": "constitution_gate",
       "subtypes": [],
-      "description": "\u00a711.4.141 UNIT tests (\u00a711.4.27 unit tier; synthetic `usage` fixtures permitted).",
+      "description": "unit tier; synthetic `usage` fixtures permitted).",
       "description_quality": "title-header",
       "step_by_step": [],
       "how_tokens": [],
@@ -250,6 +340,7 @@
       "sources_anti_bluff": false,
       "source_path": "constitution/tests/token_efficiency/test_token_efficiency_unit.sh",
       "derivation_gaps": [
+        "no-step-by-step-derivable",
         "version-UNCONFIRMED",
         "created_date-UNCONFIRMED"
       ],
@@ -263,10 +354,15 @@
       "name": "tests/test_cli_agent_plugins.sh",
       "type": "constitution_gate",
       "subtypes": [],
-      "description": "tests/test_cli_agent_plugins.sh hermetic test suite for the CLI-agent",
+      "description": "hermetic test suite for the CLI-agent",
       "description_quality": "title-header",
       "step_by_step": [],
-      "how_tokens": [],
+      "how_tokens": [
+        "am",
+        "cat",
+        "grep",
+        "input"
+      ],
       "bluff_proofed": false,
       "bluff_proofed_reasons": [],
       "physical_evidence": false,
@@ -278,8 +374,10 @@
       "sources_anti_bluff": false,
       "source_path": "constitution/tests/test_cli_agent_plugins.sh",
       "derivation_gaps": [
+        "no-step-by-step-derivable",
         "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
+        "created_date-UNCONFIRMED",
+        "cluster-uncategorised"
       ],
       "created_date": "UNCONFIRMED",
       "updated_date": "UNCONFIRMED",
@@ -291,10 +389,12 @@
       "name": "test_guard_branch_consistency.sh",
       "type": "hook_test",
       "subtypes": [],
-      "description": "test_guard_branch_consistency.sh hermetic test suite for the \u00a711.4.181",
+      "description": "hermetic test suite for the §11.4.181",
       "description_quality": "title-header",
       "step_by_step": [],
-      "how_tokens": [],
+      "how_tokens": [
+        "grep"
+      ],
       "bluff_proofed": false,
       "bluff_proofed_reasons": [],
       "physical_evidence": false,
@@ -306,6 +406,7 @@
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/hooks/test_guard_branch_consistency.sh",
       "derivation_gaps": [
+        "no-step-by-step-derivable",
         "version-UNCONFIRMED",
         "created_date-UNCONFIRMED"
       ],
@@ -319,7 +420,7 @@
       "name": "test_guard_track_branch_label.sh",
       "type": "hook_test",
       "subtypes": [],
-      "description": "test_guard_track_branch_label.sh hermetic test suite for the \u00a711.4.182",
+      "description": "hermetic test suite for the §11.4.182",
       "description_quality": "title-header",
       "step_by_step": [],
       "how_tokens": [],
@@ -334,6 +435,7 @@
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/hooks/test_guard_track_branch_label.sh",
       "derivation_gaps": [
+        "no-step-by-step-derivable",
         "version-UNCONFIRMED",
         "created_date-UNCONFIRMED"
       ],
@@ -347,10 +449,69 @@
       "name": "test_guard_work_track_binding.sh",
       "type": "hook_test",
       "subtypes": [],
-      "description": "test_guard_work_track_binding.sh hermetic test suite for the \u00a711.4.191",
+      "description": "hermetic test suite for the §11.4.191",
       "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
+      "step_by_step": [
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        }
+      ],
+      "how_tokens": [
+        "grep"
+      ],
       "bluff_proofed": false,
       "bluff_proofed_reasons": [],
       "physical_evidence": false,
@@ -375,10 +536,12 @@
       "name": "cm_subsystem_shortcuts_mutation_test.sh",
       "type": "meta-test-mutation",
       "subtypes": [],
-      "description": "cm_subsystem_shortcuts_mutation_test.sh \u00a71.1 paired-mutation meta-test for",
+      "description": "§1.1 paired-mutation meta-test for",
       "description_quality": "title-header",
       "step_by_step": [],
-      "how_tokens": [],
+      "how_tokens": [
+        "grep"
+      ],
       "bluff_proofed": false,
       "bluff_proofed_reasons": [],
       "physical_evidence": false,
@@ -390,6 +553,7 @@
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/gates/cm_subsystem_shortcuts_mutation_test.sh",
       "derivation_gaps": [
+        "no-step-by-step-derivable",
         "version-UNCONFIRMED",
         "created_date-UNCONFIRMED"
       ],
@@ -403,7 +567,7 @@
       "name": "cm_covenant_114_167_propagation_mutation_test.sh",
       "type": "meta-test-mutation",
       "subtypes": [],
-      "description": "cm_covenant_114_167_propagation_mutation_test.sh \u00a71.1 paired-mutation",
+      "description": "§1.1 paired-mutation",
       "description_quality": "title-header",
       "step_by_step": [],
       "how_tokens": [],
@@ -418,6 +582,7 @@
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/gates/cm_covenant_114_167_propagation_mutation_test.sh",
       "derivation_gaps": [
+        "no-step-by-step-derivable",
         "version-UNCONFIRMED",
         "created_date-UNCONFIRMED"
       ],
@@ -431,7 +596,7 @@
       "name": "cm_covenant_114_176_propagation_mutation_test.sh",
       "type": "meta-test-mutation",
       "subtypes": [],
-      "description": "cm_covenant_114_176_propagation_mutation_test.sh \u00a71.1 paired-mutation",
+      "description": "§1.1 paired-mutation",
       "description_quality": "title-header",
       "step_by_step": [],
       "how_tokens": [],
@@ -446,6 +611,7 @@
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/gates/cm_covenant_114_176_propagation_mutation_test.sh",
       "derivation_gaps": [
+        "no-step-by-step-derivable",
         "version-UNCONFIRMED",
         "created_date-UNCONFIRMED"
       ],
@@ -459,7 +625,7 @@
       "name": "cm_covenant_114_187_propagation_mutation_test.sh",
       "type": "meta-test-mutation",
       "subtypes": [],
-      "description": "cm_covenant_114_187_propagation_mutation_test.sh \u00a71.1 paired-mutation",
+      "description": "§1.1 paired-mutation",
       "description_quality": "title-header",
       "step_by_step": [],
       "how_tokens": [],
@@ -474,6 +640,7 @@
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/gates/cm_covenant_114_187_propagation_mutation_test.sh",
       "derivation_gaps": [
+        "no-step-by-step-derivable",
         "version-UNCONFIRMED",
         "created_date-UNCONFIRMED"
       ],
@@ -487,7 +654,7 @@
       "name": "cm_covenant_114_191_propagation_mutation_test.sh",
       "type": "meta-test-mutation",
       "subtypes": [],
-      "description": "cm_covenant_114_191_propagation_mutation_test.sh \u00a71.1 paired-mutation",
+      "description": "§1.1 paired-mutation",
       "description_quality": "title-header",
       "step_by_step": [],
       "how_tokens": [],
@@ -502,6 +669,7 @@
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/gates/cm_covenant_114_191_propagation_mutation_test.sh",
       "derivation_gaps": [
+        "no-step-by-step-derivable",
         "version-UNCONFIRMED",
         "created_date-UNCONFIRMED"
       ],
@@ -515,7 +683,7 @@
       "name": "cm_covenant_114_196_propagation_mutation_test.sh",
       "type": "meta-test-mutation",
       "subtypes": [],
-      "description": "cm_covenant_114_196_propagation_mutation_test.sh \u00a71.1 paired-mutation",
+      "description": "§1.1 paired-mutation",
       "description_quality": "title-header",
       "step_by_step": [],
       "how_tokens": [],
@@ -530,6 +698,7 @@
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/gates/cm_covenant_114_196_propagation_mutation_test.sh",
       "derivation_gaps": [
+        "no-step-by-step-derivable",
         "version-UNCONFIRMED",
         "created_date-UNCONFIRMED"
       ],
@@ -543,7 +712,7 @@
       "name": "cm_covenant_114_199_propagation_mutation_test.sh",
       "type": "meta-test-mutation",
       "subtypes": [],
-      "description": "cm_covenant_114_199_propagation_mutation_test.sh \u00a71.1 paired-mutation",
+      "description": "§1.1 paired-mutation",
       "description_quality": "title-header",
       "step_by_step": [],
       "how_tokens": [],
@@ -558,6 +727,7 @@
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/gates/cm_covenant_114_199_propagation_mutation_test.sh",
       "derivation_gaps": [
+        "no-step-by-step-derivable",
         "version-UNCONFIRMED",
         "created_date-UNCONFIRMED"
       ],
@@ -571,7 +741,7 @@
       "name": "cm_covenant_114_200_propagation_mutation_test.sh",
       "type": "meta-test-mutation",
       "subtypes": [],
-      "description": "cm_covenant_114_200_propagation_mutation_test.sh \u00a71.1 paired-mutation",
+      "description": "§1.1 paired-mutation",
       "description_quality": "title-header",
       "step_by_step": [],
       "how_tokens": [],
@@ -586,6 +756,7 @@
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/gates/cm_covenant_114_200_propagation_mutation_test.sh",
       "derivation_gaps": [
+        "no-step-by-step-derivable",
         "version-UNCONFIRMED",
         "created_date-UNCONFIRMED"
       ],
@@ -599,7 +770,7 @@
       "name": "cm_covenant_114_201_propagation_mutation_test.sh",
       "type": "meta-test-mutation",
       "subtypes": [],
-      "description": "cm_covenant_114_201_propagation_mutation_test.sh \u00a71.1 paired-mutation",
+      "description": "§1.1 paired-mutation",
       "description_quality": "title-header",
       "step_by_step": [],
       "how_tokens": [],
@@ -614,6 +785,7 @@
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/gates/cm_covenant_114_201_propagation_mutation_test.sh",
       "derivation_gaps": [
+        "no-step-by-step-derivable",
         "version-UNCONFIRMED",
         "created_date-UNCONFIRMED"
       ],
@@ -627,7 +799,7 @@
       "name": "cm_covenant_114_202_propagation_mutation_test.sh",
       "type": "meta-test-mutation",
       "subtypes": [],
-      "description": "cm_covenant_114_202_propagation_mutation_test.sh \u00a71.1 paired-mutation",
+      "description": "§1.1 paired-mutation",
       "description_quality": "title-header",
       "step_by_step": [],
       "how_tokens": [],
@@ -642,6 +814,7 @@
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/gates/cm_covenant_114_202_propagation_mutation_test.sh",
       "derivation_gaps": [
+        "no-step-by-step-derivable",
         "version-UNCONFIRMED",
         "created_date-UNCONFIRMED"
       ],
@@ -655,7 +828,7 @@
       "name": "cm_covenant_114_207_propagation_mutation_test.sh",
       "type": "meta-test-mutation",
       "subtypes": [],
-      "description": "cm_covenant_114_207_propagation_mutation_test.sh \u00a71.1 paired-mutation",
+      "description": "§1.1 paired-mutation",
       "description_quality": "title-header",
       "step_by_step": [],
       "how_tokens": [],
@@ -670,6 +843,7 @@
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/gates/cm_covenant_114_207_propagation_mutation_test.sh",
       "derivation_gaps": [
+        "no-step-by-step-derivable",
         "version-UNCONFIRMED",
         "created_date-UNCONFIRMED"
       ],
@@ -683,7 +857,7 @@
       "name": "cm_covenant_114_213_propagation_mutation_test.sh",
       "type": "meta-test-mutation",
       "subtypes": [],
-      "description": "cm_covenant_114_213_propagation_mutation_test.sh \u00a71.1 paired-mutation",
+      "description": "§1.1 paired-mutation",
       "description_quality": "title-header",
       "step_by_step": [],
       "how_tokens": [],
@@ -698,6 +872,7 @@
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/gates/cm_covenant_114_213_propagation_mutation_test.sh",
       "derivation_gaps": [
+        "no-step-by-step-derivable",
         "version-UNCONFIRMED",
         "created_date-UNCONFIRMED"
       ],
@@ -711,10 +886,12 @@
       "name": "cm_multitrack_engine_in_constitution_mutation_test.sh",
       "type": "meta-test-mutation",
       "subtypes": [],
-      "description": "cm_multitrack_engine_in_constitution_mutation_test.sh \u00a71.1 paired-mutation",
+      "description": "§1.1 paired-mutation",
       "description_quality": "title-header",
       "step_by_step": [],
-      "how_tokens": [],
+      "how_tokens": [
+        "cat"
+      ],
       "bluff_proofed": false,
       "bluff_proofed_reasons": [],
       "physical_evidence": false,
@@ -726,6 +903,7 @@
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/gates/cm_multitrack_engine_in_constitution_mutation_test.sh",
       "derivation_gaps": [
+        "no-step-by-step-derivable",
         "version-UNCONFIRMED",
         "created_date-UNCONFIRMED"
       ],
@@ -739,10 +917,12 @@
       "name": "cm_track_branch_label_mutation_test.sh",
       "type": "meta-test-mutation",
       "subtypes": [],
-      "description": "cm_track_branch_label_mutation_test.sh \u00a71.1 paired-mutation meta-test for",
+      "description": "§1.1 paired-mutation meta-test for",
       "description_quality": "title-header",
       "step_by_step": [],
-      "how_tokens": [],
+      "how_tokens": [
+        "cat"
+      ],
       "bluff_proofed": false,
       "bluff_proofed_reasons": [],
       "physical_evidence": false,
@@ -754,6 +934,7 @@
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/gates/cm_track_branch_label_mutation_test.sh",
       "derivation_gaps": [
+        "no-step-by-step-derivable",
         "version-UNCONFIRMED",
         "created_date-UNCONFIRMED"
       ],
@@ -767,10 +948,12 @@
       "name": "cm_cli_agent_plugins_wired_mutation_test.sh",
       "type": "meta-test-mutation",
       "subtypes": [],
-      "description": "cm_cli_agent_plugins_wired_mutation_test.sh paired \u00a71.1 mutation test for the",
+      "description": "paired §1.1 mutation test for the",
       "description_quality": "title-header",
       "step_by_step": [],
-      "how_tokens": [],
+      "how_tokens": [
+        "grep"
+      ],
       "bluff_proofed": false,
       "bluff_proofed_reasons": [],
       "physical_evidence": false,
@@ -782,6 +965,7 @@
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/gates/cm_cli_agent_plugins_wired_mutation_test.sh",
       "derivation_gaps": [
+        "no-step-by-step-derivable",
         "version-UNCONFIRMED",
         "created_date-UNCONFIRMED"
       ],
@@ -795,9 +979,38 @@
       "name": "cm_continuum_resume_engine_present_mutation_test.sh",
       "type": "meta-test-mutation",
       "subtypes": [],
-      "description": "cm_continuum_resume_engine_present_mutation_test.sh \u00a71.1 paired-mutation",
+      "description": "§1.1 paired-mutation",
       "description_quality": "title-header",
-      "step_by_step": [],
+      "step_by_step": [
+        {
+          "what": "engine directory entirely absent",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "header-numbered"
+        },
+        {
+          "what": "go.mod missing its `module ` declaration",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "header-numbered"
+        },
+        {
+          "what": "helix-deps.yaml missing / not declaring `deps: []`",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "header-numbered"
+        },
+        {
+          "what": "a project-specific literal (from the gate's own denylist) planted",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "header-numbered"
+        }
+      ],
       "how_tokens": [],
       "bluff_proofed": false,
       "bluff_proofed_reasons": [],
@@ -823,7 +1036,7 @@
       "name": "cm_feature_directive_mutation_test.sh",
       "type": "meta-test-mutation",
       "subtypes": [],
-      "description": "cm_feature_directive_mutation_test.sh \u00a71.1 paired-mutation meta-test for",
+      "description": "§1.1 paired-mutation meta-test for",
       "description_quality": "title-header",
       "step_by_step": [],
       "how_tokens": [],
@@ -838,6 +1051,7 @@
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/gates/cm_feature_directive_mutation_test.sh",
       "derivation_gaps": [
+        "no-step-by-step-derivable",
         "version-UNCONFIRMED",
         "created_date-UNCONFIRMED"
       ],
@@ -851,10 +1065,41 @@
       "name": "cm_opendesign_ui_system_mutation_test.sh",
       "type": "meta-test-mutation",
       "subtypes": [],
-      "description": "cm_opendesign_ui_system_mutation_test.sh \u00a71.1 paired-mutation meta-test for",
+      "description": "§1.1 paired-mutation meta-test for",
       "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
+      "step_by_step": [
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        }
+      ],
+      "how_tokens": [
+        "cat"
+      ],
       "bluff_proofed": false,
       "bluff_proofed_reasons": [],
       "physical_evidence": false,
@@ -879,7 +1124,7 @@
       "name": "cm_reporting_directives_mutation_test.sh",
       "type": "meta-test-mutation",
       "subtypes": [],
-      "description": "cm_reporting_directives_mutation_test.sh \u00a71.1 paired-mutation meta-test for",
+      "description": "§1.1 paired-mutation meta-test for",
       "description_quality": "title-header",
       "step_by_step": [],
       "how_tokens": [],
@@ -894,6 +1139,7 @@
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/gates/cm_reporting_directives_mutation_test.sh",
       "derivation_gaps": [
+        "no-step-by-step-derivable",
         "version-UNCONFIRMED",
         "created_date-UNCONFIRMED"
       ],
@@ -903,134 +1149,44 @@
       "component": "meta-test-mutation/cm_reporting_directives_mutation"
     },
     {
-      "id": "test_constitution_inheritance",
-      "name": "test_constitution_inheritance.sh",
-      "type": "pre_build",
-      "subtypes": [],
-      "description": "test_constitution_inheritance.sh comprehensive host-side inheritance",
-      "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
-      "physical_evidence": false,
-      "physical_evidence_which": [],
-      "feature_class": null,
-      "version": "unversioned",
-      "atm_id": null,
-      "status": "active",
-      "sources_anti_bluff": false,
-      "source_path": "tests/test_constitution_inheritance.sh",
-      "derivation_gaps": [
-        "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
-      ],
-      "created_date": "2026-07-15",
-      "updated_date": "2026-07-15",
-      "cluster": "governance",
-      "component": "governance/constitution_inheritance"
-    },
-    {
-      "id": "constitution_inheritance_gate",
-      "name": "constitution_inheritance_gate.sh",
-      "type": "pre_build",
-      "subtypes": [],
-      "description": "constitution_inheritance_gate.sh pre-build / pre-merge gate that",
-      "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
-      "physical_evidence": false,
-      "physical_evidence_which": [],
-      "feature_class": null,
-      "version": "unversioned",
-      "atm_id": null,
-      "status": "active",
-      "sources_anti_bluff": false,
-      "source_path": "tests/constitution_inheritance_gate.sh",
-      "derivation_gaps": [
-        "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
-      ],
-      "created_date": "2026-07-15",
-      "updated_date": "2026-07-15",
-      "cluster": "governance",
-      "component": "governance/constitution_inheritance_gate"
-    },
-    {
-      "id": "meta_test_constitution_inheritance",
-      "name": "meta_test_constitution_inheritance.sh",
-      "type": "pre_build",
-      "subtypes": [],
-      "description": "meta_test_constitution_inheritance.sh proves the inheritance gate is",
-      "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
-      "physical_evidence": false,
-      "physical_evidence_which": [],
-      "feature_class": null,
-      "version": "unversioned",
-      "atm_id": null,
-      "status": "active",
-      "sources_anti_bluff": false,
-      "source_path": "tests/meta_test_constitution_inheritance.sh",
-      "derivation_gaps": [
-        "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
-      ],
-      "created_date": "2026-07-15",
-      "updated_date": "2026-07-15",
-      "cluster": "governance",
-      "component": "governance/meta_test_constitution_inheritance"
-    },
-    {
-      "id": "pre_build_verification",
-      "name": "pre_build_verification.sh",
-      "type": "pre_build",
-      "subtypes": [],
-      "description": "pre_build_verification.sh preflight gate wired ahead of build/merge.",
-      "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
-      "physical_evidence": false,
-      "physical_evidence_which": [],
-      "feature_class": null,
-      "version": "unversioned",
-      "atm_id": null,
-      "status": "active",
-      "sources_anti_bluff": false,
-      "source_path": "tests/pre_build_verification.sh",
-      "derivation_gaps": [
-        "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
-      ],
-      "created_date": "2026-07-15",
-      "updated_date": "2026-07-15",
-      "cluster": "testing",
-      "component": "testing/pre_build_verification"
-    },
-    {
       "id": "test_multitrack_alias_priority_limits",
-      "name": "test_multitrack_alias_priority_limits.sh",
+      "name": "— PROVABLY",
       "type": "multitrack_test",
-      "subtypes": [],
-      "description": "Anti-bluff: \u00a711.4.115 RED-polarity + \u00a71.1 paired mutation on the native-",
+      "subtypes": [
+        "red_polarity"
+      ],
+      "description": "(item 1) native-first priority rank, (item 2) per-alias",
       "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
+      "step_by_step": [
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        }
+      ],
+      "how_tokens": [
+        "cat",
+        "grep"
+      ],
+      "bluff_proofed": true,
+      "bluff_proofed_reasons": [
+        "RED_MODE-marker"
+      ],
       "physical_evidence": false,
       "physical_evidence_which": [],
       "feature_class": null,
       "version": "unversioned",
       "atm_id": null,
-      "status": "active",
+      "status": "red_baseline",
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/multitrack/test_multitrack_alias_priority_limits.sh",
       "derivation_gaps": [
@@ -1040,25 +1196,75 @@
       "created_date": "UNCONFIRMED",
       "updated_date": "UNCONFIRMED",
       "cluster": "multitrack",
-      "component": "multitrack/alias_priority_limits"
+      "component": "multitrack/multitrack_alias_priority_limits"
     },
     {
       "id": "test_multitrack_bootstrap",
       "name": "test_multitrack_bootstrap.sh",
       "type": "multitrack_test",
-      "subtypes": [],
-      "description": "Proves the RB-08 mechanism is load-bearing, not a bluff (\u00a711.4.115",
+      "subtypes": [
+        "red_polarity"
+      ],
+      "description": "RED/GREEN polarity test for RB-08's",
       "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
+      "step_by_step": [
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        }
+      ],
+      "how_tokens": [
+        "cat",
+        "grep"
+      ],
+      "bluff_proofed": true,
+      "bluff_proofed_reasons": [
+        "RED_MODE-marker"
+      ],
       "physical_evidence": false,
       "physical_evidence_which": [],
       "feature_class": null,
       "version": "unversioned",
       "atm_id": null,
-      "status": "active",
+      "status": "red_baseline",
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/multitrack/test_multitrack_bootstrap.sh",
       "derivation_gaps": [
@@ -1068,17 +1274,35 @@
       "created_date": "UNCONFIRMED",
       "updated_date": "UNCONFIRMED",
       "cluster": "multitrack",
-      "component": "multitrack/bootstrap"
+      "component": "multitrack/multitrack_bootstrap"
     },
     {
       "id": "test_multitrack_conductor_autoarm",
-      "name": "test_multitrack_conductor_autoarm.sh",
+      "name": "— conductor fallback",
       "type": "multitrack_test",
       "subtypes": [],
-      "description": "Hermetic unit/integration test of multitrack_conductor_monitor_autoarm.sh.",
+      "description": "monitor auto-arm helper: resolves alias/track/",
       "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
+      "step_by_step": [
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        }
+      ],
+      "how_tokens": [
+        "cat",
+        "grep"
+      ],
       "bluff_proofed": false,
       "bluff_proofed_reasons": [],
       "physical_evidence": false,
@@ -1096,25 +1320,47 @@
       "created_date": "UNCONFIRMED",
       "updated_date": "UNCONFIRMED",
       "cluster": "multitrack",
-      "component": "multitrack/conductor_autoarm"
+      "component": "multitrack/multitrack_conductor_autoarm"
     },
     {
       "id": "test_multitrack_host_budget_jvm_daemons",
       "name": "test_multitrack_host_budget_jvm_daemons.sh",
       "type": "multitrack_test",
-      "subtypes": [],
-      "description": "regression guard: multitrack_host_budget.sh's",
+      "subtypes": [
+        "red_polarity"
+      ],
+      "description": "RB-FIX3 (I-c) permanent",
       "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
+      "step_by_step": [
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        }
+      ],
+      "how_tokens": [
+        "cat",
+        "grep"
+      ],
+      "bluff_proofed": true,
+      "bluff_proofed_reasons": [
+        "RED_MODE-marker"
+      ],
       "physical_evidence": false,
       "physical_evidence_which": [],
       "feature_class": null,
       "version": "unversioned",
       "atm_id": null,
-      "status": "active",
+      "status": "red_baseline",
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/multitrack/test_multitrack_host_budget_jvm_daemons.sh",
       "derivation_gaps": [
@@ -1124,25 +1370,68 @@
       "created_date": "UNCONFIRMED",
       "updated_date": "UNCONFIRMED",
       "cluster": "multitrack",
-      "component": "multitrack/host_budget_jvm_daemons"
+      "component": "multitrack/multitrack_host_budget_jvm"
     },
     {
       "id": "test_multitrack_host_budget_rb02_pgrep",
-      "name": "test_multitrack_host_budget_rb02_pgrep.sh",
+      "name": "— PROVABLY the RB",
       "type": "multitrack_test",
-      "subtypes": [],
-      "description": "`claude` worker / multitrack engine / this guard's own process), NOR (b) a",
+      "subtypes": [
+        "red_polarity"
+      ],
+      "description": "02 pgrep-footgun fix + the §11.4.201 VANISHED-PID liveness",
       "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
+      "step_by_step": [
+        {
+          "what": "DETERMINISTIC HERMETIC unit layer — a fake `pgrep` (PATH shim) returns a",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "header-numbered"
+        },
+        {
+          "what": "REAL-/proc E2E layer — spawns bounded `sleep` decoys via `exec -a` with a",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "header-numbered"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        }
+      ],
+      "how_tokens": [
+        "cat",
+        "grep"
+      ],
+      "bluff_proofed": true,
+      "bluff_proofed_reasons": [
+        "RED_MODE-marker"
+      ],
       "physical_evidence": false,
       "physical_evidence_which": [],
       "feature_class": null,
       "version": "unversioned",
       "atm_id": null,
-      "status": "active",
+      "status": "red_baseline",
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/multitrack/test_multitrack_host_budget_rb02_pgrep.sh",
       "derivation_gaps": [
@@ -1152,25 +1441,89 @@
       "created_date": "UNCONFIRMED",
       "updated_date": "UNCONFIRMED",
       "cluster": "multitrack",
-      "component": "multitrack/host_budget_rb02_pgrep"
+      "component": "multitrack/multitrack_host_budget_rb02"
     },
     {
       "id": "test_multitrack_monday_dryrun",
       "name": "test_multitrack_monday_dryrun.sh",
       "type": "multitrack_test",
-      "subtypes": [],
-      "description": "transcript monitor + orchestrator's own reuse-on-limit semantics) ->",
+      "subtypes": [
+        "red_polarity"
+      ],
+      "description": "RB-13 Monday dry-run acceptance: the",
       "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
+      "step_by_step": [
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        }
+      ],
+      "how_tokens": [
+        "cat",
+        "grep"
+      ],
+      "bluff_proofed": true,
+      "bluff_proofed_reasons": [
+        "RED_MODE-marker"
+      ],
       "physical_evidence": false,
       "physical_evidence_which": [],
       "feature_class": null,
       "version": "unversioned",
       "atm_id": null,
-      "status": "active",
+      "status": "red_baseline",
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/multitrack/test_multitrack_monday_dryrun.sh",
       "derivation_gaps": [
@@ -1180,25 +1533,47 @@
       "created_date": "UNCONFIRMED",
       "updated_date": "UNCONFIRMED",
       "cluster": "multitrack",
-      "component": "multitrack/monday_dryrun"
+      "component": "multitrack/multitrack_monday_dryrun"
     },
     {
       "id": "test_multitrack_native_first_fallback",
-      "name": "test_multitrack_native_first_fallback.sh",
+      "name": "— PROVABLY native",
       "type": "multitrack_test",
-      "subtypes": [],
-      "description": "\u2014 PROVABLY native-first alias selection + provider-fallback, anti-bluff.",
+      "subtypes": [
+        "red_polarity"
+      ],
+      "description": "first alias selection + provider-fallback, anti-bluff.",
       "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
+      "step_by_step": [
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        }
+      ],
+      "how_tokens": [
+        "cat",
+        "grep"
+      ],
+      "bluff_proofed": true,
+      "bluff_proofed_reasons": [
+        "RED_MODE-marker"
+      ],
       "physical_evidence": false,
       "physical_evidence_which": [],
       "feature_class": null,
       "version": "unversioned",
       "atm_id": null,
-      "status": "active",
+      "status": "red_baseline",
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/multitrack/test_multitrack_native_first_fallback.sh",
       "derivation_gaps": [
@@ -1208,25 +1583,47 @@
       "created_date": "UNCONFIRMED",
       "updated_date": "UNCONFIRMED",
       "cluster": "multitrack",
-      "component": "multitrack/native_first_fallback"
+      "component": "multitrack/multitrack_native_first_fallback"
     },
     {
       "id": "test_multitrack_orchestrator_reconcile",
       "name": "test_multitrack_orchestrator_reconcile.sh",
       "type": "multitrack_test",
-      "subtypes": [],
-      "description": "test_multitrack_orchestrator_reconcile.sh \u2014 RB-FIX2 permanent regression",
+      "subtypes": [
+        "red_polarity"
+      ],
+      "description": "RB-FIX2 permanent regression",
       "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
+      "step_by_step": [
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        }
+      ],
+      "how_tokens": [
+        "cat",
+        "grep"
+      ],
+      "bluff_proofed": true,
+      "bluff_proofed_reasons": [
+        "RED_MODE-marker"
+      ],
       "physical_evidence": false,
       "physical_evidence_which": [],
       "feature_class": null,
       "version": "unversioned",
       "atm_id": null,
-      "status": "active",
+      "status": "red_baseline",
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/multitrack/test_multitrack_orchestrator_reconcile.sh",
       "derivation_gaps": [
@@ -1236,25 +1633,47 @@
       "created_date": "UNCONFIRMED",
       "updated_date": "UNCONFIRMED",
       "cluster": "multitrack",
-      "component": "multitrack/orchestrator_reconcile"
+      "component": "multitrack/multitrack_orchestrator_reconcile"
     },
     {
       "id": "test_multitrack_orchestrator_reconcile_rc",
       "name": "test_multitrack_orchestrator_reconcile_rc.sh",
       "type": "multitrack_test",
-      "subtypes": [],
-      "description": "test_multitrack_orchestrator_reconcile_rc.sh \u2014 RB-FIX3 (I-b) permanent",
+      "subtypes": [
+        "red_polarity"
+      ],
+      "description": "RB-FIX3 (I-b) permanent",
       "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
+      "step_by_step": [
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        }
+      ],
+      "how_tokens": [
+        "cat",
+        "grep"
+      ],
+      "bluff_proofed": true,
+      "bluff_proofed_reasons": [
+        "RED_MODE-marker"
+      ],
       "physical_evidence": false,
       "physical_evidence_which": [],
       "feature_class": null,
       "version": "unversioned",
       "atm_id": null,
-      "status": "active",
+      "status": "red_baseline",
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/multitrack/test_multitrack_orchestrator_reconcile_rc.sh",
       "derivation_gaps": [
@@ -1264,25 +1683,44 @@
       "created_date": "UNCONFIRMED",
       "updated_date": "UNCONFIRMED",
       "cluster": "multitrack",
-      "component": "multitrack/orchestrator_reconcile_rc"
+      "component": "multitrack/multitrack_orchestrator_reconcile_rc"
     },
     {
       "id": "test_multitrack_ruler_suite",
       "name": "test_multitrack_ruler_suite.sh",
       "type": "multitrack_test",
-      "subtypes": [],
-      "description": "roster) AND `device/rockchip/rk3588/tests/` (the on-device-adjacent",
+      "subtypes": [
+        "red_polarity"
+      ],
+      "description": "§11.4.116 ruler-bridge test-suite aggregator",
       "description_quality": "title-header",
-      "step_by_step": [],
+      "step_by_step": [
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        }
+      ],
       "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
+      "bluff_proofed": true,
+      "bluff_proofed_reasons": [
+        "RED_MODE-marker"
+      ],
       "physical_evidence": false,
       "physical_evidence_which": [],
       "feature_class": null,
       "version": "unversioned",
       "atm_id": null,
-      "status": "active",
+      "status": "red_baseline",
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/multitrack/test_multitrack_ruler_suite.sh",
       "derivation_gaps": [
@@ -1292,25 +1730,46 @@
       "created_date": "UNCONFIRMED",
       "updated_date": "UNCONFIRMED",
       "cluster": "multitrack",
-      "component": "multitrack/ruler_suite"
+      "component": "multitrack/multitrack_ruler_suite"
     },
     {
       "id": "test_multitrack_sessions_argparse",
       "name": "test_multitrack_sessions_argparse.sh",
       "type": "multitrack_test",
-      "subtypes": [],
-      "description": "test_multitrack_sessions_argparse.sh \u2014 C1 permanent regression guard:",
+      "subtypes": [
+        "red_polarity"
+      ],
+      "description": "C1 permanent regression guard:",
       "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
+      "step_by_step": [
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        }
+      ],
+      "how_tokens": [
+        "grep"
+      ],
+      "bluff_proofed": true,
+      "bluff_proofed_reasons": [
+        "RED_MODE-marker"
+      ],
       "physical_evidence": false,
       "physical_evidence_which": [],
       "feature_class": null,
       "version": "unversioned",
       "atm_id": null,
-      "status": "active",
+      "status": "red_baseline",
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/multitrack/test_multitrack_sessions_argparse.sh",
       "derivation_gaps": [
@@ -1320,17 +1779,34 @@
       "created_date": "UNCONFIRMED",
       "updated_date": "UNCONFIRMED",
       "cluster": "multitrack",
-      "component": "multitrack/sessions_argparse"
+      "component": "multitrack/multitrack_sessions_argparse"
     },
     {
       "id": "test_multitrack_sessions_balance_autoselect",
       "name": "test_multitrack_sessions_balance_autoselect.sh",
       "type": "multitrack_test",
       "subtypes": [],
-      "description": "test_multitrack_sessions_balance_autoselect.sh \u2014 I2 wiring regression guard:",
+      "description": "I2 wiring regression guard:",
       "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
+      "step_by_step": [
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        }
+      ],
+      "how_tokens": [
+        "grep"
+      ],
       "bluff_proofed": false,
       "bluff_proofed_reasons": [],
       "physical_evidence": false,
@@ -1348,25 +1824,47 @@
       "created_date": "UNCONFIRMED",
       "updated_date": "UNCONFIRMED",
       "cluster": "multitrack",
-      "component": "multitrack/sessions_balance_autoselect"
+      "component": "multitrack/multitrack_sessions_balance_autoselect"
     },
     {
       "id": "test_multitrack_sessions_pid_status",
       "name": "test_multitrack_sessions_pid_status.sh",
       "type": "multitrack_test",
-      "subtypes": [],
-      "description": "test_multitrack_sessions_pid_status.sh \u2014 C2+C3 permanent regression guards:",
+      "subtypes": [
+        "red_polarity"
+      ],
+      "description": "C2+C3 permanent regression guards:",
       "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
+      "step_by_step": [
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        }
+      ],
+      "how_tokens": [
+        "cat",
+        "grep"
+      ],
+      "bluff_proofed": true,
+      "bluff_proofed_reasons": [
+        "RED_MODE-marker"
+      ],
       "physical_evidence": false,
       "physical_evidence_which": [],
       "feature_class": null,
       "version": "unversioned",
       "atm_id": null,
-      "status": "active",
+      "status": "red_baseline",
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/multitrack/test_multitrack_sessions_pid_status.sh",
       "derivation_gaps": [
@@ -1376,25 +1874,47 @@
       "created_date": "UNCONFIRMED",
       "updated_date": "UNCONFIRMED",
       "cluster": "multitrack",
-      "component": "multitrack/sessions_pid_status"
+      "component": "multitrack/multitrack_sessions_pid_status"
     },
     {
       "id": "test_multitrack_supervisor",
       "name": "test_multitrack_supervisor.sh",
       "type": "multitrack_test",
-      "subtypes": [],
-      "description": "Proves the RB-07 primitive is load-bearing, not a bluff (\u00a711.4.115",
+      "subtypes": [
+        "red_polarity"
+      ],
+      "description": "RED/GREEN polarity test for RB-07's ruler",
       "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
+      "step_by_step": [
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        }
+      ],
+      "how_tokens": [
+        "cat",
+        "grep"
+      ],
+      "bluff_proofed": true,
+      "bluff_proofed_reasons": [
+        "RED_MODE-marker"
+      ],
       "physical_evidence": false,
       "physical_evidence_which": [],
       "feature_class": null,
       "version": "unversioned",
       "atm_id": null,
-      "status": "active",
+      "status": "red_baseline",
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/multitrack/test_multitrack_supervisor.sh",
       "derivation_gaps": [
@@ -1404,25 +1924,61 @@
       "created_date": "UNCONFIRMED",
       "updated_date": "UNCONFIRMED",
       "cluster": "multitrack",
-      "component": "multitrack/supervisor"
+      "component": "multitrack/multitrack_supervisor"
     },
     {
       "id": "test_multitrack_supervisor_wiring",
       "name": "test_multitrack_supervisor_wiring.sh",
       "type": "multitrack_test",
-      "subtypes": [],
-      "description": "guard: an independent code review of RB-05/RB-07/RB-08",
+      "subtypes": [
+        "red_polarity"
+      ],
+      "description": "RB-FIX3 (I-a) permanent regression",
       "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
+      "step_by_step": [
+        {
+          "what": "multitrack_sessions.sh (RB-05) calls the new",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "header-numbered"
+        },
+        {
+          "what": "multitrack_bootstrap.sh (RB-08) gains an OPT-IN step 6 that starts",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "header-numbered"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        }
+      ],
+      "how_tokens": [
+        "cat",
+        "grep"
+      ],
+      "bluff_proofed": true,
+      "bluff_proofed_reasons": [
+        "RED_MODE-marker"
+      ],
       "physical_evidence": false,
       "physical_evidence_which": [],
       "feature_class": null,
       "version": "unversioned",
       "atm_id": null,
-      "status": "active",
+      "status": "red_baseline",
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/multitrack/test_multitrack_supervisor_wiring.sh",
       "derivation_gaps": [
@@ -1432,17 +1988,76 @@
       "created_date": "UNCONFIRMED",
       "updated_date": "UNCONFIRMED",
       "cluster": "multitrack",
-      "component": "multitrack/supervisor_wiring"
+      "component": "multitrack/multitrack_supervisor_wiring"
     },
     {
       "id": "test_multitrack_work_binding_submodule_db",
       "name": "test_multitrack_work_binding_submodule_db.sh",
       "type": "multitrack_test",
       "subtypes": [],
-      "description": "guard for multitrack_work_binding.sh's OWN submodule-cwd superproject-walk DB",
+      "description": "permanent §11.4.135 regression",
       "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
+      "step_by_step": [
+        {
+          "what": "GREEN / direct regression case — an unclassified file, invoked from",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "header-numbered"
+        },
+        {
+          "what": "The parent DB is GENUINELY CONSULTED, not merely found-and-ignored — a",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "header-numbered"
+        },
+        {
+          "what": "Fail-closed is UNWEAKENED — the identical submodule-cwd invocation",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "header-numbered"
+        },
+        {
+          "what": "RED-polarity self-check (§11.4.115) — a SCRATCHPAD-ONLY mutated copy of",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "header-numbered"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        },
+        {
+          "what": "=",
+          "how": "",
+          "achieved": "",
+          "result": "",
+          "source": "section-banner"
+        }
+      ],
+      "how_tokens": [
+        "grep"
+      ],
       "bluff_proofed": false,
       "bluff_proofed_reasons": [],
       "physical_evidence": false,
@@ -1460,14 +2075,74 @@
       "created_date": "UNCONFIRMED",
       "updated_date": "UNCONFIRMED",
       "cluster": "multitrack",
-      "component": "multitrack/work_binding_submodule_db"
+      "component": "multitrack/multitrack_work_binding_submodule"
     },
     {
-      "id": "TestCandidateGroups_OrdersByPriorityThenSeverityThenGroupID",
-      "name": "assign_test.go",
-      "type": "workable_items_test",
+      "id": "test_constitution_inheritance",
+      "name": "test_constitution_inheritance.sh",
+      "type": "pre_build",
       "subtypes": [],
-      "description": "assign_test.go \u2014 anti-bluff coverage for the `assign` subcommand family",
+      "description": "comprehensive host-side inheritance",
+      "description_quality": "title-header",
+      "step_by_step": [],
+      "how_tokens": [
+        "grep"
+      ],
+      "bluff_proofed": false,
+      "bluff_proofed_reasons": [],
+      "physical_evidence": false,
+      "physical_evidence_which": [],
+      "feature_class": null,
+      "version": "unversioned",
+      "atm_id": null,
+      "status": "active",
+      "sources_anti_bluff": false,
+      "source_path": "tests/test_constitution_inheritance.sh",
+      "derivation_gaps": [
+        "no-step-by-step-derivable",
+        "version-UNCONFIRMED"
+      ],
+      "created_date": "2026-07-15",
+      "updated_date": "2026-07-15",
+      "cluster": "governance",
+      "component": "governance/constitution_inheritance"
+    },
+    {
+      "id": "constitution_inheritance_gate",
+      "name": "constitution_inheritance_gate.sh",
+      "type": "pre_build",
+      "subtypes": [],
+      "description": "pre-build / pre-merge gate that",
+      "description_quality": "title-header",
+      "step_by_step": [],
+      "how_tokens": [
+        "grep"
+      ],
+      "bluff_proofed": false,
+      "bluff_proofed_reasons": [],
+      "physical_evidence": false,
+      "physical_evidence_which": [],
+      "feature_class": null,
+      "version": "unversioned",
+      "atm_id": null,
+      "status": "active",
+      "sources_anti_bluff": false,
+      "source_path": "tests/constitution_inheritance_gate.sh",
+      "derivation_gaps": [
+        "no-step-by-step-derivable",
+        "version-UNCONFIRMED"
+      ],
+      "created_date": "2026-07-15",
+      "updated_date": "2026-07-15",
+      "cluster": "governance",
+      "component": "governance/constitution_inheritance_gate"
+    },
+    {
+      "id": "meta_test_constitution_inheritance",
+      "name": "meta_test_constitution_inheritance.sh",
+      "type": "pre_build",
+      "subtypes": [],
+      "description": "proves the inheritance gate is",
       "description_quality": "title-header",
       "step_by_step": [],
       "how_tokens": [],
@@ -1480,22 +2155,22 @@
       "atm_id": null,
       "status": "active",
       "sources_anti_bluff": false,
-      "source_path": "constitution/scripts/workable-items/cmd/workable-items/assign_test.go",
+      "source_path": "tests/meta_test_constitution_inheritance.sh",
       "derivation_gaps": [
-        "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
+        "no-step-by-step-derivable",
+        "version-UNCONFIRMED"
       ],
-      "created_date": "UNCONFIRMED",
-      "updated_date": "UNCONFIRMED",
-      "cluster": "workable_items",
-      "component": "workable_items/assign"
+      "created_date": "2026-07-15",
+      "updated_date": "2026-07-15",
+      "cluster": "governance",
+      "component": "governance/meta_test_constitution_inheritance"
     },
     {
-      "id": "TestATM627_WriterEmitsHeadingOnOwnLine",
-      "name": "atm627_glued_heading_test.go",
-      "type": "workable_items_test",
+      "id": "pre_build_verification",
+      "name": "pre_build_verification.sh",
+      "type": "pre_build",
       "subtypes": [],
-      "description": "atm627_glued_heading_test.go \u2014 \u00a711.4.115 RED-polarity regression guard for the",
+      "description": "preflight gate wired ahead of build/merge.",
       "description_quality": "title-header",
       "step_by_step": [],
       "how_tokens": [],
@@ -1508,667 +2183,23 @@
       "atm_id": null,
       "status": "active",
       "sources_anti_bluff": false,
-      "source_path": "constitution/scripts/workable-items/cmd/workable-items/atm627_glued_heading_test.go",
+      "source_path": "tests/pre_build_verification.sh",
       "derivation_gaps": [
-        "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
+        "no-step-by-step-derivable",
+        "version-UNCONFIRMED"
       ],
-      "created_date": "UNCONFIRMED",
-      "updated_date": "UNCONFIRMED",
-      "cluster": "workable_items",
-      "component": "workable_items/atm627_glued_heading"
+      "created_date": "2026-07-15",
+      "updated_date": "2026-07-15",
+      "cluster": "testing",
+      "component": "testing/pre_build_verification"
     },
     {
-      "id": "TestATM627_IntegrityGuard_DetectsLocationMismatch",
-      "name": "atm627_integrity_guard_test.go",
-      "type": "workable_items_test",
-      "subtypes": [],
-      "description": "atm627_integrity_guard_test.go \u2014 \u00a711.4.135 permanent regression guard for the",
-      "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
-      "physical_evidence": false,
-      "physical_evidence_which": [],
-      "feature_class": null,
-      "version": "unversioned",
-      "atm_id": null,
-      "status": "active",
-      "sources_anti_bluff": false,
-      "source_path": "constitution/scripts/workable-items/cmd/workable-items/atm627_integrity_guard_test.go",
-      "derivation_gaps": [
-        "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
-      ],
-      "created_date": "UNCONFIRMED",
-      "updated_date": "UNCONFIRMED",
-      "cluster": "workable_items",
-      "component": "workable_items/atm627_integrity_guard"
-    },
-    {
-      "id": "TestATM627_ValidateCatchesUnrenderableDB",
-      "name": "atm627_roundtrip_test.go",
-      "type": "workable_items_test",
-      "subtypes": [],
-      "description": "atm627_roundtrip_test.go \u2014 \u00a711.4.115 RED-polarity regression guard for ATM-627.",
-      "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
-      "physical_evidence": false,
-      "physical_evidence_which": [],
-      "feature_class": null,
-      "version": "unversioned",
-      "atm_id": null,
-      "status": "active",
-      "sources_anti_bluff": false,
-      "source_path": "constitution/scripts/workable-items/cmd/workable-items/atm627_roundtrip_test.go",
-      "derivation_gaps": [
-        "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
-      ],
-      "created_date": "UNCONFIRMED",
-      "updated_date": "UNCONFIRMED",
-      "cluster": "workable_items",
-      "component": "workable_items/atm627_roundtrip"
-    },
-    {
-      "id": "TestATM627_SegmentBackfill_RedBaseline_DbToMdSilentlyDropsItem",
-      "name": "atm627_segment_backfill_test.go",
-      "type": "workable_items_test",
-      "subtypes": [],
-      "description": "atm627_segment_backfill_test.go \u2014 \u00a711.4.115 RED-polarity anti-bluff coverage",
-      "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
-      "physical_evidence": false,
-      "physical_evidence_which": [],
-      "feature_class": null,
-      "version": "unversioned",
-      "atm_id": null,
-      "status": "active",
-      "sources_anti_bluff": false,
-      "source_path": "constitution/scripts/workable-items/cmd/workable-items/atm627_segment_backfill_test.go",
-      "derivation_gaps": [
-        "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
-      ],
-      "created_date": "UNCONFIRMED",
-      "updated_date": "UNCONFIRMED",
-      "cluster": "workable_items",
-      "component": "workable_items/atm627_segment_backfill"
-    },
-    {
-      "id": "TestATM627_StatusDesync_ValidateCatchesColumnBodyDrift",
-      "name": "atm627_status_desync_test.go",
-      "type": "workable_items_test",
-      "subtypes": [],
-      "description": "atm627_status_desync_test.go \u2014 \u00a711.4.115 RED-polarity regression guard for the",
-      "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
-      "physical_evidence": false,
-      "physical_evidence_which": [],
-      "feature_class": null,
-      "version": "unversioned",
-      "atm_id": null,
-      "status": "active",
-      "sources_anti_bluff": false,
-      "source_path": "constitution/scripts/workable-items/cmd/workable-items/atm627_status_desync_test.go",
-      "derivation_gaps": [
-        "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
-      ],
-      "created_date": "UNCONFIRMED",
-      "updated_date": "UNCONFIRMED",
-      "cluster": "workable_items",
-      "component": "workable_items/atm627_status_desync"
-    },
-    {
-      "id": "TestRepairBodies_NormalizesTrailingNewline_RedPolarity",
-      "name": "atm627_trailing_newline_test.go",
-      "type": "workable_items_test",
-      "subtypes": [],
-      "description": "atm627_trailing_newline_test.go \u2014 anti-bluff coverage for the ATM-627-part-2",
-      "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
-      "physical_evidence": false,
-      "physical_evidence_which": [],
-      "feature_class": null,
-      "version": "unversioned",
-      "atm_id": null,
-      "status": "active",
-      "sources_anti_bluff": false,
-      "source_path": "constitution/scripts/workable-items/cmd/workable-items/atm627_trailing_newline_test.go",
-      "derivation_gaps": [
-        "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
-      ],
-      "created_date": "UNCONFIRMED",
-      "updated_date": "UNCONFIRMED",
-      "cluster": "workable_items",
-      "component": "workable_items/atm627_trailing_newline"
-    },
-    {
-      "id": "TestParseATM_BracketedID_GL",
-      "name": "atmosphere_test.go",
-      "type": "workable_items_test",
-      "subtypes": [],
-      "description": "atmosphere_test.go \u2014 coverage for the ATMOSphere real tracker heading format.",
-      "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
-      "physical_evidence": false,
-      "physical_evidence_which": [],
-      "feature_class": null,
-      "version": "unversioned",
-      "atm_id": null,
-      "status": "active",
-      "sources_anti_bluff": false,
-      "source_path": "constitution/scripts/workable-items/cmd/workable-items/atmosphere_test.go",
-      "derivation_gaps": [
-        "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
-      ],
-      "created_date": "UNCONFIRMED",
-      "updated_date": "UNCONFIRMED",
-      "cluster": "workable_items",
-      "component": "workable_items/atmosphere"
-    },
-    {
-      "id": "TestAttribution_FixtureWithFields_RoundTripsByteIdentical",
-      "name": "attribution_test.go",
-      "type": "workable_items_test",
-      "subtypes": [],
-      "description": "attribution_test.go \u2014 \u00a711.4.104 anti-bluff coverage for the participant",
-      "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
-      "physical_evidence": false,
-      "physical_evidence_which": [],
-      "feature_class": null,
-      "version": "unversioned",
-      "atm_id": null,
-      "status": "active",
-      "sources_anti_bluff": false,
-      "source_path": "constitution/scripts/workable-items/cmd/workable-items/attribution_test.go",
-      "derivation_gaps": [
-        "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
-      ],
-      "created_date": "UNCONFIRMED",
-      "updated_date": "UNCONFIRMED",
-      "cluster": "workable_items",
-      "component": "workable_items/attribution"
-    },
-    {
-      "id": "TestTokenizeForKeywords",
-      "name": "classify_test.go",
-      "type": "workable_items_test",
-      "subtypes": [],
-      "description": "classify_test.go \u2014 anti-bluff coverage for `classify --propose`, P3 of",
-      "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
-      "physical_evidence": false,
-      "physical_evidence_which": [],
-      "feature_class": null,
-      "version": "unversioned",
-      "atm_id": null,
-      "status": "active",
-      "sources_anti_bluff": false,
-      "source_path": "constitution/scripts/workable-items/cmd/workable-items/classify_test.go",
-      "derivation_gaps": [
-        "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
-      ],
-      "created_date": "UNCONFIRMED",
-      "updated_date": "UNCONFIRMED",
-      "cluster": "workable_items",
-      "component": "workable_items/classify"
-    },
-    {
-      "id": "TestAdd_InsertsQueryableRow",
-      "name": "crud_test.go",
-      "type": "workable_items_test",
-      "subtypes": [],
-      "description": "crud_test.go \u2014 anti-bluff coverage for add + close.",
-      "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
-      "physical_evidence": false,
-      "physical_evidence_which": [],
-      "feature_class": null,
-      "version": "unversioned",
-      "atm_id": null,
-      "status": "active",
-      "sources_anti_bluff": false,
-      "source_path": "constitution/scripts/workable-items/cmd/workable-items/crud_test.go",
-      "derivation_gaps": [
-        "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
-      ],
-      "created_date": "UNCONFIRMED",
-      "updated_date": "UNCONFIRMED",
-      "cluster": "workable_items",
-      "component": "workable_items/crud"
-    },
-    {
-      "id": "TestDiaryGroupAddPassWithRealEvidence",
-      "name": "diary_cmd_test.go",
-      "type": "workable_items_test",
-      "subtypes": [],
-      "description": "diary_cmd_test.go \u2014 \u00a711.4.149 + \u00a711.4.27(A) tests for the `diary` subcommand",
-      "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
-      "physical_evidence": false,
-      "physical_evidence_which": [],
-      "feature_class": null,
-      "version": "unversioned",
-      "atm_id": null,
-      "status": "active",
-      "sources_anti_bluff": false,
-      "source_path": "constitution/scripts/workable-items/cmd/workable-items/diary_cmd_test.go",
-      "derivation_gaps": [
-        "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
-      ],
-      "created_date": "UNCONFIRMED",
-      "updated_date": "UNCONFIRMED",
-      "cluster": "workable_items",
-      "component": "workable_items/diary_cmd"
-    },
-    {
-      "id": "TestDiaryAddInsertsRow",
-      "name": "diary_test.go",
-      "type": "workable_items_test",
-      "subtypes": [],
-      "description": "diary_test.go \u2014 \u00a711.4.149 testing-diary unit tests.",
-      "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
-      "physical_evidence": false,
-      "physical_evidence_which": [],
-      "feature_class": null,
-      "version": "unversioned",
-      "atm_id": null,
-      "status": "active",
-      "sources_anti_bluff": false,
-      "source_path": "constitution/scripts/workable-items/cmd/workable-items/diary_test.go",
-      "derivation_gaps": [
-        "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
-      ],
-      "created_date": "UNCONFIRMED",
-      "updated_date": "UNCONFIRMED",
-      "cluster": "workable_items",
-      "component": "workable_items/diary"
-    },
-    {
-      "id": "TestExportCmd_EmitsDocsAndSummaries",
-      "name": "export_test.go",
-      "type": "workable_items_test",
-      "subtypes": [],
-      "description": "export_test.go \u2014 real-SQLite behavioural tests for the `export` subcommand.",
-      "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
-      "physical_evidence": false,
-      "physical_evidence_which": [],
-      "feature_class": null,
-      "version": "unversioned",
-      "atm_id": null,
-      "status": "active",
-      "sources_anti_bluff": false,
-      "source_path": "constitution/scripts/workable-items/cmd/workable-items/export_test.go",
-      "derivation_gaps": [
-        "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
-      ],
-      "created_date": "UNCONFIRMED",
-      "updated_date": "UNCONFIRMED",
-      "cluster": "workable_items",
-      "component": "workable_items/export"
-    },
-    {
-      "id": "TestUpdateDescription_TableRepresentation_RoundTripsCleanly",
-      "name": "f_dbtool2_description_table_representation_test.go",
-      "type": "workable_items_test",
-      "subtypes": [],
-      "description": "f_dbtool2_description_table_representation_test.go \u2014 \u00a711.4.115/\u00a711.4.135",
-      "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
-      "physical_evidence": false,
-      "physical_evidence_which": [],
-      "feature_class": null,
-      "version": "unversioned",
-      "atm_id": null,
-      "status": "active",
-      "sources_anti_bluff": false,
-      "source_path": "constitution/scripts/workable-items/cmd/workable-items/f_dbtool2_description_table_representation_test.go",
-      "derivation_gaps": [
-        "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
-      ],
-      "created_date": "UNCONFIRMED",
-      "updated_date": "UNCONFIRMED",
-      "cluster": "workable_items",
-      "component": "workable_items/f_dbtool2_description_table_representation"
-    },
-    {
-      "id": "TestObsoleteDetails_DualRepresentation_NoSiblingClobber",
-      "name": "f_dbtool_representation_scope_test.go",
-      "type": "workable_items_test",
-      "subtypes": [],
-      "description": "f_dbtool_representation_scope_test.go \u2014 \u00a711.4.115/\u00a711.4.135 permanent",
-      "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
-      "physical_evidence": false,
-      "physical_evidence_which": [],
-      "feature_class": null,
-      "version": "unversioned",
-      "atm_id": null,
-      "status": "active",
-      "sources_anti_bluff": false,
-      "source_path": "constitution/scripts/workable-items/cmd/workable-items/f_dbtool_representation_scope_test.go",
-      "derivation_gaps": [
-        "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
-      ],
-      "created_date": "UNCONFIRMED",
-      "updated_date": "UNCONFIRMED",
-      "cluster": "workable_items",
-      "component": "workable_items/f_dbtool_representation_scope"
-    },
-    {
-      "id": "TestParseFixed_Real_Shape1_GO",
-      "name": "fixed_real_test.go",
-      "type": "workable_items_test",
-      "subtypes": [],
-      "description": "fixed_real_test.go \u2014 coverage for parseFixed against the REAL ATMOSphere",
-      "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
-      "physical_evidence": false,
-      "physical_evidence_which": [],
-      "feature_class": null,
-      "version": "unversioned",
-      "atm_id": null,
-      "status": "active",
-      "sources_anti_bluff": false,
-      "source_path": "constitution/scripts/workable-items/cmd/workable-items/fixed_real_test.go",
-      "derivation_gaps": [
-        "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
-      ],
-      "created_date": "UNCONFIRMED",
-      "updated_date": "UNCONFIRMED",
-      "cluster": "workable_items",
-      "component": "workable_items/fixed_real"
-    },
-    {
-      "id": "TestParseFixed_H2Heading_BracketedID",
-      "name": "fixed_test.go",
-      "type": "workable_items_test",
-      "subtypes": [],
-      "description": "fixed_test.go \u2014 coverage for parseFixed against the REAL Fixed.md format.",
-      "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
-      "physical_evidence": false,
-      "physical_evidence_which": [],
-      "feature_class": null,
-      "version": "unversioned",
-      "atm_id": null,
-      "status": "active",
-      "sources_anti_bluff": false,
-      "source_path": "constitution/scripts/workable-items/cmd/workable-items/fixed_test.go",
-      "derivation_gaps": [
-        "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
-      ],
-      "created_date": "UNCONFIRMED",
-      "updated_date": "UNCONFIRMED",
-      "cluster": "workable_items",
-      "component": "workable_items/fixed"
-    },
-    {
-      "id": "TestGapA_DualRepresentationIngest",
-      "name": "gap_dual_representation_test.go",
-      "type": "workable_items_test",
-      "subtypes": [],
-      "description": "gap_dual_representation_test.go \u2014 \u00a711.4.115 RED-baseline-on-the-broken-artifact",
-      "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
-      "physical_evidence": false,
-      "physical_evidence_which": [],
-      "feature_class": null,
-      "version": "unversioned",
-      "atm_id": null,
-      "status": "active",
-      "sources_anti_bluff": false,
-      "source_path": "constitution/scripts/workable-items/cmd/workable-items/gap_dual_representation_test.go",
-      "derivation_gaps": [
-        "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
-      ],
-      "created_date": "UNCONFIRMED",
-      "updated_date": "UNCONFIRMED",
-      "cluster": "workable_items",
-      "component": "workable_items/gap_dual_representation"
-    },
-    {
-      "id": "TestGroupAssignmentSchemaMigration",
-      "name": "group_assignment_schema_test.go",
-      "type": "workable_items_test",
-      "subtypes": [],
-      "description": "group_assignment_schema_test.go \u2014 P1 schema migration unit tests for the",
-      "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
-      "physical_evidence": false,
-      "physical_evidence_which": [],
-      "feature_class": null,
-      "version": "unversioned",
-      "atm_id": null,
-      "status": "active",
-      "sources_anti_bluff": false,
-      "source_path": "constitution/scripts/workable-items/cmd/workable-items/group_assignment_schema_test.go",
-      "derivation_gaps": [
-        "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
-      ],
-      "created_date": "UNCONFIRMED",
-      "updated_date": "UNCONFIRMED",
-      "cluster": "workable_items",
-      "component": "workable_items/group_assignment_schema"
-    },
-    {
-      "id": "TestGroupAdd_InsertsQueryableRow",
-      "name": "group_test.go",
-      "type": "workable_items_test",
-      "subtypes": [],
-      "description": "group_test.go \u2014 anti-bluff coverage for the `group` subcommand family",
-      "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
-      "physical_evidence": false,
-      "physical_evidence_which": [],
-      "feature_class": null,
-      "version": "unversioned",
-      "atm_id": null,
-      "status": "active",
-      "sources_anti_bluff": false,
-      "source_path": "constitution/scripts/workable-items/cmd/workable-items/group_test.go",
-      "derivation_gaps": [
-        "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
-      ],
-      "created_date": "UNCONFIRMED",
-      "updated_date": "UNCONFIRMED",
-      "cluster": "workable_items",
-      "component": "workable_items/group"
-    },
-    {
-      "id": "TestMigrateV3ToV4NonDestructive",
-      "name": "migrate_v3_to_v4_test.go",
-      "type": "workable_items_test",
-      "subtypes": [],
-      "description": "migrate_v3_to_v4_test.go \u2014 \u00a711.4.149 schema v3\u2192v4 migration unit tests.",
-      "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
-      "physical_evidence": false,
-      "physical_evidence_which": [],
-      "feature_class": null,
-      "version": "unversioned",
-      "atm_id": null,
-      "status": "active",
-      "sources_anti_bluff": false,
-      "source_path": "constitution/scripts/workable-items/cmd/workable-items/migrate_v3_to_v4_test.go",
-      "derivation_gaps": [
-        "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
-      ],
-      "created_date": "UNCONFIRMED",
-      "updated_date": "UNCONFIRMED",
-      "cluster": "workable_items",
-      "component": "workable_items/migrate_v3_to_v4"
-    },
-    {
-      "id": "TestUpdateCmd_MutatesFieldsAndRecordsHistory",
-      "name": "mutate_test.go",
-      "type": "workable_items_test",
-      "subtypes": [],
-      "description": "mutate_test.go \u2014 real-SQLite behavioural tests for update / reopen / block.",
-      "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
-      "physical_evidence": false,
-      "physical_evidence_which": [],
-      "feature_class": null,
-      "version": "unversioned",
-      "atm_id": null,
-      "status": "active",
-      "sources_anti_bluff": false,
-      "source_path": "constitution/scripts/workable-items/cmd/workable-items/mutate_test.go",
-      "derivation_gaps": [
-        "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
-      ],
-      "created_date": "UNCONFIRMED",
-      "updated_date": "UNCONFIRMED",
-      "cluster": "workable_items",
-      "component": "workable_items/mutate"
-    },
-    {
-      "id": "TestObsoleteDetails_NotReproducible_Accepted",
-      "name": "obsolete_test.go",
-      "type": "workable_items_test",
-      "subtypes": [],
-      "description": "obsolete_test.go \u2014 anti-bluff coverage for the \u00a711.4.90 obsolete_details",
-      "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
-      "physical_evidence": false,
-      "physical_evidence_which": [],
-      "feature_class": null,
-      "version": "unversioned",
-      "atm_id": null,
-      "status": "active",
-      "sources_anti_bluff": false,
-      "source_path": "constitution/scripts/workable-items/cmd/workable-items/obsolete_test.go",
-      "derivation_gaps": [
-        "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
-      ],
-      "created_date": "UNCONFIRMED",
-      "updated_date": "UNCONFIRMED",
-      "cluster": "workable_items",
-      "component": "workable_items/obsolete"
-    },
-    {
-      "id": "TestShape2HeadingRecognisesArbitraryPrefix",
-      "name": "parse_shape2_decoupling_test.go",
-      "type": "workable_items_test",
-      "subtypes": [],
-      "description": "parse_shape2_decoupling_test.go \u2014 \u00a711.4.28 project-decoupling regression",
-      "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
-      "physical_evidence": false,
-      "physical_evidence_which": [],
-      "feature_class": null,
-      "version": "unversioned",
-      "atm_id": null,
-      "status": "active",
-      "sources_anti_bluff": false,
-      "source_path": "constitution/scripts/workable-items/cmd/workable-items/parse_shape2_decoupling_test.go",
-      "derivation_gaps": [
-        "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
-      ],
-      "created_date": "UNCONFIRMED",
-      "updated_date": "UNCONFIRMED",
-      "cluster": "workable_items",
-      "component": "workable_items/parse_shape2_decoupling"
-    },
-    {
-      "id": "TestDeriveKeyPrefix",
+      "id": "prefix_test.go",
       "name": "prefix_test.go",
       "type": "workable_items_test",
       "subtypes": [],
-      "description": "prefix_test.go \u2014 anti-bluff coverage for the \u00a711.4.151/\u00a711.4.29 release-prefix",
-      "description_quality": "title-header",
+      "description": "",
+      "description_quality": "header-only",
       "step_by_step": [],
       "how_tokens": [],
       "bluff_proofed": false,
@@ -2182,21 +2213,57 @@
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/workable-items/cmd/workable-items/prefix_test.go",
       "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
         "version-UNCONFIRMED",
         "created_date-UNCONFIRMED"
       ],
       "created_date": "UNCONFIRMED",
       "updated_date": "UNCONFIRMED",
-      "cluster": "workable_items",
-      "component": "workable_items/prefix"
+      "cluster": "action_prefix",
+      "component": "action_prefix/prefix_test.go"
     },
     {
-      "id": "TestReopenCmd_MigratesFixedItemToIssues",
-      "name": "reopen_relocate_test.go",
+      "id": "atm627_integrity_guard_test.go",
+      "name": "atm627_integrity_guard_test.go",
+      "type": "workable_items_test",
+      "subtypes": [
+        "red_polarity"
+      ],
+      "description": "",
+      "description_quality": "header-only",
+      "step_by_step": [],
+      "how_tokens": [],
+      "bluff_proofed": true,
+      "bluff_proofed_reasons": [
+        "RED_MODE-marker"
+      ],
+      "physical_evidence": false,
+      "physical_evidence_which": [],
+      "feature_class": null,
+      "version": "unversioned",
+      "atm_id": "ATM-627",
+      "status": "red_baseline",
+      "sources_anti_bluff": false,
+      "source_path": "constitution/scripts/workable-items/cmd/workable-items/atm627_integrity_guard_test.go",
+      "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
+        "version-UNCONFIRMED",
+        "created_date-UNCONFIRMED"
+      ],
+      "created_date": "UNCONFIRMED",
+      "updated_date": "UNCONFIRMED",
+      "cluster": "hooks",
+      "component": "hooks/atm627_integrity_guard_test.go"
+    },
+    {
+      "id": "f_dbtool2_description_table_representation_test.go",
+      "name": "f_dbtool2_description_table_representation_test.go",
       "type": "workable_items_test",
       "subtypes": [],
-      "description": "reopen_relocate_test.go \u2014 \u00a711.4.115 RED-polarity regression guard for the",
-      "description_quality": "title-header",
+      "description": "",
+      "description_quality": "header-only",
       "step_by_step": [],
       "how_tokens": [],
       "bluff_proofed": false,
@@ -2208,23 +2275,26 @@
       "atm_id": null,
       "status": "active",
       "sources_anti_bluff": false,
-      "source_path": "constitution/scripts/workable-items/cmd/workable-items/reopen_relocate_test.go",
+      "source_path": "constitution/scripts/workable-items/cmd/workable-items/f_dbtool2_description_table_representation_test.go",
       "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
         "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
+        "created_date-UNCONFIRMED",
+        "cluster-uncategorised"
       ],
       "created_date": "UNCONFIRMED",
       "updated_date": "UNCONFIRMED",
-      "cluster": "workable_items",
-      "component": "workable_items/reopen_relocate"
+      "cluster": "uncategorised",
+      "component": "f_dbtool2_description_table"
     },
     {
-      "id": "TestRepairBodies_ClearsDesyncs_RedPolarity",
-      "name": "repair_bodies_test.go",
+      "id": "f_dbtool_representation_scope_test.go",
+      "name": "f_dbtool_representation_scope_test.go",
       "type": "workable_items_test",
       "subtypes": [],
-      "description": "repair_bodies_test.go \u2014 anti-bluff coverage for the `repair-bodies` subcommand",
-      "description_quality": "title-header",
+      "description": "",
+      "description_quality": "header-only",
       "step_by_step": [],
       "how_tokens": [],
       "bluff_proofed": false,
@@ -2236,25 +2306,123 @@
       "atm_id": null,
       "status": "active",
       "sources_anti_bluff": false,
-      "source_path": "constitution/scripts/workable-items/cmd/workable-items/repair_bodies_test.go",
+      "source_path": "constitution/scripts/workable-items/cmd/workable-items/f_dbtool_representation_scope_test.go",
       "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
         "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
+        "created_date-UNCONFIRMED",
+        "cluster-uncategorised"
       ],
       "created_date": "UNCONFIRMED",
       "updated_date": "UNCONFIRMED",
-      "cluster": "workable_items",
-      "component": "workable_items/repair_bodies"
+      "cluster": "uncategorised",
+      "component": "f_dbtool_representation_scope"
     },
     {
-      "id": "TestReport_ByStatus",
+      "id": "fixed_real_test.go",
+      "name": "fixed_real_test.go",
+      "type": "workable_items_test",
+      "subtypes": [],
+      "description": "",
+      "description_quality": "header-only",
+      "step_by_step": [],
+      "how_tokens": [],
+      "bluff_proofed": false,
+      "bluff_proofed_reasons": [],
+      "physical_evidence": false,
+      "physical_evidence_which": [],
+      "feature_class": null,
+      "version": "unversioned",
+      "atm_id": "ATM-248",
+      "status": "active",
+      "sources_anti_bluff": false,
+      "source_path": "constitution/scripts/workable-items/cmd/workable-items/fixed_real_test.go",
+      "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
+        "version-UNCONFIRMED",
+        "created_date-UNCONFIRMED",
+        "cluster-uncategorised"
+      ],
+      "created_date": "UNCONFIRMED",
+      "updated_date": "UNCONFIRMED",
+      "cluster": "uncategorised",
+      "component": "fixed_real_test.go"
+    },
+    {
+      "id": "fixed_test.go",
+      "name": "fixed_test.go",
+      "type": "workable_items_test",
+      "subtypes": [],
+      "description": "",
+      "description_quality": "header-only",
+      "step_by_step": [],
+      "how_tokens": [],
+      "bluff_proofed": false,
+      "bluff_proofed_reasons": [],
+      "physical_evidence": false,
+      "physical_evidence_which": [],
+      "feature_class": null,
+      "version": "unversioned",
+      "atm_id": "ATM-238",
+      "status": "active",
+      "sources_anti_bluff": false,
+      "source_path": "constitution/scripts/workable-items/cmd/workable-items/fixed_test.go",
+      "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
+        "version-UNCONFIRMED",
+        "created_date-UNCONFIRMED",
+        "cluster-uncategorised"
+      ],
+      "created_date": "UNCONFIRMED",
+      "updated_date": "UNCONFIRMED",
+      "cluster": "uncategorised",
+      "component": "fixed_test.go"
+    },
+    {
+      "id": "parse_shape2_decoupling_test.go",
+      "name": "parse_shape2_decoupling_test.go",
+      "type": "workable_items_test",
+      "subtypes": [],
+      "description": "",
+      "description_quality": "header-only",
+      "step_by_step": [],
+      "how_tokens": [],
+      "bluff_proofed": false,
+      "bluff_proofed_reasons": [],
+      "physical_evidence": false,
+      "physical_evidence_which": [],
+      "feature_class": null,
+      "version": "unversioned",
+      "atm_id": "ATM-238",
+      "status": "active",
+      "sources_anti_bluff": false,
+      "source_path": "constitution/scripts/workable-items/cmd/workable-items/parse_shape2_decoupling_test.go",
+      "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
+        "version-UNCONFIRMED",
+        "created_date-UNCONFIRMED",
+        "cluster-uncategorised"
+      ],
+      "created_date": "UNCONFIRMED",
+      "updated_date": "UNCONFIRMED",
+      "cluster": "uncategorised",
+      "component": "parse_shape2_decoupling_test.go"
+    },
+    {
+      "id": "report_test.go",
       "name": "report_test.go",
       "type": "workable_items_test",
       "subtypes": [],
-      "description": "report_test.go \u2014 anti-bluff coverage for the report subcommand.",
-      "description_quality": "title-header",
+      "description": "",
+      "description_quality": "header-only",
       "step_by_step": [],
-      "how_tokens": [],
+      "how_tokens": [
+        "grep"
+      ],
       "bluff_proofed": false,
       "bluff_proofed_reasons": [],
       "physical_evidence": false,
@@ -2266,161 +2434,59 @@
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/workable-items/cmd/workable-items/report_test.go",
       "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
         "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
+        "created_date-UNCONFIRMED",
+        "cluster-uncategorised"
       ],
       "created_date": "UNCONFIRMED",
       "updated_date": "UNCONFIRMED",
-      "cluster": "workable_items",
-      "component": "workable_items/report"
+      "cluster": "uncategorised",
+      "component": "report_test.go"
     },
     {
-      "id": "TestRoundTrip_RealDocs",
-      "name": "roundtrip_test.go",
-      "type": "workable_items_test",
-      "subtypes": [],
-      "description": "roundtrip_test.go \u2014 \u00a711.4.93 anti-bluff coverage for the workable-items",
-      "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
-      "physical_evidence": false,
-      "physical_evidence_which": [],
-      "feature_class": null,
-      "version": "unversioned",
-      "atm_id": null,
-      "status": "active",
-      "sources_anti_bluff": false,
-      "source_path": "constitution/scripts/workable-items/cmd/workable-items/roundtrip_test.go",
-      "derivation_gaps": [
-        "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
-      ],
-      "created_date": "UNCONFIRMED",
-      "updated_date": "UNCONFIRMED",
-      "cluster": "workable_items",
-      "component": "workable_items/roundtrip"
-    },
-    {
-      "id": "TestNoStatusMutationLeavesDesync",
+      "id": "status_body_sync_test.go",
       "name": "status_body_sync_test.go",
       "type": "workable_items_test",
-      "subtypes": [],
-      "description": "status_body_sync_test.go \u2014 \u00a711.4.115 RED-polarity standing regression guard",
-      "description_quality": "title-header",
+      "subtypes": [
+        "red_polarity"
+      ],
+      "description": "",
+      "description_quality": "header-only",
       "step_by_step": [],
       "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
+      "bluff_proofed": true,
+      "bluff_proofed_reasons": [
+        "RED_MODE-marker"
+      ],
       "physical_evidence": false,
       "physical_evidence_which": [],
       "feature_class": null,
       "version": "unversioned",
-      "atm_id": null,
-      "status": "active",
+      "atm_id": "ATM-627",
+      "status": "red_baseline",
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/workable-items/cmd/workable-items/status_body_sync_test.go",
       "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
         "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
+        "created_date-UNCONFIRMED",
+        "cluster-uncategorised"
       ],
       "created_date": "UNCONFIRMED",
       "updated_date": "UNCONFIRMED",
-      "cluster": "workable_items",
-      "component": "workable_items/status_body_sync"
+      "cluster": "uncategorised",
+      "component": "status_body_sync_test.go"
     },
     {
-      "id": "TestIsChildID",
-      "name": "subtask_test.go",
-      "type": "workable_items_test",
-      "subtypes": [],
-      "description": "subtask_test.go \u2014 \u00a711.4.149 sub-task allocator + CRUD unit tests.",
-      "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
-      "physical_evidence": false,
-      "physical_evidence_which": [],
-      "feature_class": null,
-      "version": "unversioned",
-      "atm_id": null,
-      "status": "active",
-      "sources_anti_bluff": false,
-      "source_path": "constitution/scripts/workable-items/cmd/workable-items/subtask_test.go",
-      "derivation_gaps": [
-        "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
-      ],
-      "created_date": "UNCONFIRMED",
-      "updated_date": "UNCONFIRMED",
-      "cluster": "workable_items",
-      "component": "workable_items/subtask"
-    },
-    {
-      "id": "TestATM627_StatusDesync_RealisticMultiBlockBody",
-      "name": "sync_diff_desync_test.go",
-      "type": "workable_items_test",
-      "subtypes": [],
-      "description": "sync_diff_desync_test.go \u2014 \u00a711.4.115 RED-baseline-on-the-broken-artifact +",
-      "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
-      "physical_evidence": false,
-      "physical_evidence_which": [],
-      "feature_class": null,
-      "version": "unversioned",
-      "atm_id": null,
-      "status": "active",
-      "sources_anti_bluff": false,
-      "source_path": "constitution/scripts/workable-items/cmd/workable-items/sync_diff_desync_test.go",
-      "derivation_gaps": [
-        "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
-      ],
-      "created_date": "UNCONFIRMED",
-      "updated_date": "UNCONFIRMED",
-      "cluster": "workable_items",
-      "component": "workable_items/sync_diff_desync"
-    },
-    {
-      "id": "TestDiffCmd_CompositeKeyNoSpuriousDivergence",
-      "name": "sync_diff_test.go",
-      "type": "workable_items_test",
-      "subtypes": [],
-      "description": "sync_diff_test.go \u2014 \u00a711.4.115 RED-baseline-on-the-broken-artifact +",
-      "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
-      "physical_evidence": false,
-      "physical_evidence_which": [],
-      "feature_class": null,
-      "version": "unversioned",
-      "atm_id": null,
-      "status": "active",
-      "sources_anti_bluff": false,
-      "source_path": "constitution/scripts/workable-items/cmd/workable-items/sync_diff_test.go",
-      "derivation_gaps": [
-        "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
-      ],
-      "created_date": "UNCONFIRMED",
-      "updated_date": "UNCONFIRMED",
-      "cluster": "workable_items",
-      "component": "workable_items/sync_diff"
-    },
-    {
-      "id": "TestUpdateCmd_PreservesRichBodyOnSeverityOnlyUpdate",
+      "id": "update_body_preservation_test.go",
       "name": "update_body_preservation_test.go",
       "type": "workable_items_test",
       "subtypes": [],
-      "description": "update_body_preservation_test.go \u2014 \u00a711.4.93 data-integrity RED/GREEN guard",
-      "description_quality": "title-header",
+      "description": "",
+      "description_quality": "header-only",
       "step_by_step": [],
       "how_tokens": [],
       "bluff_proofed": false,
@@ -2434,21 +2500,853 @@
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/workable-items/cmd/workable-items/update_body_preservation_test.go",
       "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
+        "version-UNCONFIRMED",
+        "created_date-UNCONFIRMED",
+        "cluster-uncategorised"
+      ],
+      "created_date": "UNCONFIRMED",
+      "updated_date": "UNCONFIRMED",
+      "cluster": "uncategorised",
+      "component": "update_body_preservation_test.go"
+    },
+    {
+      "id": "version_tags_test.go",
+      "name": "version_tags_test.go",
+      "type": "workable_items_test",
+      "subtypes": [],
+      "description": "",
+      "description_quality": "header-only",
+      "step_by_step": [],
+      "how_tokens": [],
+      "bluff_proofed": false,
+      "bluff_proofed_reasons": [],
+      "physical_evidence": false,
+      "physical_evidence_which": [],
+      "feature_class": null,
+      "version": "unversioned",
+      "atm_id": "ATM-042",
+      "status": "active",
+      "sources_anti_bluff": false,
+      "source_path": "constitution/scripts/workable-items/cmd/workable-items/version_tags_test.go",
+      "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
+        "version-UNCONFIRMED",
+        "created_date-UNCONFIRMED",
+        "cluster-uncategorised"
+      ],
+      "created_date": "UNCONFIRMED",
+      "updated_date": "UNCONFIRMED",
+      "cluster": "uncategorised",
+      "component": "version_tags_test.go"
+    },
+    {
+      "id": "assign_test.go",
+      "name": "assign_test.go",
+      "type": "workable_items_test",
+      "subtypes": [],
+      "description": "",
+      "description_quality": "header-only",
+      "step_by_step": [],
+      "how_tokens": [],
+      "bluff_proofed": false,
+      "bluff_proofed_reasons": [],
+      "physical_evidence": false,
+      "physical_evidence_which": [],
+      "feature_class": null,
+      "version": "unversioned",
+      "atm_id": "ATM-633",
+      "status": "active",
+      "sources_anti_bluff": false,
+      "source_path": "constitution/scripts/workable-items/cmd/workable-items/assign_test.go",
+      "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
         "version-UNCONFIRMED",
         "created_date-UNCONFIRMED"
       ],
       "created_date": "UNCONFIRMED",
       "updated_date": "UNCONFIRMED",
       "cluster": "workable_items",
-      "component": "workable_items/update_body_preservation"
+      "component": "workable_items/assign_test.go"
     },
     {
-      "id": "TestValidate_BlockedWithoutEnumeratedChoices_Fails",
+      "id": "atm627_glued_heading_test.go",
+      "name": "atm627_glued_heading_test.go",
+      "type": "workable_items_test",
+      "subtypes": [
+        "red_polarity"
+      ],
+      "description": "",
+      "description_quality": "header-only",
+      "step_by_step": [],
+      "how_tokens": [],
+      "bluff_proofed": true,
+      "bluff_proofed_reasons": [
+        "RED_MODE-marker"
+      ],
+      "physical_evidence": false,
+      "physical_evidence_which": [],
+      "feature_class": null,
+      "version": "unversioned",
+      "atm_id": "ATM-627",
+      "status": "red_baseline",
+      "sources_anti_bluff": false,
+      "source_path": "constitution/scripts/workable-items/cmd/workable-items/atm627_glued_heading_test.go",
+      "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
+        "version-UNCONFIRMED",
+        "created_date-UNCONFIRMED"
+      ],
+      "created_date": "UNCONFIRMED",
+      "updated_date": "UNCONFIRMED",
+      "cluster": "workable_items",
+      "component": "workable_items/atm627_glued_heading_test.go"
+    },
+    {
+      "id": "atm627_roundtrip_test.go",
+      "name": "atm627_roundtrip_test.go",
+      "type": "workable_items_test",
+      "subtypes": [
+        "red_polarity"
+      ],
+      "description": "",
+      "description_quality": "header-only",
+      "step_by_step": [],
+      "how_tokens": [],
+      "bluff_proofed": true,
+      "bluff_proofed_reasons": [
+        "RED_MODE-marker"
+      ],
+      "physical_evidence": false,
+      "physical_evidence_which": [],
+      "feature_class": null,
+      "version": "unversioned",
+      "atm_id": "ATM-627",
+      "status": "red_baseline",
+      "sources_anti_bluff": false,
+      "source_path": "constitution/scripts/workable-items/cmd/workable-items/atm627_roundtrip_test.go",
+      "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
+        "version-UNCONFIRMED",
+        "created_date-UNCONFIRMED"
+      ],
+      "created_date": "UNCONFIRMED",
+      "updated_date": "UNCONFIRMED",
+      "cluster": "workable_items",
+      "component": "workable_items/atm627_roundtrip_test.go"
+    },
+    {
+      "id": "atm627_segment_backfill_test.go",
+      "name": "atm627_segment_backfill_test.go",
+      "type": "workable_items_test",
+      "subtypes": [
+        "red_polarity"
+      ],
+      "description": "",
+      "description_quality": "header-only",
+      "step_by_step": [],
+      "how_tokens": [],
+      "bluff_proofed": true,
+      "bluff_proofed_reasons": [
+        "RED_MODE-marker"
+      ],
+      "physical_evidence": false,
+      "physical_evidence_which": [],
+      "feature_class": null,
+      "version": "unversioned",
+      "atm_id": "ATM-627",
+      "status": "red_baseline",
+      "sources_anti_bluff": false,
+      "source_path": "constitution/scripts/workable-items/cmd/workable-items/atm627_segment_backfill_test.go",
+      "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
+        "version-UNCONFIRMED",
+        "created_date-UNCONFIRMED"
+      ],
+      "created_date": "UNCONFIRMED",
+      "updated_date": "UNCONFIRMED",
+      "cluster": "workable_items",
+      "component": "workable_items/atm627_segment_backfill_test.go"
+    },
+    {
+      "id": "atm627_status_desync_test.go",
+      "name": "atm627_status_desync_test.go",
+      "type": "workable_items_test",
+      "subtypes": [
+        "red_polarity"
+      ],
+      "description": "",
+      "description_quality": "header-only",
+      "step_by_step": [],
+      "how_tokens": [],
+      "bluff_proofed": true,
+      "bluff_proofed_reasons": [
+        "RED_MODE-marker"
+      ],
+      "physical_evidence": false,
+      "physical_evidence_which": [],
+      "feature_class": null,
+      "version": "unversioned",
+      "atm_id": "ATM-627",
+      "status": "red_baseline",
+      "sources_anti_bluff": false,
+      "source_path": "constitution/scripts/workable-items/cmd/workable-items/atm627_status_desync_test.go",
+      "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
+        "version-UNCONFIRMED",
+        "created_date-UNCONFIRMED"
+      ],
+      "created_date": "UNCONFIRMED",
+      "updated_date": "UNCONFIRMED",
+      "cluster": "workable_items",
+      "component": "workable_items/atm627_status_desync_test.go"
+    },
+    {
+      "id": "atm627_trailing_newline_test.go",
+      "name": "atm627_trailing_newline_test.go",
+      "type": "workable_items_test",
+      "subtypes": [
+        "red_polarity"
+      ],
+      "description": "",
+      "description_quality": "header-only",
+      "step_by_step": [],
+      "how_tokens": [],
+      "bluff_proofed": true,
+      "bluff_proofed_reasons": [
+        "RED_MODE-marker"
+      ],
+      "physical_evidence": false,
+      "physical_evidence_which": [],
+      "feature_class": null,
+      "version": "unversioned",
+      "atm_id": "ATM-627",
+      "status": "red_baseline",
+      "sources_anti_bluff": false,
+      "source_path": "constitution/scripts/workable-items/cmd/workable-items/atm627_trailing_newline_test.go",
+      "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
+        "version-UNCONFIRMED",
+        "created_date-UNCONFIRMED"
+      ],
+      "created_date": "UNCONFIRMED",
+      "updated_date": "UNCONFIRMED",
+      "cluster": "workable_items",
+      "component": "workable_items/atm627_trailing_newline_test.go"
+    },
+    {
+      "id": "atmosphere_test.go",
+      "name": "atmosphere_test.go",
+      "type": "workable_items_test",
+      "subtypes": [],
+      "description": "",
+      "description_quality": "header-only",
+      "step_by_step": [],
+      "how_tokens": [],
+      "bluff_proofed": false,
+      "bluff_proofed_reasons": [],
+      "physical_evidence": false,
+      "physical_evidence_which": [],
+      "feature_class": null,
+      "version": "unversioned",
+      "atm_id": "ATM-238",
+      "status": "active",
+      "sources_anti_bluff": false,
+      "source_path": "constitution/scripts/workable-items/cmd/workable-items/atmosphere_test.go",
+      "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
+        "version-UNCONFIRMED",
+        "created_date-UNCONFIRMED"
+      ],
+      "created_date": "UNCONFIRMED",
+      "updated_date": "UNCONFIRMED",
+      "cluster": "workable_items",
+      "component": "workable_items/atmosphere_test.go"
+    },
+    {
+      "id": "attribution_test.go",
+      "name": "attribution_test.go",
+      "type": "workable_items_test",
+      "subtypes": [],
+      "description": "",
+      "description_quality": "header-only",
+      "step_by_step": [],
+      "how_tokens": [],
+      "bluff_proofed": false,
+      "bluff_proofed_reasons": [],
+      "physical_evidence": false,
+      "physical_evidence_which": [],
+      "feature_class": null,
+      "version": "unversioned",
+      "atm_id": null,
+      "status": "active",
+      "sources_anti_bluff": false,
+      "source_path": "constitution/scripts/workable-items/cmd/workable-items/attribution_test.go",
+      "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
+        "version-UNCONFIRMED",
+        "created_date-UNCONFIRMED"
+      ],
+      "created_date": "UNCONFIRMED",
+      "updated_date": "UNCONFIRMED",
+      "cluster": "workable_items",
+      "component": "workable_items/attribution_test.go"
+    },
+    {
+      "id": "classify_test.go",
+      "name": "classify_test.go",
+      "type": "workable_items_test",
+      "subtypes": [],
+      "description": "",
+      "description_quality": "header-only",
+      "step_by_step": [],
+      "how_tokens": [],
+      "bluff_proofed": false,
+      "bluff_proofed_reasons": [],
+      "physical_evidence": false,
+      "physical_evidence_which": [],
+      "feature_class": null,
+      "version": "unversioned",
+      "atm_id": "ATM-633",
+      "status": "active",
+      "sources_anti_bluff": false,
+      "source_path": "constitution/scripts/workable-items/cmd/workable-items/classify_test.go",
+      "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
+        "version-UNCONFIRMED",
+        "created_date-UNCONFIRMED"
+      ],
+      "created_date": "UNCONFIRMED",
+      "updated_date": "UNCONFIRMED",
+      "cluster": "workable_items",
+      "component": "workable_items/classify_test.go"
+    },
+    {
+      "id": "crud_test.go",
+      "name": "crud_test.go",
+      "type": "workable_items_test",
+      "subtypes": [],
+      "description": "",
+      "description_quality": "header-only",
+      "step_by_step": [],
+      "how_tokens": [],
+      "bluff_proofed": false,
+      "bluff_proofed_reasons": [],
+      "physical_evidence": false,
+      "physical_evidence_which": [],
+      "feature_class": null,
+      "version": "unversioned",
+      "atm_id": null,
+      "status": "active",
+      "sources_anti_bluff": false,
+      "source_path": "constitution/scripts/workable-items/cmd/workable-items/crud_test.go",
+      "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
+        "version-UNCONFIRMED",
+        "created_date-UNCONFIRMED"
+      ],
+      "created_date": "UNCONFIRMED",
+      "updated_date": "UNCONFIRMED",
+      "cluster": "workable_items",
+      "component": "workable_items/crud_test.go"
+    },
+    {
+      "id": "diary_cmd_test.go",
+      "name": "diary_cmd_test.go",
+      "type": "workable_items_test",
+      "subtypes": [
+        "red_polarity"
+      ],
+      "description": "",
+      "description_quality": "header-only",
+      "step_by_step": [],
+      "how_tokens": [
+        "ffprobe"
+      ],
+      "bluff_proofed": true,
+      "bluff_proofed_reasons": [
+        "RED_MODE-marker"
+      ],
+      "physical_evidence": false,
+      "physical_evidence_which": [],
+      "feature_class": null,
+      "version": "unversioned",
+      "atm_id": "ATM-999",
+      "status": "red_baseline",
+      "sources_anti_bluff": false,
+      "source_path": "constitution/scripts/workable-items/cmd/workable-items/diary_cmd_test.go",
+      "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
+        "version-UNCONFIRMED",
+        "created_date-UNCONFIRMED"
+      ],
+      "created_date": "UNCONFIRMED",
+      "updated_date": "UNCONFIRMED",
+      "cluster": "workable_items",
+      "component": "workable_items/diary_cmd_test.go"
+    },
+    {
+      "id": "diary_test.go",
+      "name": "diary_test.go",
+      "type": "workable_items_test",
+      "subtypes": [],
+      "description": "",
+      "description_quality": "header-only",
+      "step_by_step": [],
+      "how_tokens": [
+        "ffprobe"
+      ],
+      "bluff_proofed": false,
+      "bluff_proofed_reasons": [],
+      "physical_evidence": false,
+      "physical_evidence_which": [],
+      "feature_class": null,
+      "version": "unversioned",
+      "atm_id": "ATM-300",
+      "status": "active",
+      "sources_anti_bluff": false,
+      "source_path": "constitution/scripts/workable-items/cmd/workable-items/diary_test.go",
+      "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
+        "version-UNCONFIRMED",
+        "created_date-UNCONFIRMED"
+      ],
+      "created_date": "UNCONFIRMED",
+      "updated_date": "UNCONFIRMED",
+      "cluster": "workable_items",
+      "component": "workable_items/diary_test.go"
+    },
+    {
+      "id": "export_test.go",
+      "name": "export_test.go",
+      "type": "workable_items_test",
+      "subtypes": [],
+      "description": "",
+      "description_quality": "header-only",
+      "step_by_step": [],
+      "how_tokens": [],
+      "bluff_proofed": false,
+      "bluff_proofed_reasons": [],
+      "physical_evidence": false,
+      "physical_evidence_which": [],
+      "feature_class": null,
+      "version": "unversioned",
+      "atm_id": null,
+      "status": "active",
+      "sources_anti_bluff": false,
+      "source_path": "constitution/scripts/workable-items/cmd/workable-items/export_test.go",
+      "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
+        "version-UNCONFIRMED",
+        "created_date-UNCONFIRMED"
+      ],
+      "created_date": "UNCONFIRMED",
+      "updated_date": "UNCONFIRMED",
+      "cluster": "workable_items",
+      "component": "workable_items/export_test.go"
+    },
+    {
+      "id": "gap_dual_representation_test.go",
+      "name": "gap_dual_representation_test.go",
+      "type": "workable_items_test",
+      "subtypes": [
+        "red_polarity"
+      ],
+      "description": "",
+      "description_quality": "header-only",
+      "step_by_step": [],
+      "how_tokens": [],
+      "bluff_proofed": true,
+      "bluff_proofed_reasons": [
+        "RED_MODE-marker"
+      ],
+      "physical_evidence": false,
+      "physical_evidence_which": [],
+      "feature_class": null,
+      "version": "unversioned",
+      "atm_id": null,
+      "status": "red_baseline",
+      "sources_anti_bluff": false,
+      "source_path": "constitution/scripts/workable-items/cmd/workable-items/gap_dual_representation_test.go",
+      "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
+        "version-UNCONFIRMED",
+        "created_date-UNCONFIRMED"
+      ],
+      "created_date": "UNCONFIRMED",
+      "updated_date": "UNCONFIRMED",
+      "cluster": "workable_items",
+      "component": "workable_items/gap_dual_representation_test.go"
+    },
+    {
+      "id": "group_assignment_schema_test.go",
+      "name": "group_assignment_schema_test.go",
+      "type": "workable_items_test",
+      "subtypes": [],
+      "description": "",
+      "description_quality": "header-only",
+      "step_by_step": [],
+      "how_tokens": [],
+      "bluff_proofed": false,
+      "bluff_proofed_reasons": [],
+      "physical_evidence": false,
+      "physical_evidence_which": [],
+      "feature_class": null,
+      "version": "unversioned",
+      "atm_id": "ATM-700",
+      "status": "active",
+      "sources_anti_bluff": false,
+      "source_path": "constitution/scripts/workable-items/cmd/workable-items/group_assignment_schema_test.go",
+      "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
+        "version-UNCONFIRMED",
+        "created_date-UNCONFIRMED"
+      ],
+      "created_date": "UNCONFIRMED",
+      "updated_date": "UNCONFIRMED",
+      "cluster": "workable_items",
+      "component": "workable_items/group_assignment_schema_test.go"
+    },
+    {
+      "id": "group_test.go",
+      "name": "group_test.go",
+      "type": "workable_items_test",
+      "subtypes": [],
+      "description": "",
+      "description_quality": "header-only",
+      "step_by_step": [],
+      "how_tokens": [],
+      "bluff_proofed": false,
+      "bluff_proofed_reasons": [],
+      "physical_evidence": false,
+      "physical_evidence_which": [],
+      "feature_class": null,
+      "version": "unversioned",
+      "atm_id": null,
+      "status": "active",
+      "sources_anti_bluff": false,
+      "source_path": "constitution/scripts/workable-items/cmd/workable-items/group_test.go",
+      "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
+        "version-UNCONFIRMED",
+        "created_date-UNCONFIRMED"
+      ],
+      "created_date": "UNCONFIRMED",
+      "updated_date": "UNCONFIRMED",
+      "cluster": "workable_items",
+      "component": "workable_items/group_test.go"
+    },
+    {
+      "id": "migrate_v3_to_v4_test.go",
+      "name": "migrate_v3_to_v4_test.go",
+      "type": "workable_items_test",
+      "subtypes": [],
+      "description": "",
+      "description_quality": "header-only",
+      "step_by_step": [],
+      "how_tokens": [],
+      "bluff_proofed": false,
+      "bluff_proofed_reasons": [],
+      "physical_evidence": false,
+      "physical_evidence_which": [],
+      "feature_class": null,
+      "version": "unversioned",
+      "atm_id": "ATM-001",
+      "status": "active",
+      "sources_anti_bluff": false,
+      "source_path": "constitution/scripts/workable-items/cmd/workable-items/migrate_v3_to_v4_test.go",
+      "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
+        "version-UNCONFIRMED",
+        "created_date-UNCONFIRMED"
+      ],
+      "created_date": "UNCONFIRMED",
+      "updated_date": "UNCONFIRMED",
+      "cluster": "workable_items",
+      "component": "workable_items/migrate_v3_to_v4"
+    },
+    {
+      "id": "mutate_test.go",
+      "name": "mutate_test.go",
+      "type": "workable_items_test",
+      "subtypes": [],
+      "description": "",
+      "description_quality": "header-only",
+      "step_by_step": [],
+      "how_tokens": [],
+      "bluff_proofed": false,
+      "bluff_proofed_reasons": [],
+      "physical_evidence": false,
+      "physical_evidence_which": [],
+      "feature_class": null,
+      "version": "unversioned",
+      "atm_id": null,
+      "status": "active",
+      "sources_anti_bluff": false,
+      "source_path": "constitution/scripts/workable-items/cmd/workable-items/mutate_test.go",
+      "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
+        "version-UNCONFIRMED",
+        "created_date-UNCONFIRMED"
+      ],
+      "created_date": "UNCONFIRMED",
+      "updated_date": "UNCONFIRMED",
+      "cluster": "workable_items",
+      "component": "workable_items/mutate_test.go"
+    },
+    {
+      "id": "obsolete_test.go",
+      "name": "obsolete_test.go",
+      "type": "workable_items_test",
+      "subtypes": [],
+      "description": "",
+      "description_quality": "header-only",
+      "step_by_step": [],
+      "how_tokens": [],
+      "bluff_proofed": false,
+      "bluff_proofed_reasons": [],
+      "physical_evidence": false,
+      "physical_evidence_which": [],
+      "feature_class": null,
+      "version": "unversioned",
+      "atm_id": "ATM-901",
+      "status": "active",
+      "sources_anti_bluff": false,
+      "source_path": "constitution/scripts/workable-items/cmd/workable-items/obsolete_test.go",
+      "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
+        "version-UNCONFIRMED",
+        "created_date-UNCONFIRMED"
+      ],
+      "created_date": "UNCONFIRMED",
+      "updated_date": "UNCONFIRMED",
+      "cluster": "workable_items",
+      "component": "workable_items/obsolete_test.go"
+    },
+    {
+      "id": "reopen_relocate_test.go",
+      "name": "reopen_relocate_test.go",
+      "type": "workable_items_test",
+      "subtypes": [
+        "red_polarity"
+      ],
+      "description": "",
+      "description_quality": "header-only",
+      "step_by_step": [],
+      "how_tokens": [],
+      "bluff_proofed": true,
+      "bluff_proofed_reasons": [
+        "RED_MODE-marker"
+      ],
+      "physical_evidence": false,
+      "physical_evidence_which": [],
+      "feature_class": null,
+      "version": "unversioned",
+      "atm_id": "ATM-627",
+      "status": "red_baseline",
+      "sources_anti_bluff": false,
+      "source_path": "constitution/scripts/workable-items/cmd/workable-items/reopen_relocate_test.go",
+      "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
+        "version-UNCONFIRMED",
+        "created_date-UNCONFIRMED"
+      ],
+      "created_date": "UNCONFIRMED",
+      "updated_date": "UNCONFIRMED",
+      "cluster": "workable_items",
+      "component": "workable_items/reopen_relocate_test.go"
+    },
+    {
+      "id": "repair_bodies_test.go",
+      "name": "repair_bodies_test.go",
+      "type": "workable_items_test",
+      "subtypes": [
+        "red_polarity"
+      ],
+      "description": "",
+      "description_quality": "header-only",
+      "step_by_step": [],
+      "how_tokens": [],
+      "bluff_proofed": true,
+      "bluff_proofed_reasons": [
+        "RED_MODE-marker"
+      ],
+      "physical_evidence": false,
+      "physical_evidence_which": [],
+      "feature_class": null,
+      "version": "unversioned",
+      "atm_id": "ATM-627",
+      "status": "red_baseline",
+      "sources_anti_bluff": false,
+      "source_path": "constitution/scripts/workable-items/cmd/workable-items/repair_bodies_test.go",
+      "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
+        "version-UNCONFIRMED",
+        "created_date-UNCONFIRMED"
+      ],
+      "created_date": "UNCONFIRMED",
+      "updated_date": "UNCONFIRMED",
+      "cluster": "workable_items",
+      "component": "workable_items/repair_bodies_test.go"
+    },
+    {
+      "id": "roundtrip_test.go",
+      "name": "roundtrip_test.go",
+      "type": "workable_items_test",
+      "subtypes": [],
+      "description": "",
+      "description_quality": "header-only",
+      "step_by_step": [],
+      "how_tokens": [],
+      "bluff_proofed": false,
+      "bluff_proofed_reasons": [],
+      "physical_evidence": false,
+      "physical_evidence_which": [],
+      "feature_class": null,
+      "version": "unversioned",
+      "atm_id": null,
+      "status": "active",
+      "sources_anti_bluff": false,
+      "source_path": "constitution/scripts/workable-items/cmd/workable-items/roundtrip_test.go",
+      "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
+        "version-UNCONFIRMED",
+        "created_date-UNCONFIRMED"
+      ],
+      "created_date": "UNCONFIRMED",
+      "updated_date": "UNCONFIRMED",
+      "cluster": "workable_items",
+      "component": "workable_items/roundtrip_test.go"
+    },
+    {
+      "id": "subtask_test.go",
+      "name": "subtask_test.go",
+      "type": "workable_items_test",
+      "subtypes": [],
+      "description": "",
+      "description_quality": "header-only",
+      "step_by_step": [],
+      "how_tokens": [],
+      "bluff_proofed": false,
+      "bluff_proofed_reasons": [],
+      "physical_evidence": false,
+      "physical_evidence_which": [],
+      "feature_class": null,
+      "version": "unversioned",
+      "atm_id": "ATM-025",
+      "status": "active",
+      "sources_anti_bluff": false,
+      "source_path": "constitution/scripts/workable-items/cmd/workable-items/subtask_test.go",
+      "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
+        "version-UNCONFIRMED",
+        "created_date-UNCONFIRMED"
+      ],
+      "created_date": "UNCONFIRMED",
+      "updated_date": "UNCONFIRMED",
+      "cluster": "workable_items",
+      "component": "workable_items/subtask_test.go"
+    },
+    {
+      "id": "sync_diff_desync_test.go",
+      "name": "sync_diff_desync_test.go",
+      "type": "workable_items_test",
+      "subtypes": [
+        "red_polarity"
+      ],
+      "description": "",
+      "description_quality": "header-only",
+      "step_by_step": [],
+      "how_tokens": [],
+      "bluff_proofed": true,
+      "bluff_proofed_reasons": [
+        "RED_MODE-marker"
+      ],
+      "physical_evidence": false,
+      "physical_evidence_which": [],
+      "feature_class": null,
+      "version": "unversioned",
+      "atm_id": "ATM-627",
+      "status": "red_baseline",
+      "sources_anti_bluff": false,
+      "source_path": "constitution/scripts/workable-items/cmd/workable-items/sync_diff_desync_test.go",
+      "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
+        "version-UNCONFIRMED",
+        "created_date-UNCONFIRMED"
+      ],
+      "created_date": "UNCONFIRMED",
+      "updated_date": "UNCONFIRMED",
+      "cluster": "workable_items",
+      "component": "workable_items/sync_diff_desync_test.go"
+    },
+    {
+      "id": "sync_diff_test.go",
+      "name": "sync_diff_test.go",
+      "type": "workable_items_test",
+      "subtypes": [
+        "red_polarity"
+      ],
+      "description": "",
+      "description_quality": "header-only",
+      "step_by_step": [],
+      "how_tokens": [],
+      "bluff_proofed": true,
+      "bluff_proofed_reasons": [
+        "RED_MODE-marker"
+      ],
+      "physical_evidence": false,
+      "physical_evidence_which": [],
+      "feature_class": null,
+      "version": "unversioned",
+      "atm_id": null,
+      "status": "red_baseline",
+      "sources_anti_bluff": false,
+      "source_path": "constitution/scripts/workable-items/cmd/workable-items/sync_diff_test.go",
+      "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
+        "version-UNCONFIRMED",
+        "created_date-UNCONFIRMED"
+      ],
+      "created_date": "UNCONFIRMED",
+      "updated_date": "UNCONFIRMED",
+      "cluster": "workable_items",
+      "component": "workable_items/sync_diff_test.go"
+    },
+    {
+      "id": "validate_blocked_test.go",
       "name": "validate_blocked_test.go",
       "type": "workable_items_test",
       "subtypes": [],
-      "description": "validate_blocked_test.go \u2014 anti-bluff coverage for the \u00a711.4.21 / \u00a711.4.148 D3",
-      "description_quality": "title-header",
+      "description": "",
+      "description_quality": "header-only",
       "step_by_step": [],
       "how_tokens": [],
       "bluff_proofed": false,
@@ -2462,21 +3360,23 @@
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/workable-items/cmd/workable-items/validate_blocked_test.go",
       "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
         "version-UNCONFIRMED",
         "created_date-UNCONFIRMED"
       ],
       "created_date": "UNCONFIRMED",
       "updated_date": "UNCONFIRMED",
       "cluster": "workable_items",
-      "component": "workable_items/validate_blocked"
+      "component": "workable_items/validate_blocked_test.go"
     },
     {
-      "id": "TestValidateGroups_SingleValued_Positive",
+      "id": "validate_groups_test.go",
       "name": "validate_groups_test.go",
       "type": "workable_items_test",
       "subtypes": [],
-      "description": "validate_groups_test.go \u2014 anti-bluff coverage for `validate-groups`, P2 of",
-      "description_quality": "title-header",
+      "description": "",
+      "description_quality": "header-only",
       "step_by_step": [],
       "how_tokens": [],
       "bluff_proofed": false,
@@ -2490,69 +3390,15 @@
       "sources_anti_bluff": false,
       "source_path": "constitution/scripts/workable-items/cmd/workable-items/validate_groups_test.go",
       "derivation_gaps": [
+        "no-description-header(§11.4.18)",
+        "no-step-by-step-derivable",
         "version-UNCONFIRMED",
         "created_date-UNCONFIRMED"
       ],
       "created_date": "UNCONFIRMED",
       "updated_date": "UNCONFIRMED",
       "cluster": "workable_items",
-      "component": "workable_items/validate_groups"
-    },
-    {
-      "id": "TestVersionTagsLastLine",
-      "name": "version_tags_test.go",
-      "type": "workable_items_test",
-      "subtypes": [],
-      "description": "version_tags_test.go \u2014 \u00a711.4.93 / \u00a711.4.27 unit coverage for the",
-      "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
-      "physical_evidence": false,
-      "physical_evidence_which": [],
-      "feature_class": null,
-      "version": "unversioned",
-      "atm_id": null,
-      "status": "active",
-      "sources_anti_bluff": false,
-      "source_path": "constitution/scripts/workable-items/cmd/workable-items/version_tags_test.go",
-      "derivation_gaps": [
-        "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
-      ],
-      "created_date": "UNCONFIRMED",
-      "updated_date": "UNCONFIRMED",
-      "cluster": "workable_items",
-      "component": "workable_items/version_tags"
-    },
-    {
-      "id": "meta_test_inheritance",
-      "name": "meta_test_inheritance.sh",
-      "type": "constitution_gate",
-      "subtypes": [],
-      "description": "Constitution-side meta-test proving the inheritance gate is not a bluff gate",
-      "description_quality": "title-header",
-      "step_by_step": [],
-      "how_tokens": [],
-      "bluff_proofed": false,
-      "bluff_proofed_reasons": [],
-      "physical_evidence": false,
-      "physical_evidence_which": [],
-      "feature_class": null,
-      "version": "unversioned",
-      "atm_id": null,
-      "status": "active",
-      "sources_anti_bluff": false,
-      "source_path": "constitution/meta_test_inheritance.sh",
-      "derivation_gaps": [
-        "version-UNCONFIRMED",
-        "created_date-UNCONFIRMED"
-      ],
-      "created_date": "UNCONFIRMED",
-      "updated_date": "UNCONFIRMED",
-      "cluster": "governance",
-      "component": "governance/meta_test_inheritance"
+      "component": "workable_items/validate_groups_test.go"
     }
   ]
 }
