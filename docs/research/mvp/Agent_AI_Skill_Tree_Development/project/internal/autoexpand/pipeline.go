@@ -136,13 +136,16 @@ func (p *Pipeline) DetectGapsForSkill(ctx context.Context, skillName string) ([]
 
 	var gaps []Gap
 	visited := make(map[string]bool)
-	p.collectGapsFromTree(tree, visited, &gaps)
+	p.collectGapsFromTree(ctx, tree, visited, &gaps)
 
 	return gaps, nil
 }
 
-// collectGapsFromTree recursively walks the skill tree to find gaps.
-func (p *Pipeline) collectGapsFromTree(node *models.SkillTreeNode, visited map[string]bool, gaps *[]Gap) {
+// collectGapsFromTree recursively walks the skill tree to find gaps by
+// checking each declared dependency name against the store (§G137 — uses
+// name-based existence checks via the store instead of the unreachable
+// uuid.Nil check that the GRAPH-layer FK guarantee made permanently inert).
+func (p *Pipeline) collectGapsFromTree(ctx context.Context, node *models.SkillTreeNode, visited map[string]bool, gaps *[]Gap) {
 	if visited[node.Skill.Name] {
 		return
 	}
@@ -153,8 +156,17 @@ func (p *Pipeline) collectGapsFromTree(node *models.SkillTreeNode, visited map[s
 		if dep.DependsOnName == "" {
 			continue
 		}
-		// If the dependency name is set but we couldn't resolve it, it's a gap
-		if dep.DependsOn == uuid.Nil {
+		// G137: Check by name against the store rather than testing uuid.Nil
+		// (which is unreachable for any store-API-constructed graph whose
+		// FK constraints guarantee every persisted edge points to a real
+		// skill). Since collectGapsFromTree's tree is populated solely from
+		// those same store paths, no uuid.Nil dependency will ever appear
+		// here — but a name-based check is always reachable and correct.
+		exists, err := p.skillNameExists(ctx, dep.DependsOnName)
+		if err != nil {
+			continue
+		}
+		if !exists {
 			*gaps = append(*gaps, Gap{
 				SkillName:      node.Skill.Name,
 				MissingDepName: dep.DependsOnName,
@@ -165,7 +177,7 @@ func (p *Pipeline) collectGapsFromTree(node *models.SkillTreeNode, visited map[s
 	}
 
 	for i := range node.Children {
-		p.collectGapsFromTree(&node.Children[i], visited, gaps)
+		p.collectGapsFromTree(ctx, &node.Children[i], visited, gaps)
 	}
 }
 
@@ -409,6 +421,21 @@ func (p *Pipeline) Run(ctx context.Context, skillName string, maxDepth int) (*Ex
 	// Track visited skills to avoid cycles
 	visited := make(map[string]bool)
 
+	// G137: Pre-collect registry-level gaps (name-based, always reachable)
+	// as a supplement to the tree-based gap detection below. The registry
+	// path (GetMissingSkills) is the only source that can discover gaps
+	// declared in TOML imports for skills that don't yet exist -- the
+	// tree-based path can only traverse edges the store layer already
+	// persisted (which the FK guarantee makes always-valid by construction).
+	registryGaps, _ := p.DetectGaps(ctx)
+	registryGapNames := make(map[string]map[string]bool) // skillName -> set of missingDepNames
+	for _, g := range registryGaps {
+		if registryGapNames[g.SkillName] == nil {
+			registryGapNames[g.SkillName] = make(map[string]bool)
+		}
+		registryGapNames[g.SkillName][g.MissingDepName] = true
+	}
+
 	// Process depth layers
 	currentLayer := []string{skillName}
 	for depth := 0; depth < maxDepth && len(currentLayer) > 0; depth++ {
@@ -420,7 +447,8 @@ func (p *Pipeline) Run(ctx context.Context, skillName string, maxDepth int) (*Ex
 			}
 			visited[currentSkill] = true
 
-			// Detect gaps at this level
+			// Detect gaps at this level -- merge tree-based gaps with
+			// pre-collected registry gaps (G137).
 			var gaps []Gap
 			var err error
 			if depth == 0 {
@@ -431,7 +459,24 @@ func (p *Pipeline) Run(ctx context.Context, skillName string, maxDepth int) (*Ex
 			}
 			if err != nil {
 				result.Errors = append(result.Errors, fmt.Sprintf("detect gaps for %s: %v", currentSkill, err))
-				continue
+			}
+
+			// Supplement with registry-level gaps for this skill.
+			// Deduplicate by MissingDepName since the same gap may appear
+			// in both the tree and registry sources.
+			seenNames := make(map[string]bool)
+			for _, g := range gaps {
+				seenNames[g.MissingDepName] = true
+			}
+			for depName := range registryGapNames[currentSkill] {
+				if !seenNames[depName] {
+					gaps = append(gaps, Gap{
+						SkillName:      currentSkill,
+						MissingDepName: depName,
+						SuggestedTitle: p.suggestTitle(depName),
+						Reason:         fmt.Sprintf("Registry: skill %q depends on %q which does not exist", currentSkill, depName),
+					})
+				}
 			}
 
 			for _, gap := range gaps {
@@ -477,7 +522,10 @@ func (p *Pipeline) Run(ctx context.Context, skillName string, maxDepth int) (*Ex
 	return result, nil
 }
 
-// detectGapsForSingleSkill checks a single skill for missing dependencies.
+// detectGapsForSingleSkill checks a single skill for missing dependencies by
+// testing each declared dependency name against the store (§G137 — uses
+// name-based existence checks instead of the store-layer FK guarantee that
+// made the former uuid.Nil guard permanently unreachable).
 func (p *Pipeline) detectGapsForSingleSkill(ctx context.Context, skillName string) ([]Gap, error) {
 	skill, err := p.store.GetByName(ctx, skillName)
 	if err != nil {
@@ -486,19 +534,23 @@ func (p *Pipeline) detectGapsForSingleSkill(ctx context.Context, skillName strin
 
 	var gaps []Gap
 	for _, dep := range skill.Dependencies {
-		if dep.DependsOn == uuid.Nil && dep.DependsOnName != "" {
-			exists, err := p.skillNameExists(ctx, dep.DependsOnName)
-			if err != nil {
-				continue
-			}
-			if !exists {
-				gaps = append(gaps, Gap{
-					SkillName:      skillName,
-					MissingDepName: dep.DependsOnName,
-					SuggestedTitle: p.suggestTitle(dep.DependsOnName),
-					Reason:         fmt.Sprintf("Unresolved dependency %q in skill %q", dep.DependsOnName, skillName),
-				})
-			}
+		if dep.DependsOnName == "" {
+			continue
+		}
+		// G137: Check by name against the store rather than testing uuid.Nil,
+		// which cannot appear for any store-API-constructed graph whose FK
+		// constraints guarantee every persisted edge has a real target.
+		exists, err := p.skillNameExists(ctx, dep.DependsOnName)
+		if err != nil {
+			continue
+		}
+		if !exists {
+			gaps = append(gaps, Gap{
+				SkillName:      skillName,
+				MissingDepName: dep.DependsOnName,
+				SuggestedTitle: p.suggestTitle(dep.DependsOnName),
+				Reason:         fmt.Sprintf("Unresolved dependency %q in skill %q", dep.DependsOnName, skillName),
+			})
 		}
 	}
 

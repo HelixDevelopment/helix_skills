@@ -423,7 +423,7 @@ The MCP server exposes these tools via stdio transport:
 host = "0.0.0.0"
 http_port = 8080
 http3_port = 8443
-enable_http3 = false  -- default HTTP/2, enable HTTP/3 for remote
+enable_http3 = false  # default HTTP/2, enable HTTP/3 for remote
 enable_brotli = true
 tls_cert = ""
 tls_key = ""
@@ -438,17 +438,17 @@ ssl_mode = "disable"
 max_connections = 25
 
 [embedding]
-provider = "openai"  -- openai | local | anthropic
+provider = "openai"  # openai | local | anthropic
 dimensions = 768
 model = "text-embedding-3-small"
 api_key = "${OPENAI_API_KEY}"
-local_endpoint = ""  -- for local models (ollama, etc.)
+local_endpoint = ""  # for local models (ollama, etc.)
 
 [validation]
 enabled = true
-sandbox_type = "wasm"  -- wasm | gvisor | docker
+sandbox_type = "wasm"  # wasm | gvisor | docker
 jury_size = 3
-approval_threshold = 2  -- min approvals from jury
+approval_threshold = 2  # min approvals from jury
 auto_approve_evidence = false
 require_human_review = true
 
@@ -467,12 +467,12 @@ exclude_patterns = ["vendor/", "node_modules/", ".git/", "build/"]
 
 [mcp]
 enabled = true
-transport = "stdio"  -- stdio | http
+transport = "stdio"  # stdio | http
 
 [registry]
 review_interval_hours = 24
 coverage_threshold = 0.8
 
 [logging]
-level = "info"  -- debug | info | warn | error
-format = "json"  -- json | text
+level = "info"  # debug | info | warn | error
+format = "json"  # json | text
