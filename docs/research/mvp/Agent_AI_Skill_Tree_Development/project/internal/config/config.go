@@ -37,10 +37,13 @@ type Config struct {
 	Embedding    EmbeddingConfig    `toml:"embedding"`
 	Validation   ValidationConfig   `toml:"validation"`
 	AutoExpand   AutoExpandConfig   `toml:"autoexpand"`
-	CodeAnalysis CodeAnalysisConfig `toml:"codeanalysis"`
-	MCP          MCPConfig          `toml:"mcp"`
-	Registry     RegistryConfig     `toml:"registry"`
-	Logging      LoggingConfig      `toml:"logging"`
+	CodeAnalysis CodeAnalysisConfig  `toml:"codeanalysis"`
+	CodeGraph    CodeGraphConfig     `toml:"codegraph"`
+	MCP          MCPConfig           `toml:"mcp"`
+	Registry     RegistryConfig      `toml:"registry"`
+	Logging      LoggingConfig       `toml:"logging"`
+	Cache        CacheConfig        `toml:"cache"`
+	Metrics      MetricsConfig      `toml:"metrics"`
 }
 
 // ---------------------------------------------------------------------------
@@ -119,6 +122,10 @@ type DatabaseConfig struct {
 	SSLMode        string        `toml:"ssl_mode"`
 	MaxConnections int           `toml:"max_connections"`
 	ConnectTimeout time.Duration `toml:"connect_timeout"`
+	// Replica holds optional read-replica configuration. When a replica DSN is
+	// provided, read operations are routed to the replica and writes go to the
+	// primary. When empty, all traffic goes to the primary pool.
+	Replica ReplicaConfig `toml:"replica"`
 }
 
 // DSN returns a PostgreSQL keyword/value connection string for pgx or lib/pq.
@@ -204,6 +211,17 @@ type MCPConfig struct {
 	Transport string `toml:"transport"` // "stdio" | "http"
 }
 
+// CodeGraphConfig controls the CodeGraph MCP integration for code indexing
+// and sync automation (§11.4.78/§11.4.79/§11.4.80).
+type CodeGraphConfig struct {
+	Enabled            bool   `toml:"enabled"`
+	Transport          string `toml:"transport"`           // "stdio" | "http"
+	Endpoint           string `toml:"endpoint"`            // HTTP endpoint (if transport=http)
+	SyncIntervalSeconds int   `toml:"sync_interval_seconds"`
+	AutoIndexOnLearn   bool   `toml:"auto_index_on_learn"`
+	WatchEnabled       bool   `toml:"watch_enabled"`       // requires fsnotify
+}
+
 // RegistryConfig controls skill-registry behaviour.
 type RegistryConfig struct {
 	ReviewIntervalHours int     `toml:"review_interval_hours"`
@@ -214,6 +232,43 @@ type RegistryConfig struct {
 type LoggingConfig struct {
 	Level  string `toml:"level"`  // "debug" | "info" | "warn" | "error"
 	Format string `toml:"format"` // "json" | "console"
+}
+
+// ReplicaConfig controls the optional read-replica connection.
+type ReplicaConfig struct {
+	// DSN is the PostgreSQL connection string for the read replica. When
+	// empty the system falls back to the primary for all operations.
+	DSN string `toml:"dsn"`
+	// MaxLagSeconds is the maximum acceptable replication lag in seconds.
+	// If the replica's lag exceeds this threshold, reads are routed to the
+	// primary until the lag subsides. A value <= 0 disables lag checking.
+	MaxLagSeconds int `toml:"max_lag_seconds"`
+	// MaxConnections is the connection pool size for the replica.
+	MaxConnections int `toml:"max_connections"`
+}
+
+// CacheConfig controls the Redis caching layer.
+type CacheConfig struct {
+	// Enabled turns the cache on. When false, a NoopCache is used and all
+	// cache operations are no-ops (graceful degradation).
+	Enabled bool `toml:"enabled"`
+	// RedisURL is the Redis connection string (e.g. "redis://localhost:6379").
+	RedisURL string `toml:"redis_url"`
+	// SkillTTL is the TTL for cached skill content.
+	SkillTTL time.Duration `toml:"skill_ttl"`
+	// SearchTTL is the TTL for cached search results.
+	SearchTTL time.Duration `toml:"search_ttl"`
+	// TreeTTL is the TTL for cached dependency trees.
+	TreeTTL time.Duration `toml:"tree_ttl"`
+}
+
+// MetricsConfig controls the Prometheus metrics endpoint.
+type MetricsConfig struct {
+	// Enabled turns metrics collection on. When false, the /metrics
+	// endpoint is not registered and counters are not incremented.
+	Enabled bool `toml:"enabled"`
+	// Path is the HTTP path for the metrics endpoint (default "/metrics").
+	Path string `toml:"path"`
 }
 
 // ---------------------------------------------------------------------------
@@ -272,6 +327,14 @@ func defaultConfig() Config {
 			MaxFileSizeKB:   500,
 			ExcludePatterns: []string{"vendor/", "node_modules/", ".git/", "build/"},
 		},
+		CodeGraph: CodeGraphConfig{
+			Enabled:             true,
+			Transport:           "stdio",
+			Endpoint:            "",
+			SyncIntervalSeconds: 300,
+			AutoIndexOnLearn:    true,
+			WatchEnabled:        false,
+		},
 		MCP: MCPConfig{
 			Enabled:   true,
 			Transport: "stdio",
@@ -283,6 +346,16 @@ func defaultConfig() Config {
 		Logging: LoggingConfig{
 			Level:  "info",
 			Format: "json",
+		},
+		Cache: CacheConfig{
+			Enabled:  false, // disabled by default — opt-in
+			SkillTTL: 5 * time.Minute,
+			SearchTTL: 1 * time.Minute,
+			TreeTTL:   10 * time.Minute,
+		},
+		Metrics: MetricsConfig{
+			Enabled: false, // disabled by default — opt-in
+			Path:    "/metrics",
 		},
 	}
 }
@@ -401,12 +474,25 @@ func substituteEnv(cfg *Config) error {
 	// CodeAnalysis
 	cfg.CodeAnalysis.AllowedRoot = sub(cfg.CodeAnalysis.AllowedRoot)
 
+	// CodeGraph
+	cfg.CodeGraph.Transport = sub(cfg.CodeGraph.Transport)
+	cfg.CodeGraph.Endpoint = sub(cfg.CodeGraph.Endpoint)
+
 	// MCP
 	cfg.MCP.Transport = sub(cfg.MCP.Transport)
 
 	// Logging
 	cfg.Logging.Level = sub(cfg.Logging.Level)
 	cfg.Logging.Format = sub(cfg.Logging.Format)
+
+	// Cache
+	cfg.Cache.RedisURL = sub(cfg.Cache.RedisURL)
+
+	// Replica
+	cfg.Database.Replica.DSN = sub(cfg.Database.Replica.DSN)
+
+	// Metrics
+	cfg.Metrics.Path = sub(cfg.Metrics.Path)
 
 	if len(errs) > 0 {
 		return fmt.Errorf("errors: %s", strings.Join(errs, "; "))
@@ -483,6 +569,18 @@ func applyEnvOverrides(cfg *Config) {
 	}
 	if v := os.Getenv("HELIX_CODEANALYSIS_ALLOWED_ROOT"); v != "" {
 		cfg.CodeAnalysis.AllowedRoot = v
+	}
+	if v := os.Getenv("HELIX_REDIS_URL"); v != "" {
+		cfg.Cache.RedisURL = v
+	}
+	if v := os.Getenv("HELIX_CACHE_ENABLED"); v != "" {
+		cfg.Cache.Enabled = v == "1" || strings.EqualFold(v, "true")
+	}
+	if v := os.Getenv("HELIX_METRICS_ENABLED"); v != "" {
+		cfg.Metrics.Enabled = v == "1" || strings.EqualFold(v, "true")
+	}
+	if v := os.Getenv("HELIX_REPLICA_DSN"); v != "" {
+		cfg.Database.Replica.DSN = v
 	}
 }
 

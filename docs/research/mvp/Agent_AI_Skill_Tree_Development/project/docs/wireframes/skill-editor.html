@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skill Editor — HelixKnowledge</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .editor-layout {
+      display: grid;
+      grid-template-rows: var(--topbar-height) 1fr auto;
+      min-height: 100vh;
+    }
+    .editor-layout .topbar { grid-column: 1 / -1; }
+
+    .editor-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--sp-sm) var(--sp-lg);
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+    .editor-toolbar__left {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-md);
+    }
+    .editor-toolbar__right {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-sm);
+    }
+    .editor-toolbar__title {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+    .editor-toolbar__path {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* Split view */
+    .editor-split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      overflow: hidden;
+    }
+    .editor-pane {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .editor-pane__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--sp-sm) var(--sp-md);
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+    .editor-pane--left {
+      border-right: 1px solid var(--border);
+    }
+
+    /* TOML textarea */
+    .toml-editor {
+      flex: 1;
+      padding: var(--sp-md);
+      background: #0d1117;
+      overflow: auto;
+    }
+    .toml-editor textarea {
+      width: 100%;
+      height: 100%;
+      min-height: 400px;
+      background: transparent;
+      border: none;
+      color: #c9d1d9;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      line-height: 1.65;
+      resize: none;
+      outline: none;
+      tab-size: 4;
+    }
+    .toml-editor textarea::placeholder {
+      color: #484f58;
+    }
+
+    /* TOML syntax colors (CSS classes for the static preview) */
+    .toml-key { color: #79c0ff; }
+    .toml-str { color: #a5d6ff; }
+    .toml-bool { color: #ff7b72; }
+    .toml-comment { color: #8b949e; }
+    .toml-section { color: #ffa657; font-weight: 700; }
+    .toml-bracket { color: #8b949e; }
+
+    /* Preview pane */
+    .preview-pane {
+      flex: 1;
+      padding: var(--sp-lg);
+      overflow: auto;
+      background: var(--bg-primary);
+    }
+    .preview-pane h2 {
+      font-size: 1.3rem;
+      margin-bottom: var(--sp-sm);
+      color: var(--text-primary);
+    }
+    .preview-pane h3 {
+      font-size: 1rem;
+      margin-top: var(--sp-lg);
+      margin-bottom: var(--sp-sm);
+      color: var(--accent);
+    }
+    .preview-pane p {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      margin-bottom: var(--sp-md);
+    }
+    .preview-pane code {
+      background: var(--bg-secondary);
+      padding: 1px 6px;
+      border-radius: var(--radius-sm);
+      font-size: 0.8rem;
+    }
+    .preview-meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--sp-sm);
+      margin-bottom: var(--sp-lg);
+    }
+    .preview-meta__item {
+      padding: var(--sp-sm);
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
+      font-size: 0.75rem;
+    }
+    .preview-meta__label {
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 0.65rem;
+      margin-bottom: 2px;
+    }
+    .preview-meta__value {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    /* Dependency picker */
+    .dep-picker {
+      position: relative;
+      margin-top: var(--sp-md);
+    }
+    .dep-picker__dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-elevated);
+      z-index: 50;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .dep-picker__item {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-sm);
+      padding: var(--sp-sm) var(--sp-md);
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .dep-picker__item:hover,
+    .dep-picker__item--highlighted {
+      background: var(--bg-tertiary);
+    }
+    .dep-picker__item-domain {
+      font-size: 0.65rem;
+      padding: 1px 6px;
+      border-radius: 999px;
+    }
+
+    /* Dep tags */
+    .dep-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--sp-xs);
+      margin-top: var(--sp-sm);
+    }
+    .dep-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--sp-xs);
+      padding: var(--sp-xs) var(--sp-sm);
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 0.75rem;
+    }
+    .dep-tag__remove {
+      cursor: pointer;
+      opacity: 0.5;
+      font-size: 0.65rem;
+    }
+    .dep-tag__remove:hover { opacity: 1; color: var(--error); }
+
+    /* Resource URL list */
+    .url-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-xs);
+    }
+    .url-item {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-sm);
+      padding: var(--sp-xs) var(--sp-sm);
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 0.8rem;
+    }
+    .url-item a {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .url-item__remove {
+      cursor: pointer;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      flex-shrink: 0;
+    }
+    .url-item__remove:hover { color: var(--error); }
+
+    /* Validation panel */
+    .validation-panel {
+      border-top: 1px solid var(--border);
+      background: var(--bg-secondary);
+      padding: var(--sp-md) var(--sp-lg);
+    }
+    .validation-panel__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--sp-sm);
+    }
+    .validation-panel__title {
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+    .validation-messages {
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-xs);
+    }
+    .validation-msg {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--sp-sm);
+      padding: var(--sp-xs) var(--sp-sm);
+      border-radius: var(--radius-sm);
+      font-size: 0.8rem;
+    }
+    .validation-msg--error {
+      background: rgba(231,76,60,0.1);
+      color: var(--error);
+    }
+    .validation-msg--warning {
+      background: rgba(243,156,18,0.1);
+      color: var(--warning);
+    }
+    .validation-msg--success {
+      background: rgba(46,204,113,0.1);
+      color: var(--success);
+    }
+    .validation-msg__line {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    @media (max-width: 1024px) {
+      .editor-split { grid-template-columns: 1fr; }
+      .editor-pane--left { border-right: none; border-bottom: 1px solid var(--border); }
+    }
+    @media (max-width: 768px) {
+      .editor-toolbar { flex-wrap: wrap; gap: var(--sp-sm); }
+      .preview-meta { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#toml-input">Skip to editor</a>
+
+  <div class="editor-layout">
+    <!-- Topbar -->
+    <header class="topbar" role="banner">
+      <span class="topbar__brand" aria-label="HelixKnowledge">hx://skill-graph</span>
+      <nav aria-label="Primary navigation">
+        <ul class="topbar__nav">
+          <li><a href="index.html">Overview</a></li>
+          <li><a href="skill-tree.html">Skill Tree</a></li>
+          <li><a href="gap-dashboard.html">Gaps</a></li>
+          <li><a href="evidence-browser.html">Evidence</a></li>
+          <li><a href="skill-editor.html" aria-current="page">Editor</a></li>
+          <li><a href="search.html">Search</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <!-- Editor toolbar -->
+    <div class="editor-toolbar">
+      <div class="editor-toolbar__left">
+        <span class="editor-toolbar__title">linux:systemd</span>
+        <span class="badge badge--linux">linux</span>
+        <span class="badge badge--warning">editing</span>
+      </div>
+      <div class="editor-toolbar__right">
+        <button class="btn btn--sm">Validate</button>
+        <button class="btn btn--sm">Preview</button>
+        <button class="btn btn--sm">Cancel</button>
+        <button class="btn btn--sm btn--primary">Save</button>
+      </div>
+    </div>
+
+    <!-- Split editor -->
+    <div class="editor-split">
+      <!-- Left: TOML editor -->
+      <div class="editor-pane editor-pane--left">
+        <div class="editor-pane__header">
+          <span>TOML Source</span>
+          <span>skill.toml</span>
+        </div>
+        <div class="toml-editor">
+          <textarea id="toml-input" aria-label="TOML skill definition editor" spellcheck="false" placeholder="Enter TOML here...">[skill]
+name = "systemd"
+domain = "linux"
+version = "1.2.0"
+status = "validated"
+complexity = "intermediate"
+
+[skill.description]
+summary = "Manage Linux services with systemd units, timers, and journald logging."
+detail = """
+Covers unit file creation, dependency ordering,
+resource controls, and service lifecycle management.
+Includes timer units and socket activation patterns.
+"""
+
+[skill.dependencies]
+requires = ["linux:filesystem", "linux:processes"]
+extends = ["linux:networking", "linux:containers"]
+recommends = ["python:pydantic"]
+composes = ["linux:docker"]
+
+[skill.resources]
+urls = [
+  "https://www.freedesktop.org/software/systemd/man/systemd.service.html",
+  "https://www.freedesktop.org/software/systemd/man/systemd.timer.html",
+]
+repos = ["github.com/org/helm-charts"]
+
+[skill.evidence]
+patterns = [
+  "unit-file-creation",
+  "service-restart",
+  "resource-limits",
+  "timer-schedule",
+  "socket-activation",
+  "journald-config",
+]
+min_confidence = 0.85</textarea>
+        </div>
+      </div>
+
+      <!-- Right: Preview -->
+      <div class="editor-pane">
+        <div class="editor-pane__header">
+          <span>Live Preview</span>
+          <span>Rendered</span>
+        </div>
+        <div class="preview-pane" aria-label="Skill preview">
+          <h2>linux:systemd</h2>
+
+          <div class="preview-meta">
+            <div class="preview-meta__item">
+              <div class="preview-meta__label">Domain</div>
+              <div class="preview-meta__value" style="color:var(--domain-linux)">linux</div>
+            </div>
+            <div class="preview-meta__item">
+              <div class="preview-meta__label">Version</div>
+              <div class="preview-meta__value">1.2.0</div>
+            </div>
+            <div class="preview-meta__item">
+              <div class="preview-meta__label">Status</div>
+              <div class="preview-meta__value" style="color:var(--success)">validated</div>
+            </div>
+            <div class="preview-meta__item">
+              <div class="preview-meta__label">Complexity</div>
+              <div class="preview-meta__value" style="color:var(--warning)">intermediate</div>
+            </div>
+          </div>
+
+          <h3>Description</h3>
+          <p>Manage Linux services with systemd units, timers, and journald logging.</p>
+          <p>Covers unit file creation, dependency ordering, resource controls, and service lifecycle management. Includes timer units and socket activation patterns.</p>
+
+          <h3>Dependencies</h3>
+          <div style="margin-bottom:var(--sp-md)">
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:var(--sp-xs)">Requires</div>
+            <div class="dep-tags">
+              <span class="dep-tag"><span class="status-dot status-dot--error"></span> linux:filesystem</span>
+              <span class="dep-tag"><span class="status-dot status-dot--error"></span> linux:processes</span>
+            </div>
+          </div>
+          <div style="margin-bottom:var(--sp-md)">
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:var(--sp-xs)">Extends</div>
+            <div class="dep-tags">
+              <span class="dep-tag"><span class="status-dot status-dot--info"></span> linux:networking</span>
+              <span class="dep-tag"><span class="status-dot status-dot--info"></span> linux:containers</span>
+            </div>
+          </div>
+          <div style="margin-bottom:var(--sp-md)">
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:var(--sp-xs)">Recommends</div>
+            <div class="dep-tags">
+              <span class="dep-tag"><span class="status-dot status-dot--idle"></span> python:pydantic</span>
+            </div>
+          </div>
+
+          <h3>Resources</h3>
+          <ul class="url-list">
+            <li class="url-item">
+              <a href="#">systemd.service.html</a>
+              <span class="url-item__remove" aria-label="Remove URL" role="button" tabindex="0">[x]</span>
+            </li>
+            <li class="url-item">
+              <a href="#">systemd.timer.html</a>
+              <span class="url-item__remove" aria-label="Remove URL" role="button" tabindex="0">[x]</span>
+            </li>
+          </ul>
+          <div style="margin-top:var(--sp-sm)">
+            <button class="btn btn--sm">+ Add URL</button>
+          </div>
+
+          <h3>Evidence Patterns</h3>
+          <div style="display:flex;flex-wrap:wrap;gap:var(--sp-xs)">
+            <span class="pattern-tag">unit-file-creation</span>
+            <span class="pattern-tag">service-restart</span>
+            <span class="pattern-tag">resource-limits</span>
+            <span class="pattern-tag">timer-schedule</span>
+            <span class="pattern-tag">socket-activation</span>
+            <span class="pattern-tag">journald-config</span>
+          </div>
+
+          <!-- Dependency picker mockup -->
+          <h3>Add Dependency</h3>
+          <div class="dep-picker">
+            <input class="input" type="text" placeholder="Type to search skills..." aria-label="Search for skill to add as dependency" value="go:">
+            <div class="dep-picker__dropdown" role="listbox" aria-label="Skill suggestions">
+              <div class="dep-picker__item dep-picker__item--highlighted" role="option" aria-selected="true">
+                <span class="dep-picker__item-domain badge badge--go">go</span>
+                <span>go:http-server</span>
+                <span style="margin-left:auto;font-size:0.7rem;color:var(--text-muted)">v2.1.0</span>
+              </div>
+              <div class="dep-picker__item" role="option">
+                <span class="dep-picker__item-domain badge badge--go">go</span>
+                <span>go:grpc</span>
+                <span style="margin-left:auto;font-size:0.7rem;color:var(--text-muted)">v1.8.0</span>
+              </div>
+              <div class="dep-picker__item" role="option">
+                <span class="dep-picker__item-domain badge badge--go">go</span>
+                <span>go:cli-cobra</span>
+                <span style="margin-left:auto;font-size:0.7rem;color:var(--text-muted)">v1.0.2</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Validation panel -->
+    <div class="validation-panel" role="status" aria-live="polite" aria-label="Validation feedback">
+      <div class="validation-panel__header">
+        <span class="validation-panel__title">Validation</span>
+        <span class="badge badge--warning">2 warnings</span>
+      </div>
+      <div class="validation-messages">
+        <div class="validation-msg validation-msg--success">
+          <span class="status-dot status-dot--success"></span>
+          <span>TOML syntax valid</span>
+          <span class="validation-msg__line">&mdash;</span>
+        </div>
+        <div class="validation-msg validation-msg--success">
+          <span class="status-dot status-dot--success"></span>
+          <span>All required fields present</span>
+          <span class="validation-msg__line">&mdash;</span>
+        </div>
+        <div class="validation-msg validation-msg--success">
+          <span class="status-dot status-dot--success"></span>
+          <span>Dependencies resolve to existing skills</span>
+          <span class="validation-msg__line">&mdash;</span>
+        </div>
+        <div class="validation-msg validation-msg--warning">
+          <span class="status-dot status-dot--warning"></span>
+          <span>Missing recommended field: <code>author</code></span>
+          <span class="validation-msg__line">line 1</span>
+        </div>
+        <div class="validation-msg validation-msg--warning">
+          <span class="status-dot status-dot--warning"></span>
+          <span>Evidence pattern <code>journald-config</code> has low confidence (0.72 &lt; 0.85 threshold)</span>
+          <span class="validation-msg__line">line 38</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

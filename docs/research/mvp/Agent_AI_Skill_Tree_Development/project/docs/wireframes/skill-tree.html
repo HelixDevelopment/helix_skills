@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skill Tree Visualizer — HelixKnowledge</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .tree-shell {
+      display: grid;
+      grid-template-rows: var(--topbar-height) 1fr;
+      grid-template-columns: 1fr 320px;
+      min-height: 100vh;
+    }
+    .tree-shell .topbar { grid-column: 1 / -1; }
+
+    /* Toolbar row beneath topbar */
+    .toolbar {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      gap: var(--sp-md);
+      padding: var(--sp-sm) var(--sp-lg);
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .toolbar__group {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-xs);
+    }
+    .toolbar__separator {
+      width: 1px;
+      height: 24px;
+      background: var(--border);
+      margin: 0 var(--sp-sm);
+    }
+    .toolbar .search-bar { flex: 1; min-width: 200px; max-width: 400px; }
+    .layout-btn {
+      padding: var(--sp-xs) var(--sp-sm);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--bg-primary);
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .layout-btn:hover, .layout-btn--active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    /* Canvas area */
+    .canvas-area {
+      position: relative;
+      background: var(--bg-primary);
+      overflow: hidden;
+    }
+    .canvas-area svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Zoom controls */
+    .zoom-controls {
+      position: absolute;
+      bottom: var(--sp-lg);
+      left: var(--sp-lg);
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-xs);
+      z-index: 10;
+    }
+    .zoom-controls .btn--icon {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      font-size: 1.1rem;
+    }
+
+    /* Legend */
+    .legend {
+      position: absolute;
+      bottom: var(--sp-lg);
+      right: var(--sp-lg);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: var(--sp-md);
+      z-index: 10;
+      font-size: 0.75rem;
+    }
+    .legend__title {
+      font-weight: 700;
+      margin-bottom: var(--sp-sm);
+      font-size: 0.8rem;
+    }
+    .legend__section { margin-bottom: var(--sp-sm); }
+    .legend__section:last-child { margin-bottom: 0; }
+    .legend__item {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-sm);
+      margin-bottom: var(--sp-xs);
+      color: var(--text-secondary);
+    }
+    .legend__line {
+      display: inline-block;
+      width: 28px;
+      height: 0;
+      flex-shrink: 0;
+    }
+    .legend__line--requires  { border-top: 2.5px solid var(--edge-requires); }
+    .legend__line--extends   { border-top: 2px dashed var(--edge-extends); }
+    .legend__line--recommends{ border-top: 2px dotted var(--edge-recommends); }
+    .legend__line--composes  { border-top: 3px solid var(--edge-composes); }
+    .legend__dot {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* Detail sidebar */
+    .detail-panel {
+      background: var(--bg-secondary);
+      border-left: 1px solid var(--border);
+      overflow-y: auto;
+      padding: var(--sp-lg);
+    }
+    .detail-panel__header {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-sm);
+      margin-bottom: var(--sp-lg);
+      padding-bottom: var(--sp-md);
+      border-bottom: 1px solid var(--border);
+    }
+    .detail-panel__domain-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .detail-panel__section {
+      margin-bottom: var(--sp-lg);
+    }
+    .detail-panel__section h4 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: var(--sp-sm);
+    }
+    .dep-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-xs);
+    }
+    .dep-list li {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-sm);
+      padding: var(--sp-xs) var(--sp-sm);
+      border-radius: var(--radius-sm);
+      background: var(--bg-primary);
+      font-size: 0.8rem;
+    }
+    .dep-list li .status-dot { flex-shrink: 0; }
+    .evidence-count {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--sp-xs);
+      padding: var(--sp-xs) var(--sp-sm);
+      background: rgba(52,152,219,0.15);
+      border-radius: var(--radius-sm);
+      font-size: 0.8rem;
+      color: var(--info);
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .tree-shell {
+        grid-template-columns: 1fr;
+      }
+      .detail-panel { display: none; }
+      .legend { display: none; }
+    }
+    @media (max-width: 768px) {
+      .toolbar { padding: var(--sp-xs) var(--sp-md); }
+      .toolbar__separator { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#canvas">Skip to graph</a>
+
+  <div class="tree-shell">
+    <!-- Topbar -->
+    <header class="topbar" role="banner">
+      <span class="topbar__brand" aria-label="HelixKnowledge">hx://skill-graph</span>
+      <nav aria-label="Primary navigation">
+        <ul class="topbar__nav">
+          <li><a href="index.html">Overview</a></li>
+          <li><a href="skill-tree.html" aria-current="page">Skill Tree</a></li>
+          <li><a href="gap-dashboard.html">Gaps</a></li>
+          <li><a href="evidence-browser.html">Evidence</a></li>
+          <li><a href="skill-editor.html">Editor</a></li>
+          <li><a href="search.html">Search</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <!-- Toolbar -->
+    <div class="toolbar" role="toolbar" aria-label="Graph controls">
+      <div class="search-bar">
+        <span class="search-bar__icon" aria-hidden="true">[Q]</span>
+        <input class="input" type="search" placeholder="Search skills..." aria-label="Search skills">
+      </div>
+      <div class="toolbar__separator" aria-hidden="true"></div>
+      <div class="toolbar__group" role="radiogroup" aria-label="Layout mode">
+        <button class="layout-btn layout-btn--active" aria-pressed="true">Force</button>
+        <button class="layout-btn" aria-pressed="false">Hierarchy</button>
+        <button class="layout-btn" aria-pressed="false">Circular</button>
+      </div>
+      <div class="toolbar__separator" aria-hidden="true"></div>
+      <div class="toolbar__group">
+        <button class="btn btn--sm" aria-label="Fit graph to viewport">Fit</button>
+        <button class="btn btn--sm" aria-label="Export graph as SVG">Export</button>
+        <button class="btn btn--sm" aria-label="Toggle minimap">Minimap</button>
+      </div>
+    </div>
+
+    <!-- SVG Canvas -->
+    <div class="canvas-area" id="canvas" role="img" aria-label="Skill dependency graph visualization">
+      <svg viewBox="0 0 900 600" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <marker id="arrow-requires" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#e74c3c"/>
+          </marker>
+          <marker id="arrow-extends" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#3498db"/>
+          </marker>
+          <marker id="arrow-recommends" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#7f8c8d"/>
+          </marker>
+          <marker id="arrow-composes" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#2ecc71"/>
+          </marker>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+
+        <!-- Edges: requires (red solid) -->
+        <line x1="250" y1="100" x2="450" y2="180" stroke="#e74c3c" stroke-width="2" marker-end="url(#arrow-requires)"/>
+        <line x1="450" y1="180" x2="650" y2="120" stroke="#e74c3c" stroke-width="2" marker-end="url(#arrow-requires)"/>
+        <line x1="250" y1="100" x2="150" y2="280" stroke="#e74c3c" stroke-width="2" marker-end="url(#arrow-requires)"/>
+        <line x1="150" y1="280" x2="350" y2="350" stroke="#e74c3c" stroke-width="2" marker-end="url(#arrow-requires)"/>
+        <line x1="450" y1="180" x2="500" y2="350" stroke="#e74c3c" stroke-width="2" marker-end="url(#arrow-requires)"/>
+        <line x1="650" y1="120" x2="750" y2="280" stroke="#e74c3c" stroke-width="2" marker-end="url(#arrow-requires)"/>
+        <line x1="350" y1="350" x2="500" y2="350" stroke="#e74c3c" stroke-width="2" marker-end="url(#arrow-requires)"/>
+
+        <!-- Edges: extends (blue dashed) -->
+        <line x1="500" y1="350" x2="650" y2="450" stroke="#3498db" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#arrow-extends)"/>
+        <line x1="150" y1="280" x2="100" y2="450" stroke="#3498db" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#arrow-extends)"/>
+
+        <!-- Edges: recommends (gray dotted) -->
+        <line x1="250" y1="100" x2="650" y2="120" stroke="#7f8c8d" stroke-width="1.5" stroke-dasharray="3,4" marker-end="url(#arrow-recommends)"/>
+        <line x1="750" y1="280" x2="650" y2="450" stroke="#7f8c8d" stroke-width="1.5" stroke-dasharray="3,4" marker-end="url(#arrow-recommends)"/>
+
+        <!-- Edges: composes (green thick) -->
+        <line x1="350" y1="350" x2="300" y2="500" stroke="#2ecc71" stroke-width="3.5" marker-end="url(#arrow-composes)"/>
+        <line x1="650" y1="450" x2="750" y2="530" stroke="#2ecc71" stroke-width="3.5" marker-end="url(#arrow-composes)"/>
+
+        <!-- Nodes -->
+        <!-- android domain (green) -->
+        <g class="node" role="button" tabindex="0" aria-label="Skill: android-compose-ui, domain: android">
+          <rect x="200" y="70" width="100" height="50" rx="8" fill="#16213e" stroke="#2ecc71" stroke-width="2"/>
+          <text x="250" y="92" text-anchor="middle" fill="#e0e0e0" font-family="monospace" font-size="11">compose-ui</text>
+          <text x="250" y="108" text-anchor="middle" fill="#2ecc71" font-family="monospace" font-size="9">android</text>
+        </g>
+
+        <!-- go domain (blue) -->
+        <g class="node" role="button" tabindex="0" aria-label="Skill: go-http-server, domain: go">
+          <rect x="400" y="155" width="100" height="50" rx="8" fill="#16213e" stroke="#3498db" stroke-width="2"/>
+          <text x="450" y="177" text-anchor="middle" fill="#e0e0e0" font-family="monospace" font-size="11">http-server</text>
+          <text x="450" y="193" text-anchor="middle" fill="#3498db" font-family="monospace" font-size="9">go</text>
+        </g>
+
+        <!-- python domain (yellow) -->
+        <g class="node" role="button" tabindex="0" aria-label="Skill: python-fastapi, domain: python">
+          <rect x="600" y="95" width="100" height="50" rx="8" fill="#16213e" stroke="#f1c40f" stroke-width="2"/>
+          <text x="650" y="117" text-anchor="middle" fill="#e0e0e0" font-family="monospace" font-size="11">fastapi</text>
+          <text x="650" y="133" text-anchor="middle" fill="#f1c40f" font-family="monospace" font-size="9">python</text>
+        </g>
+
+        <!-- linux domain (orange) -->
+        <g class="node" role="button" tabindex="0" aria-label="Skill: linux-systemd, domain: linux" filter="url(#glow)">
+          <rect x="100" y="255" width="100" height="50" rx="8" fill="#16213e" stroke="#e67e22" stroke-width="2.5"/>
+          <text x="150" y="277" text-anchor="middle" fill="#e0e0e0" font-family="monospace" font-size="11">systemd</text>
+          <text x="150" y="293" text-anchor="middle" fill="#e67e22" font-family="monospace" font-size="9">linux</text>
+        </g>
+
+        <!-- kotlin domain (purple) -->
+        <g class="node" role="button" tabindex="0" aria-label="Skill: kotlin-coroutines, domain: kotlin">
+          <rect x="300" y="325" width="100" height="50" rx="8" fill="#16213e" stroke="#9b59b6" stroke-width="2"/>
+          <text x="350" y="347" text-anchor="middle" fill="#e0e0e0" font-family="monospace" font-size="11">coroutines</text>
+          <text x="350" y="363" text-anchor="middle" fill="#9b59b6" font-family="monospace" font-size="9">kotlin</text>
+        </g>
+
+        <!-- android domain -->
+        <g class="node" role="button" tabindex="0" aria-label="Skill: android-room-db, domain: android">
+          <rect x="450" y="325" width="100" height="50" rx="8" fill="#16213e" stroke="#2ecc71" stroke-width="2"/>
+          <text x="500" y="347" text-anchor="middle" fill="#e0e0e0" font-family="monospace" font-size="11">room-db</text>
+          <text x="500" y="363" text-anchor="middle" fill="#2ecc71" font-family="monospace" font-size="9">android</text>
+        </g>
+
+        <!-- linux domain -->
+        <g class="node" role="button" tabindex="0" aria-label="Skill: linux-docker, domain: linux">
+          <rect x="700" y="255" width="100" height="50" rx="8" fill="#16213e" stroke="#e67e22" stroke-width="2"/>
+          <text x="750" y="277" text-anchor="middle" fill="#e0e0e0" font-family="monospace" font-size="11">docker</text>
+          <text x="750" y="293" text-anchor="middle" fill="#e67e22" font-family="monospace" font-size="9">linux</text>
+        </g>
+
+        <!-- kotlin domain -->
+        <g class="node" role="button" tabindex="0" aria-label="Skill: kotlin-ktor, domain: kotlin">
+          <rect x="600" y="425" width="100" height="50" rx="8" fill="#16213e" stroke="#9b59b6" stroke-width="2"/>
+          <text x="650" y="447" text-anchor="middle" fill="#e0e0e0" font-family="monospace" font-size="11">ktor</text>
+          <text x="650" y="463" text-anchor="middle" fill="#9b59b6" font-family="monospace" font-size="9">kotlin</text>
+        </g>
+
+        <!-- linux domain -->
+        <g class="node" role="button" tabindex="0" aria-label="Skill: linux-networking, domain: linux">
+          <rect x="50" y="425" width="100" height="50" rx="8" fill="#16213e" stroke="#e67e22" stroke-width="2"/>
+          <text x="100" y="447" text-anchor="middle" fill="#e0e0e0" font-family="monospace" font-size="11">networking</text>
+          <text x="100" y="463" text-anchor="middle" fill="#e67e22" font-family="monospace" font-size="9">linux</text>
+        </g>
+
+        <!-- python domain -->
+        <g class="node" role="button" tabindex="0" aria-label="Skill: python-pydantic, domain: python">
+          <rect x="250" y="475" width="100" height="50" rx="8" fill="#16213e" stroke="#f1c40f" stroke-width="2"/>
+          <text x="300" y="497" text-anchor="middle" fill="#e0e0e0" font-family="monospace" font-size="11">pydantic</text>
+          <text x="300" y="513" text-anchor="middle" fill="#f1c40f" font-family="monospace" font-size="9">python</text>
+        </g>
+
+        <!-- go domain -->
+        <g class="node" role="button" tabindex="0" aria-label="Skill: go-grpc, domain: go">
+          <rect x="700" y="505" width="100" height="50" rx="8" fill="#16213e" stroke="#3498db" stroke-width="2"/>
+          <text x="750" y="527" text-anchor="middle" fill="#e0e0e0" font-family="monospace" font-size="11">grpc</text>
+          <text x="750" y="543" text-anchor="middle" fill="#3498db" font-family="monospace" font-size="9">go</text>
+        </g>
+      </svg>
+
+      <!-- Zoom controls -->
+      <div class="zoom-controls" aria-label="Zoom controls">
+        <button class="btn btn--icon" aria-label="Zoom in">+</button>
+        <button class="btn btn--icon" aria-label="Zoom out">&minus;</button>
+        <button class="btn btn--icon" aria-label="Reset zoom">R</button>
+      </div>
+
+      <!-- Legend -->
+      <div class="legend" role="complementary" aria-label="Graph legend">
+        <div class="legend__title">Legend</div>
+        <div class="legend__section">
+          <div class="legend__item"><span class="legend__line legend__line--requires"></span> requires</div>
+          <div class="legend__item"><span class="legend__line legend__line--extends"></span> extends</div>
+          <div class="legend__item"><span class="legend__line legend__line--recommends"></span> recommends</div>
+          <div class="legend__item"><span class="legend__line legend__line--composes"></span> composes</div>
+        </div>
+        <div class="legend__section">
+          <div class="legend__item"><span class="legend__dot" style="background:var(--domain-android)"></span> android</div>
+          <div class="legend__item"><span class="legend__dot" style="background:var(--domain-go)"></span> go</div>
+          <div class="legend__item"><span class="legend__dot" style="background:var(--domain-python)"></span> python</div>
+          <div class="legend__item"><span class="legend__dot" style="background:var(--domain-kotlin)"></span> kotlin</div>
+          <div class="legend__item"><span class="legend__dot" style="background:var(--domain-linux)"></span> linux</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detail Sidebar -->
+    <aside class="detail-panel" role="complementary" aria-label="Selected skill details">
+      <div class="detail-panel__header">
+        <span class="detail-panel__domain-dot" style="background:var(--domain-linux)" aria-hidden="true"></span>
+        <div>
+          <h3 style="font-size:1rem;margin-bottom:2px">systemd</h3>
+          <span class="badge badge--linux">linux</span>
+        </div>
+      </div>
+
+      <div class="detail-panel__section">
+        <h4>Description</h4>
+        <p style="font-size:0.85rem;color:var(--text-secondary);line-height:1.6">
+          Manage Linux services with systemd units, timers, and journald logging. Covers unit file creation, dependency ordering, and resource controls.
+        </p>
+      </div>
+
+      <div class="detail-panel__section">
+        <h4>Metadata</h4>
+        <table style="font-size:0.8rem" aria-label="Skill metadata">
+          <tbody>
+            <tr><td style="color:var(--text-muted);width:100px">Complexity</td><td><span class="badge badge--warning">intermediate</span></td></tr>
+            <tr><td style="color:var(--text-muted)">Status</td><td><span class="badge badge--success">validated</span></td></tr>
+            <tr><td style="color:var(--text-muted)">Version</td><td>1.2.0</td></tr>
+            <tr><td style="color:var(--text-muted)">Created</td><td>2026-03-14</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail-panel__section">
+        <h4>Dependencies (requires)</h4>
+        <ul class="dep-list" aria-label="Required dependencies">
+          <li><span class="status-dot status-dot--success"></span> linux:filesystem</li>
+          <li><span class="status-dot status-dot--success"></span> linux:processes</li>
+        </ul>
+      </div>
+
+      <div class="detail-panel__section">
+        <h4>Extended By</h4>
+        <ul class="dep-list" aria-label="Skills that extend this one">
+          <li><span class="status-dot status-dot--info"></span> linux:networking</li>
+          <li><span class="status-dot status-dot--info"></span> linux:containers</li>
+        </ul>
+      </div>
+
+      <div class="detail-panel__section">
+        <h4>Composes</h4>
+        <ul class="dep-list" aria-label="Composed skills">
+          <li><span class="status-dot" style="background:var(--domain-python)"></span> python:pydantic</li>
+        </ul>
+      </div>
+
+      <div class="detail-panel__section">
+        <h4>Evidence</h4>
+        <div class="evidence-count">
+          <span aria-hidden="true">[E]</span> 12 code snippets &middot; 3 repos
+        </div>
+        <a href="evidence-browser.html" style="font-size:0.8rem;display:block;margin-top:var(--sp-sm)">Browse evidence &rarr;</a>
+      </div>
+
+      <div style="margin-top:auto;padding-top:var(--sp-lg);border-top:1px solid var(--border);display:flex;gap:var(--sp-sm)">
+        <a href="skill-editor.html" class="btn btn--sm">Edit skill</a>
+        <button class="btn btn--sm">Expand tree</button>
+      </div>
+    </aside>
+  </div>
+</body>
+</html>

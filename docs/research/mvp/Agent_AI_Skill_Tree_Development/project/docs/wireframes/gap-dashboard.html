@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gap Dashboard — HelixKnowledge</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .gap-layout {
+      display: grid;
+      grid-template-rows: var(--topbar-height) 1fr;
+      min-height: 100vh;
+    }
+    .gap-layout .topbar { grid-column: 1 / -1; }
+
+    .gap-content {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: var(--sp-lg);
+      padding: var(--sp-lg);
+      overflow: auto;
+    }
+
+    .gap-main { display: flex; flex-direction: column; gap: var(--sp-lg); }
+    .gap-side { display: flex; flex-direction: column; gap: var(--sp-lg); }
+
+    /* Stats row */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--sp-md);
+    }
+    .stat-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: var(--sp-lg);
+      text-align: center;
+    }
+    .stat-card__value {
+      font-size: 2rem;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: var(--sp-xs);
+    }
+    .stat-card__label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .stat-card__value--error { color: var(--error); }
+    .stat-card__value--warning { color: var(--warning); }
+    .stat-card__value--success { color: var(--success); }
+    .stat-card__value--info { color: var(--info); }
+
+    /* Coverage heatmap */
+    .heatmap-wrap { overflow-x: auto; }
+    .heatmap-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+    .heatmap-table th {
+      padding: var(--sp-sm);
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .heatmap-table td {
+      padding: var(--sp-xs);
+      text-align: center;
+    }
+    .heatmap-table td:first-child {
+      text-align: left;
+      font-weight: 600;
+      white-space: nowrap;
+      padding-right: var(--sp-md);
+    }
+    .heatmap-cell {
+      min-width: 56px;
+      padding: var(--sp-sm);
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+      font-size: 0.75rem;
+    }
+
+    /* Bar chart (CSS only) */
+    .bar-chart {
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-sm);
+    }
+    .bar-row {
+      display: grid;
+      grid-template-columns: 80px 1fr 40px;
+      align-items: center;
+      gap: var(--sp-sm);
+    }
+    .bar-row__label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-align: right;
+    }
+    .bar-row__track {
+      height: 24px;
+      background: var(--bg-primary);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+    .bar-row__fill {
+      height: 100%;
+      border-radius: var(--radius-sm);
+      transition: width 0.6s ease;
+    }
+    .bar-row__count {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-align: right;
+    }
+
+    /* Job list */
+    .job-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-sm);
+    }
+    .job-item {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-md);
+      padding: var(--sp-md);
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+    }
+    .job-item__icon {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      flex-shrink: 0;
+    }
+    .job-item__icon--done    { background: rgba(46,204,113,0.15); color: var(--success); }
+    .job-item__icon--running { background: rgba(52,152,219,0.15); color: var(--info); }
+    .job-item__icon--queued  { background: rgba(106,106,126,0.15); color: var(--text-muted); }
+    .job-item__icon--failed  { background: rgba(231,76,60,0.15); color: var(--error); }
+    .job-item__body { flex: 1; min-width: 0; }
+    .job-item__title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .job-item__meta {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .job-item__status {
+      flex-shrink: 0;
+    }
+
+    /* Timeline */
+    .timeline {
+      position: relative;
+      padding-left: var(--sp-lg);
+    }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 7px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--border);
+    }
+    .timeline__item {
+      position: relative;
+      margin-bottom: var(--sp-md);
+      padding-bottom: var(--sp-md);
+    }
+    .timeline__item::before {
+      content: '';
+      position: absolute;
+      left: calc(-1 * var(--sp-lg) + 3px);
+      top: 4px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid var(--bg-secondary);
+    }
+    .timeline__item--success::before { background: var(--success); }
+    .timeline__item--error::before { background: var(--error); }
+    .timeline__time {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-bottom: var(--sp-xs);
+    }
+    .timeline__text {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    @media (max-width: 1024px) {
+      .gap-content { grid-template-columns: 1fr; }
+      .gap-side { order: -1; }
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .gap-content { padding: var(--sp-md); }
+      .stats-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#gap-main">Skip to content</a>
+
+  <div class="gap-layout">
+    <header class="topbar" role="banner">
+      <span class="topbar__brand" aria-label="HelixKnowledge">hx://skill-graph</span>
+      <nav aria-label="Primary navigation">
+        <ul class="topbar__nav">
+          <li><a href="index.html">Overview</a></li>
+          <li><a href="skill-tree.html">Skill Tree</a></li>
+          <li><a href="gap-dashboard.html" aria-current="page">Gaps</a></li>
+          <li><a href="evidence-browser.html">Evidence</a></li>
+          <li><a href="skill-editor.html">Editor</a></li>
+          <li><a href="search.html">Search</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <div class="gap-content" id="gap-main">
+      <!-- Main column -->
+      <div class="gap-main">
+        <h1>Gap Dashboard</h1>
+
+        <!-- Stats -->
+        <div class="stats-row" role="group" aria-label="Summary statistics">
+          <div class="stat-card">
+            <div class="stat-card__value stat-card__value--error">23</div>
+            <div class="stat-card__label">Open Gaps</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card__value stat-card__value--warning">8</div>
+            <div class="stat-card__label">In Progress</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card__value stat-card__value--success">142</div>
+            <div class="stat-card__label">Resolved</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card__value stat-card__value--info">78%</div>
+            <div class="stat-card__label">Coverage</div>
+          </div>
+        </div>
+
+        <!-- Coverage heatmap -->
+        <div class="card">
+          <div class="card__header">
+            <h2 class="card__title">Coverage Heatmap</h2>
+            <span class="badge badge--info">Domain x Completeness</span>
+          </div>
+          <div class="heatmap-wrap" role="table" aria-label="Skill coverage heatmap by domain and completeness level">
+            <table class="heatmap-table">
+              <thead>
+                <tr>
+                  <th scope="col">Domain</th>
+                  <th scope="col">Spec</th>
+                  <th scope="col">Evidence</th>
+                  <th scope="col">Tests</th>
+                  <th scope="col">Docs</th>
+                  <th scope="col">Examples</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="badge badge--android">android</span></td>
+                  <td><span class="heatmap-cell heatmap-cell--high">92%</span></td>
+                  <td><span class="heatmap-cell heatmap-cell--high">88%</span></td>
+                  <td><span class="heatmap-cell heatmap-cell--medium">64%</span></td>
+                  <td><span class="heatmap-cell heatmap-cell--high">85%</span></td>
+                  <td><span class="heatmap-cell heatmap-cell--medium">71%</span></td>
+                </tr>
+                <tr>
+                  <td><span class="badge badge--go">go</span></td>
+                  <td><span class="heatmap-cell heatmap-cell--high">95%</span></td>
+                  <td><span class="heatmap-cell heatmap-cell--high">90%</span></td>
+                  <td><span class="heatmap-cell heatmap-cell--high">82%</span></td>
+                  <td><span class="heatmap-cell heatmap-cell--medium">76%</span></td>
+                  <td><span class="heatmap-cell heatmap-cell--medium">68%</span></td>
+                </tr>
+                <tr>
+                  <td><span class="badge badge--python">python</span></td>
+                  <td><span class="heatmap-cell heatmap-cell--high">97%</span></td>
+                  <td><span class="heatmap-cell heatmap-cell--high">93%</span></td>
+                  <td><span class="heatmap-cell heatmap-cell--high">89%</span></td>
+                  <td><span class="heatmap-cell heatmap-cell--high">91%</span></td>
+                  <td><span class="heatmap-cell heatmap-cell--high">84%</span></td>
+                </tr>
+                <tr>
+                  <td><span class="badge badge--kotlin">kotlin</span></td>
+                  <td><span class="heatmap-cell heatmap-cell--medium">72%</span></td>
+                  <td><span class="heatmap-cell heatmap-cell--medium">58%</span></td>
+                  <td><span class="heatmap-cell heatmap-cell--low">34%</span></td>
+                  <td><span class="heatmap-cell heatmap-cell--medium">45%</span></td>
+                  <td><span class="heatmap-cell heatmap-cell--low">29%</span></td>
+                </tr>
+                <tr>
+                  <td><span class="badge badge--linux">linux</span></td>
+                  <td><span class="heatmap-cell heatmap-cell--high">88%</span></td>
+                  <td><span class="heatmap-cell heatmap-cell--high">81%</span></td>
+                  <td><span class="heatmap-cell heatmap-cell--medium">67%</span></td>
+                  <td><span class="heatmap-cell heatmap-cell--medium">73%</span></td>
+                  <td><span class="heatmap-cell heatmap-cell--medium">55%</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Gap count bar chart -->
+        <div class="card">
+          <div class="card__header">
+            <h2 class="card__title">Open Gaps by Domain</h2>
+            <button class="btn btn--sm" aria-label="Trigger manual gap analysis">Run Analysis</button>
+          </div>
+          <div class="bar-chart" role="img" aria-label="Bar chart showing gap counts per domain">
+            <div class="bar-row">
+              <span class="bar-row__label" style="color:var(--domain-android)">android</span>
+              <div class="bar-row__track"><div class="bar-row__fill" style="width:35%;background:var(--domain-android)"></div></div>
+              <span class="bar-row__count">7</span>
+            </div>
+            <div class="bar-row">
+              <span class="bar-row__label" style="color:var(--domain-go)">go</span>
+              <div class="bar-row__track"><div class="bar-row__fill" style="width:25%;background:var(--domain-go)"></div></div>
+              <span class="bar-row__count">5</span>
+            </div>
+            <div class="bar-row">
+              <span class="bar-row__label" style="color:var(--domain-python)">python</span>
+              <div class="bar-row__track"><div class="bar-row__fill" style="width:10%;background:var(--domain-python)"></div></div>
+              <span class="bar-row__count">2</span>
+            </div>
+            <div class="bar-row">
+              <span class="bar-row__label" style="color:var(--domain-kotlin)">kotlin</span>
+              <div class="bar-row__track"><div class="bar-row__fill" style="width:50%;background:var(--domain-kotlin)"></div></div>
+              <span class="bar-row__count">10</span>
+            </div>
+            <div class="bar-row">
+              <span class="bar-row__label" style="color:var(--domain-linux)">linux</span>
+              <div class="bar-row__track"><div class="bar-row__fill" style="width:15%;background:var(--domain-linux)"></div></div>
+              <span class="bar-row__count">3</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="gap-side">
+        <!-- Auto-expand jobs -->
+        <div class="card">
+          <div class="card__header">
+            <h2 class="card__title">Auto-Expand Jobs</h2>
+            <button class="btn btn--sm btn--primary">+ Trigger</button>
+          </div>
+          <ul class="job-list" aria-label="Auto-expand job status">
+            <li class="job-item">
+              <div class="job-item__icon job-item__icon--done" aria-hidden="true">[OK]</div>
+              <div class="job-item__body">
+                <div class="job-item__title">expand:python-async</div>
+                <div class="job-item__meta">Completed 12m ago &middot; 4 skills generated</div>
+              </div>
+              <span class="badge badge--success">done</span>
+            </li>
+            <li class="job-item">
+              <div class="job-item__icon job-item__icon--running animate-pulse" aria-hidden="true">[..]</div>
+              <div class="job-item__body">
+                <div class="job-item__title">expand:kotlin-ktor-deps</div>
+                <div class="job-item__meta">Running for 3m &middot; Analyzing 8 repos</div>
+              </div>
+              <span class="badge badge--info">running</span>
+            </li>
+            <li class="job-item">
+              <div class="job-item__icon job-item__icon--queued" aria-hidden="true">[--]</div>
+              <div class="job-item__body">
+                <div class="job-item__title">expand:android-hilt</div>
+                <div class="job-item__meta">Queued &middot; Position #3</div>
+              </div>
+              <span class="badge badge--warning">queued</span>
+            </li>
+            <li class="job-item">
+              <div class="job-item__icon job-item__icon--failed" aria-hidden="true">[!!]</div>
+              <div class="job-item__body">
+                <div class="job-item__title">expand:go-wasm</div>
+                <div class="job-item__meta">Failed 1h ago &middot; No evidence found</div>
+              </div>
+              <span class="badge badge--error">failed</span>
+            </li>
+            <li class="job-item">
+              <div class="job-item__icon job-item__icon--done" aria-hidden="true">[OK]</div>
+              <div class="job-item__body">
+                <div class="job-item__title">expand:linux-cgroups</div>
+                <div class="job-item__meta">Completed 2h ago &middot; 6 skills generated</div>
+              </div>
+              <span class="badge badge--success">done</span>
+            </li>
+            <li class="job-item">
+              <div class="job-item__icon job-item__icon--done" aria-hidden="true">[OK]</div>
+              <div class="job-item__body">
+                <div class="job-item__title">expand:python-testing</div>
+                <div class="job-item__meta">Completed 5h ago &middot; 9 skills generated</div>
+              </div>
+              <span class="badge badge--success">done</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- History timeline -->
+        <div class="card">
+          <div class="card__header">
+            <h2 class="card__title">History</h2>
+            <span class="badge badge--info">Last 7 days</span>
+          </div>
+          <div class="timeline" role="list" aria-label="Gap analysis history timeline">
+            <div class="timeline__item timeline__item--success" role="listitem">
+              <div class="timeline__time">Today 14:32</div>
+              <div class="timeline__text">Resolved 3 gaps in <strong>python-async</strong> via auto-expand. Evidence: 4 new code snippets validated.</div>
+            </div>
+            <div class="timeline__item" role="listitem">
+              <div class="timeline__time">Today 11:15</div>
+              <div class="timeline__text">New gap detected: <strong>kotlin-ktor-deps</strong> missing test coverage for WebSocket handler patterns.</div>
+            </div>
+            <div class="timeline__item timeline__item--success" role="listitem">
+              <div class="timeline__time">Yesterday 22:04</div>
+              <div class="timeline__text">Auto-expand completed for <strong>linux-cgroups</strong>. 6 new skills added to graph.</div>
+            </div>
+            <div class="timeline__item timeline__item--error" role="listitem">
+              <div class="timeline__time">Yesterday 18:30</div>
+              <div class="timeline__text">Auto-expand failed for <strong>go-wasm</strong>. Cause: no matching code patterns in indexed repositories.</div>
+            </div>
+            <div class="timeline__item timeline__item--success" role="listitem">
+              <div class="timeline__time">Jul 15 09:00</div>
+              <div class="timeline__text">Weekly sweep: 12 gaps resolved, 4 new gaps detected. Coverage improved from 74% to 78%.</div>
+            </div>
+            <div class="timeline__item" role="listitem">
+              <div class="timeline__time">Jul 14 16:20</div>
+              <div class="timeline__text">Manual trigger: full re-analysis of <strong>android</strong> domain. 2 new gaps found in Compose Navigation.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
