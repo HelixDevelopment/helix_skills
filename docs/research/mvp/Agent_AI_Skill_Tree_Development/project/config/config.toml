@@ -32,8 +32,8 @@ host = "db"
 port = 5432
 database = "skilldb"
 user = "skill"
-password = "secret"
-ssl_mode = "disable"
+password = "${DB_PASSWORD}"          # MUST be set in the environment — never hardcoded (§11.4.10)
+ssl_mode = "require"               # require TLS; set to "disable" only for local dev
 max_connections = 25
 
 [embedding]

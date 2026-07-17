@@ -47,7 +47,7 @@ services:
     environment:
       POSTGRES_DB: ${DB_NAME:-skilldb}
       POSTGRES_USER: ${DB_USER:-skilluser}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-skillpassword}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env file}
       PGDATA: /var/lib/postgresql/data/pgdata
     ports:
       - "${DB_PORT:-5432}:5432"
@@ -92,13 +92,13 @@ services:
       --db-host postgres
       --db-port 5432
       --db-name ${DB_NAME:-skilldb}
-      --db-user ${DB_USER:-skilluser}
-      --db-password ${DB_PASSWORD:-skillpassword}
+      --db-user ${DB_USER:?DB_USER required}
+      --db-password ${DB_PASSWORD:?DB_PASSWORD required}
       --http-port 8080
       --http3-port 8443
       --log-level ${LOG_LEVEL:-info}
     environment:
-      DATABASE_URL: postgres://${DB_USER:-skilluser}:${DB_PASSWORD:-skillpassword}@postgres:5432/${DB_NAME:-skilldb}?sslmode=disable
+      DATABASE_URL: postgres://${DB_USER:?DB_USER required}:${DB_PASSWORD:?DB_PASSWORD required}@postgres:5432/${DB_NAME:?DB_NAME required}?sslmode=require
       SERVER_HTTP_PORT: "8080"
       SERVER_HTTP3_PORT: "8443"
       SERVER_LOG_LEVEL: ${LOG_LEVEL:-info}
@@ -165,11 +165,11 @@ services:
       --db-host postgres
       --db-port 5432
       --db-name ${DB_NAME:-skilldb}
-      --db-user ${DB_USER:-skilluser}
-      --db-password ${DB_PASSWORD:-skillpassword}
+      --db-user ${DB_USER:?DB_USER required}
+      --db-password ${DB_PASSWORD:?DB_PASSWORD required}
       --log-level ${LOG_LEVEL:-info}
     environment:
-      DATABASE_URL: postgres://${DB_USER:-skilluser}:${DB_PASSWORD:-skillpassword}@postgres:5432/${DB_NAME:-skilldb}?sslmode=disable
+      DATABASE_URL: postgres://${DB_USER:?DB_USER required}:${DB_PASSWORD:?DB_PASSWORD required}@postgres:5432/${DB_NAME:?DB_NAME required}?sslmode=require
       WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-4}
       WORKER_QUEUE_SIZE: ${WORKER_QUEUE_SIZE:-100}
       WORKER_POLL_INTERVAL: ${WORKER_POLL_INTERVAL:-30s}
@@ -254,7 +254,7 @@ services:
     container_name: ${COMPOSE_PROJECT_NAME:-helix-skills}-grafana
     restart: unless-stopped
     environment:
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:?GRAFANA_PASSWORD must be set}
       GF_USERS_ALLOW_SIGN_UP: "false"
     volumes:
       - grafana_data:/var/lib/grafana
