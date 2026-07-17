@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc 3.10" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>IMPLEMENTATION_PLAN</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">IMPLEMENTATION_PLAN</h1>
+</header>
+<h1
+id="helixknowledge-skill-graph-system-comprehensive-implementation-plan">HelixKnowledge
+Skill Graph System — Comprehensive Implementation Plan</h1>
+<blockquote>
+<p><strong>Status:</strong> living master plan. Supersedes the short
+“Draft staged plan (S0–S6)” in <code>REQUIREMENTS.md</code> by expanding
+it into phases → tasks → subtasks with explicit evidence gates.
+<code>REQUIREMENTS.md</code> remains the source-of-truth for
+<em>what</em> is required (R1–R16 + the founding request + the TXT
+blueprint); this document is the source-of-truth for <em>how</em> and
+<em>in what order</em> it is built.</p>
+<p><strong>Author:</strong> main orchestrator. <strong>Date:</strong>
+2026-07-15. <strong>Repo branch:</strong> <code>main</code> (operator
+authorized direct-on-main). <strong>Module:</strong>
+<code>github.com/helixdevelopment/skill-system</code>.</p>
+</blockquote>
+<hr />
+<h2 id="how-to-read-this-plan">0. How to read this plan</h2>
+<ul>
+<li>Work is decomposed into <strong>Phases (P0–P13)</strong> and four
+always-on <strong>Cross-cutting tracks (X1–X4)</strong>. Each phase has
+a <strong>Goal</strong>, ordered <strong>Tasks
+(<code>Pn.Tm</code>)</strong>, each task has <strong>Subtasks</strong>
+and a bolded <strong>Evidence gate</strong> — the physical, re-runnable
+proof that closes the task. A task is not “done” until its evidence gate
+has been produced and independently re-verified by the orchestrator
+(anti-bluff).</li>
+<li><strong>Evidence discipline (R11 — non-negotiable):</strong> every
+“works/passes/green” claim is backed by pasted, reproducible command
+output. No <code>likely/should/probably</code>. A freshly discovered
+defect halts the current task until fixed. No <code>--no-verify</code>,
+no force-push, no fabricated results anywhere.</li>
+<li><strong>Traceability:</strong> the matrix in §1 maps every
+requirement to the phase(s) that satisfy it. Nothing may be silently
+dropped; if a requirement proves infeasible, it is escalated, not
+skipped.</li>
+<li><strong>Sizing:</strong> Tasks are sized for one focused implementer
+subagent (1–3 files, clear spec) where possible; larger tasks name their
+split points. The subagent-driven-development loop dispatches one
+implementer + one task-reviewer per task, with a broad whole-branch
+review at each phase boundary.</li>
+</ul>
+<hr />
+<h2 id="requirements-traceability-matrix">1. Requirements traceability
+matrix</h2>
+<table>
+<colgroup>
+<col style="width: 15%" />
+<col style="width: 28%" />
+<col style="width: 56%" />
+</colgroup>
+<thead>
+<tr>
+<th>Req</th>
+<th>Summary</th>
+<th>Primary phase(s)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>R1</strong></td>
+<td>Harden extracted Go backend to Constitution standard (build+run,
+tests, security, dedupe)</td>
+<td>P0</td>
+</tr>
+<tr>
+<td><strong>R2</strong></td>
+<td>Universal on-demand dynamic skill creation; techs as working POCs;
+learn from real codebases</td>
+<td>P4, P5, P14</td>
+</tr>
+<tr>
+<td><strong>R3</strong></td>
+<td>Clients: CLI, TUI, REST, Web, Desktop (all OS), Mobile
+(Android/iOS/HarmonyOS/Aurora); maximize shared codebase</td>
+<td>P8</td>
+</tr>
+<tr>
+<td><strong>R4</strong></td>
+<td>Interop: Claude Code (toolkit+aliases), OpenCode, Kimi Code,
+HelixTrack, HelixAgent, HelixLLM</td>
+<td>P3, P6, P9</td>
+</tr>
+<tr>
+<td><strong>R5</strong></td>
+<td>In-depth incorporation research for every integration</td>
+<td>P0 research (done) + per-phase spikes</td>
+</tr>
+<tr>
+<td><strong>R6</strong></td>
+<td>Wizard: user enters a tech set → create → map (DAG) → full
+processing</td>
+<td>P5, P8</td>
+</tr>
+<tr>
+<td><strong>R7</strong></td>
+<td>Model access via LLMsVerifier / HelixLLM / Claude toolkit aliases;
+pluggable ModelProvider; vendor deps under
+<code>submodules/&lt;snake_case&gt;/</code></td>
+<td>P3, X1</td>
+</tr>
+<tr>
+<td><strong>R8</strong></td>
+<td>Exhaustive testing: 13 Constitution test types + Challenges +
+HelixQA; coverage → ~100%</td>
+<td>P11 + every phase</td>
+</tr>
+<tr>
+<td><strong>R9</strong></td>
+<td>Submodule resolution: parent-dir priority else clone under
+<code>submodules/</code>; keep in sync</td>
+<td>X1</td>
+</tr>
+<tr>
+<td><strong>R10</strong></td>
+<td>Fully incorporate Docs Chain submodule</td>
+<td>P13, X1</td>
+</tr>
+<tr>
+<td><strong>R11</strong></td>
+<td>ZERO false/faulty/bluff anywhere; positive-evidence-only</td>
+<td>Cross-cutting (all)</td>
+</tr>
+<tr>
+<td><strong>R12</strong></td>
+<td>OpenDesign for all client design;
+wireframes/sketches/Figma/PDF/PSD/SVG artifacts</td>
+<td>P10, X4</td>
+</tr>
+<tr>
+<td><strong>R13</strong></td>
+<td>Validation skill corpus (~40 techs) built <em>by the
+system</em></td>
+<td>P14</td>
+</tr>
+<tr>
+<td><strong>R14</strong></td>
+<td>Every skill Git-versionable; MCP/ACP/plugins trigger real-time skill
+creation + graph expansion</td>
+<td>P6, X2</td>
+</tr>
+<tr>
+<td><strong>R15</strong></td>
+<td>systemctl (user scope) integration + scripts:
+start/stop/restart/status/install/…</td>
+<td>P12</td>
+</tr>
+<tr>
+<td><strong>R16</strong></td>
+<td>Skill granularity: atomic sub-skills wrapped by umbrella/composite
+skills; typed-relationship building blocks</td>
+<td>P1</td>
+</tr>
+<tr>
+<td><strong>Founding + blueprint</strong></td>
+<td>Go core; Gin + QUIC/HTTP3 + Brotli; <strong>TOON</strong> wire (JSON
+fallback); recursive DAG; central registrar; zero-bluff auto-growth
+jury; nano-detail docs + Mermaid; zip+tar.gz packaging</td>
+<td>P1, P2, P4, P7, P13</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="global-constraints-definition-of-done">2. Global constraints
+&amp; Definition of Done</h2>
+<p><strong>Global constraints (bind every task):</strong> 1.
+<strong>Constitution inheritance</strong> is live and gated
+(<code>tests/constitution_inheritance_gate.sh</code> + paired mutation).
+Any new submodule inherits <code>CLAUDE.md</code>/<code>AGENTS.md</code>
+pointers. 2. <strong>Single-canonical dependencies</strong> (§11.4.28C):
+one location per dependency; parent-ecosystem copy has priority, else
+<code>submodules/&lt;snake_case&gt;/</code>. Managed by
+<code>helix-deps.yaml</code> + <code>scripts/sync_submodules.sh</code>
+(hardened). 3. <strong>snake_case</strong> (§11.4.29) for dependency +
+skill node names. 4. <strong>Serialization:</strong> wire =
+<strong>TOON</strong> (<code>github.com/toon-format/toon</code>) primary
++ <strong>JSON</strong> fallback. On-disk skill files = TOML + Markdown.
+Config = TOML. (TOON ≠ TOML — blueprint’s “interpret as TOML” is
+superseded.) 5. <strong>Embedding dimension is configurable</strong>
+(<code>config.embedding.dimensions</code>); the SQL
+<code>vector(N)</code> column and the active model MUST agree. Default
+pin decided in P2.T1. 6. <strong>Zero-bluff (R11):</strong> positive
+evidence only; paired mutation for every gate; no bypass flags. 7.
+<strong>Git-versionable knowledge (R14):</strong> every created/updated
+skill is a real commit; the repo grows as knowledge grows.</p>
+<p><strong>Phase Definition of Done:</strong> all tasks’ evidence gates
+produced + re-verified; <code>go build ./...</code> and
+<code>go vet ./...</code> green; phase’s test types (per §11) added with
+paired mutations and passing; broad whole-branch review clean; artifacts
+committed; checkpoint pushed to all upstreams <strong>only when
+green</strong>.</p>
+<hr />
+<h2 id="architecture-overview-target">3. Architecture overview
+(target)</h2>
+<p><strong>Layered (maps to real <code>project/internal/</code>
+packages):</strong></p>
+<pre><code>                 ┌─────────────────────────────────────────────┐
+ Clients (P8)    │ CLI · TUI · REST-consumers · Web · Desktop · │
+ R3              │ Mobile — all over shared-core (OpenAPI+MCP)  │
+                 └───────────────┬─────────────────────────────┘
+ Interfaces      ┌───────────────┴───────────────┐
+ P6/P7           │ Gin REST + QUIC/HTTP3 + Brotli │  MCP (stdio)  │  ACP (gRPC)  │ plugins
+                 │ internal/api                   │  internal/mcp │  (adapter)   │
+                 └───────────────┬───────────────┘
+ Domain          ┌───────────────┴──────────────────────────────────────────────┐
+ P1/P4/P5        │ registry (central registrar) · skill (domain) · autoexpand    │
+                 │ (auto-growth pipeline) · validation (jury) · codeanalysis     │
+                 │ (learn-from-codebase, tree-sitter) · worker (background)       │
+                 └───────────────┬──────────────────────────────────────────────┘
+ Model access    ┌───────────────┴───────────────┐
+ P3 / R7         │ ModelProvider chain: HelixLLM → LLMsVerifier → claude-toolkit │
+                 │ alias → OpenAI(last). Embeddings via vasic-digital/Embeddings │
+                 └───────────────┬───────────────┘
+ Storage         ┌───────────────┴───────────────┐
+ P2              │ PostgreSQL 16 + pgvector (HNSW) · recursive CTE DAG · pgx v5   │
+                 │ internal/db · migrations/                                     │
+                 └───────────────────────────────┘</code></pre>
+<p><strong>Tech pins:</strong> Go 1.22+ · Gin · quic-go (HTTP/3) ·
+andybalholm/brotli · toon-format/toon (+encoding/json) · pgx v5 +
+pgvector-go · tree-sitter · mcp-go (stdio) · Cobra (CLI) · Bubble Tea
+(TUI) · Flutter (GUI incl. HarmonyOS/Aurora) · React (Web).</p>
+<hr />
+<h2 id="p0-foundation-hardening-r1-in-progress">P0 — Foundation
+hardening (R1) · <em>in progress</em></h2>
+<p><strong>Goal:</strong> the extracted backend compiles, vets clean,
+runs, has a green smoke path, one canonical DB layer, no security
+defects, deduped to one tree.</p>
+<ul>
+<li><strong>P0.T1 — Make <code>go build ./...</code> succeed.</strong>
+<em>(Stream 1, in flight)</em>
+<ul>
+<li>Sub: resolve duplicate color consts (<code>common.go</code> vs
+<code>skill.go</code>); remove unused imports (<code>strconv</code>,
+<code>context</code>); fix mcp-go v0.56 API
+(<code>request.Params.Arguments</code> → <code>GetArguments()</code>);
+replace undefined
+<code>pgvector.RegisterTypes</code>/<code>stdlib.ConnPool</code>/<code>stdlib.GetPool</code>
+with pgx v5 + pgvector-go registration; remove
+<code>tls.Config.Allow0RTT</code>; drop unused
+<code>selectedStyle</code>.</li>
+<li>Sub: pick <strong>ONE</strong> DB layer = <strong>pgx v5 +
+pgvector-go</strong>; purge the 4 stray ORMs (<code>ent</code>,
+<code>gorm</code>, <code>uptrace/bun</code>, <code>go-pg</code>,
+<code>sqlx</code>) from <code>go.mod</code>; <code>go mod tidy</code>;
+commit a real <code>go.sum</code>.</li>
+<li><strong>Evidence gate:</strong>
+<code>go build ./... ; echo $?</code> = 0 and
+<code>go vet ./... ; echo $?</code> = 0, pasted; <code>go.mod</code>
+shows a single DB driver.</li>
+</ul></li>
+<li><strong>P0.T2 — Security defects.</strong>
+<ul>
+<li>Sub: <code>internal/api/middleware.go</code> CORS reflect-origin +
+<code>Allow-Credentials:true</code> → strict allow-list from config;
+stop logging <code>api_key</code> query param.</li>
+<li>Sub: <code>scripts/sync_submodules.sh</code> fail-closed validation
+— <strong>DONE (c473d01)</strong>, paired attack proof captured.</li>
+<li><strong>Evidence gate:</strong> re-run automated review → 0
+HIGH/MED; unit test asserting disallowed origin is rejected + api_key
+never logged (paired: mutation that reintroduces reflect-origin fails
+the test).</li>
+</ul></li>
+<li><strong>P0.T3 — Unit-test bootstrap.</strong> minimal
+<code>go test ./...</code> harness so every later package lands with
+tests. <strong>Evidence gate:</strong> <code>go test ./...</code> runs
+(even if few tests) exit 0.</li>
+<li><strong>P0.T4 — Smoke run.</strong> <code>docker compose up</code>
+(Postgres+pgvector) + server boots + <code>/healthz</code> 200.
+<strong>Evidence gate:</strong> pasted
+<code>curl -s localhost:PORT/healthz</code> = 200 and
+<code>SELECT 1</code> via pgx.</li>
+<li><strong>P0.T5 — Dedupe to one canonical tree</strong> — <strong>DONE
+(18b3b29)</strong>; one <code>project/</code> tree.</li>
+</ul>
+<hr />
+<h2
+id="p0.5-critical-remediation-from-the-gaps-register-r17-new-top-priority">P0.5
+— CRITICAL remediation from the gaps register (R17) · <em>new, top
+priority</em></h2>
+<p><strong>Goal:</strong> close the confirmed CRITICAL/HIGH findings in
+<code>GAPS_AND_RISKS_REGISTER.md</code> before building further — the
+green build proved SOURCE compiles, NOT that the runtime uses the
+hardened code (§11.4.108). These are Go-source changes with
+cross-package coupling, so they run <strong>serialized</strong> (one
+Go-mutator at a time), each proven by build+vet+test + the relevant
+D-tests + a runtime-wiring assertion.</p>
+<ul>
+<li><strong>P0.5.G01 — Wire <code>internal/api</code> as the single HTTP
+surface.</strong> <code>cmd/server/main.go</code> runs an ad-hoc router
+(wildcard CORS <code>main.go:364</code>, no auth) and never imports
+<code>internal/api</code> (0 non-test importers). Fix: construct+run
+<code>internal/api.Server</code>; delete the ad-hoc router + wildcard
+CORS; auth fail-closed (<code>server.go:163</code>). Preserve every real
+endpoint (port it or report the delta — never silent-drop §11.4.122).
+<strong>Evidence gate:</strong> build/vet/test green; D’s CORS tests are
+the live server’s; <code>grep 'Allow-Origin", "*"' cmd/server</code> =
+0; server constructs <code>api.Server</code>.</li>
+<li><strong>P0.5.G02 — Sandbox RCE default.</strong> the “WASM sandbox”
+process-fallback executes arbitrary skill code on the host with a
+false-isolation claim (<code>sandbox.go:206-290</code>). Fix: real
+isolation (rootless Podman/gVisor/true WASM) or <strong>fail-closed
+SKIP</strong>. <strong>Evidence gate:</strong> no host-exec path
+reachable by default; a hostile snippet is contained or
+SKIP-with-reason, proven by test.</li>
+<li><strong>P0.5.G03 — Wire the jury + auto-growth pipelines.</strong>
+<code>internal/validation</code> + <code>internal/autoexpand</code> are
+dead code; worker handlers are stubs. Fix: wire
+<code>validation.Validate</code>/<code>autoexpand.Run</code> into the
+worker + create path. <strong>Evidence gate:</strong> no skill reaches
+<code>validated</code> without a jury verdict (gated test).</li>
+<li><strong>P0.5.G05 — Jury fail-closed on empty config.</strong> empty
+jury auto-approves (<code>pipeline.go:428-439</code>). Fix: empty jury =
+hard error / forces human review; ≥2 real votes. <strong>Evidence
+gate:</strong> empty-jury test proves rejection, not silent pass.</li>
+<li><strong>P0.5.G06/G07 — Skill correctness.</strong>
+<code>GetDependencyTree</code> truncates to depth-1
+(<code>graph.go:306</code>); TOML/JSON dep+resource round-trip drops
+edges. Fix + prove export→import identity + full-depth tree tests.</li>
+<li><strong>P0.5.G11 — Panic-safe worker.</strong> unchecked type
+assertions can crash the process; add comma-ok + per-goroutine
+recover.</li>
+<li><strong>P0.5.G13 — One canonical compose.</strong> make
+<code>deploy/</code> canonical, delete/merge the root
+<code>docker-compose.yml</code>; point scripts + systemd unit at the
+single file.</li>
+<li><strong>P0.5.G14 — Submodule policy escalation.</strong> §11.4.28C
+single-canonical vs operator parent-priority+both-synced: decision
+recorded (parent = canonical, <code>submodules/&lt;name&gt;</code> =
+read-only mirror); <strong>surface to operator before any
+<code>--apply</code></strong>.</li>
+<li><strong>P0.5.G10 — Embedding dim.</strong> pin 768 default, template
+<code>vector(N)</code> from config, startup dim-match assertion, OpenAI
+length check. (feeds P2.T1.)</li>
+</ul>
+<hr />
+<h2 id="p1-core-domain-model-granularity-serialization-r16-founding">P1
+— Core domain model, granularity &amp; serialization (R16 +
+founding)</h2>
+<p><strong>Goal:</strong> the Skill data model supports atomic ↔︎
+composite/umbrella granularity with typed relationship edges, serialized
+as TOON/JSON on the wire and TOML/Markdown on disk.</p>
+<ul>
+<li><strong>P1.T1 — Granularity &amp; composition data model
+(R16).</strong> <em>(depends on Stream A research →
+<code>research/skill_granularity_and_composition.md</code>)</em>
+<ul>
+<li>Sub: add <code>kind</code> to Skill node =
+<code>atomic | composite</code>; add typed edge enum
+(<code>composes/part_of</code>, <code>depends_on</code>,
+<code>requires</code>, <code>extends</code>, <code>prerequisite</code>,
+<code>related_to</code>, <code>alternative_to</code>) with acyclicity
+rules; define which edges the resolver walks.</li>
+<li>Sub: extend <code>internal/models</code> structs + TOML tags; keep
+backward-compat with the 8 committed seed TOMLs.</li>
+<li>Sub: define umbrella→component reference fields in TOML.</li>
+<li><strong>Evidence gate:</strong> the 8 seed TOMLs still parse; a new
+composite <code>android</code> umbrella + ≥4 atomic children parse and
+validate; unit test proves an illegal cycle on a DAG-constrained edge
+type is rejected (paired mutation).</li>
+</ul></li>
+<li><strong>P1.T2 — TOON serialization layer.</strong>
+<ul>
+<li>Sub: vendor/resolve <code>toon-format/toon</code> (Go codec;
+implement a conformant Go marshaler/unmarshaler if no Go impl exists —
+with its own test vectors from the spec).</li>
+<li>Sub: <code>internal/serialization</code> with
+<code>Marshal/Unmarshal</code> + content negotiation
+(<code>application/toon</code> ↔︎ <code>application/json</code>).</li>
+<li><strong>Evidence gate:</strong> round-trip test: struct → TOON →
+struct == original; struct → JSON → struct == original; a golden TOON
+fixture matches byte-for-byte; token-count comparison TOON vs JSON
+pasted.</li>
+</ul></li>
+<li><strong>P1.T3 — Skill lifecycle &amp; versioning fields.</strong>
+status (<code>draft→verified→merged</code>), semver, provenance, source
+refs, checksums. <strong>Evidence gate:</strong> unit tests for state
+transitions + invalid-transition rejection (paired).</li>
+</ul>
+<hr />
+<h2 id="p2-storage-dag-engine-postgres-pgvector">P2 — Storage &amp; DAG
+engine (Postgres + pgvector)</h2>
+<p><strong>Goal:</strong> durable graph store with vector search and
+recursive DAG traversal.</p>
+<ul>
+<li><strong>P2.T1 — Schema + migrations.</strong> finalize
+<code>vector(N)</code> (reconcile 768/1536/384 → pin default + make
+configurable); tables for skills, edges (typed), versions, embeddings;
+HNSW index. <strong>Evidence gate:</strong> <code>migrate up</code> on a
+fresh pgvector DB succeeds; <code>\d+</code> output pasted; HNSW index
+present.</li>
+<li><strong>P2.T2 — Repository layer (<code>internal/db</code>, pgx
+v5).</strong> CRUD for skills/edges/versions; typed-edge inserts;
+pgvector-go registration. <strong>Evidence gate:</strong> integration
+tests against a real container (insert → read back identical); paired
+mutation (wrong dimension insert rejected).</li>
+<li><strong>P2.T3 — Recursive-CTE resolver.</strong> “full closure
+needed for X” walking the resolver edge set; cycle-safe; depth-bounded.
+<strong>Evidence gate:</strong> integration test on the seed corpus
+returns the known android closure; a synthetic cycle does not
+infinite-loop (bounded + detected).</li>
+<li><strong>P2.T4 — Vector search.</strong> semantic nearest-skill via
+HNSW. <strong>Evidence gate:</strong> query returns ranked results with
+distances; recall sanity check pasted.</li>
+</ul>
+<hr />
+<h2 id="p3-model-access-layer-r7-r4">P3 — Model access layer (R7,
+R4)</h2>
+<p><strong>Goal:</strong> pluggable <code>ModelProvider</code> (never
+hardcode OpenAI); chain of real providers.</p>
+<ul>
+<li><strong>P3.T1 — <code>ModelProvider</code> interface +
+registry.</strong> <code>Complete</code>, <code>Embed</code>,
+capabilities. <strong>Evidence gate:</strong> interface + fake provider
+unit-tested.</li>
+<li><strong>P3.T2 — Providers:</strong> HelixLLM (OpenAI-compat
+<code>:18434</code>) → LLMsVerifier (<code>:8081</code>) →
+claude-toolkit alias shellout (<code>&lt;alias&gt; -p</code>) → OpenAI
+(last resort). Config-driven ordering + health/fallback.
+<strong>Evidence gate:</strong> each provider has a contract test
+(mocked HTTP / stubbed alias); fallback order proven by a test that
+fails provider 1 and asserts provider 2 is used.</li>
+<li><strong>P3.T3 — Embeddings via
+<code>vasic-digital/Embeddings</code>.</strong> dimension must match
+P2.T1. <strong>Evidence gate:</strong> embed a fixed string → stable
+vector of the configured dimension.</li>
+</ul>
+<hr />
+<h2 id="p4-auto-growth-validation-pipeline-r2-r11-founding-jury">P4 —
+Auto-growth validation pipeline (R2, R11, founding jury)</h2>
+<p><strong>Goal:</strong> the zero-bluff pipeline:
+<code>draft → resource-verify → sandbox → cross-ref → LLM jury (≥2 approvals) → merge</code>.</p>
+<ul>
+<li><strong>P4.T1 — Pipeline orchestration
+(<code>internal/autoexpand</code> +
+<code>internal/validation</code>).</strong> staged state machine, each
+stage gated, provenance recorded. <strong>Evidence gate:</strong> unit
+tests drive a draft through all stages; a draft failing any stage never
+reaches <code>merged</code> (paired).</li>
+<li><strong>P4.T2 — Resource verification.</strong> every cited
+URL/source checked reachable (real HTTP/ls-remote); unverifiable content
+rejected. <strong>Evidence gate:</strong> a skill with a dead URL is
+rejected with the failing URL reported.</li>
+<li><strong>P4.T3 — Sandbox validation.</strong> code/POC snippets
+executed in an isolated sandbox where applicable. <strong>Evidence
+gate:</strong> a POC that fails to build/run blocks merge.</li>
+<li><strong>P4.T4 — LLM jury (≥2 independent approvals).</strong> uses
+P3 providers; adversarial/skeptic prompts; majority-refute kills.
+<strong>Evidence gate:</strong> a fabricated skill is rejected by the
+jury; an accurate one passes; both logged with juror votes.</li>
+<li><strong>P4.T5 — Merge + git commit (R14).</strong> approved skill
+written to disk (TOML+MD) + DB + real git commit. <strong>Evidence
+gate:</strong> end-to-end: draft in → real commit out with the new skill
+file present.</li>
+</ul>
+<hr />
+<h2 id="p5-dynamic-on-demand-creation-learn-from-codebase-r2-r6">P5 —
+Dynamic on-demand creation &amp; learn-from-codebase (R2, R6)</h2>
+<p><strong>Goal:</strong> create any skill on demand; learn from real
+codebases; wizard entrypoint.</p>
+<ul>
+<li><strong>P5.T1 — On-demand creation service.</strong> given a tech
+name, research → draft → P4 pipeline → stored skill. <strong>Evidence
+gate:</strong> request “brotli” (not yet seeded) → produces a real,
+verified skill via the pipeline.</li>
+<li><strong>P5.T2 — Codebase learning
+(<code>internal/codeanalysis</code>, tree-sitter).</strong> parse a real
+repo, extract concepts/deps into candidate skills. <strong>Evidence
+gate:</strong> run against a real sample repo → candidate skills with
+real extracted symbols (no lorem).</li>
+<li><strong>P5.T3 — Wizard pipeline (R6).</strong> input set
+(e.g. <code>android, android_aosp, java, kotlin, c++, cmake</code>) →
+create → map (DAG) → expand atomic closure → full processing.
+<strong>Evidence gate:</strong> end-to-end run on that exact set
+produces a connected sub-DAG + all closures, evidence pasted.</li>
+</ul>
+<hr />
+<h2 id="p6-interfaces-mcp-acp-plugins-real-time-growth-r14-r4">P6 —
+Interfaces: MCP + ACP + plugins, real-time growth (R14, R4)</h2>
+<p><strong>Goal:</strong> universal agent-interop surface that triggers
+real-time skill creation &amp; graph expansion.</p>
+<ul>
+<li><strong>P6.T1 — MCP server (<code>internal/mcp</code>,
+stdio).</strong> tools: <code>search_skills</code>,
+<code>get_skill</code>, <code>expand_skill</code>,
+<code>create_skill</code>, <code>analyze_codebase</code>,
+<code>list_domain</code>. <strong>Evidence gate:</strong> MCP handshake
++ each tool invoked over stdio with real responses (transcript
+pasted).</li>
+<li><strong>P6.T2 — Real-time growth hook.</strong> an MCP
+<code>create_skill</code>/<code>expand_skill</code> call runs P4/P5 live
+and the new node is immediately queryable. <strong>Evidence
+gate:</strong> create via MCP → immediately <code>get_skill</code>
+returns it in the same session.</li>
+<li><strong>P6.T3 — ACP (gRPC) adapter.</strong> additive to MCP
+(research: OpenCode integrates via MCP; ACP for agents that need it).
+<strong>Evidence gate:</strong> gRPC service reflection + one round-trip
+call.</li>
+<li><strong>P6.T4 — Plugin trigger surface.</strong> plugin/event →
+deep-research/skill-creation job enqueued to
+<code>internal/worker</code>. <strong>Evidence gate:</strong> emit event
+→ worker creates a skill → committed.</li>
+</ul>
+<hr />
+<h2 id="p7-api-surface-gin-quichttp3-brotli-toon-founding-r7">P7 — API
+surface: Gin + QUIC/HTTP3 + Brotli + TOON (founding, R7)</h2>
+<p><strong>Goal:</strong> production REST/HTTP3 API matching
+<code>api/openapi.yaml</code>.</p>
+<ul>
+<li><strong>P7.T1 — Gin handlers</strong> for all OpenAPI paths (skills
+CRUD, search, expand, wizard, create, analyze). <strong>Evidence
+gate:</strong> each endpoint integration-tested; responses
+schema-valid.</li>
+<li><strong>P7.T2 — QUIC/HTTP3 (quic-go) + H1/H2 fallback.</strong>
+<strong>Evidence gate:</strong> an HTTP/3 client round-trips a request;
+ALPN <code>h3</code> proven.</li>
+<li><strong>P7.T3 — Brotli compression + TOON/JSON content
+negotiation.</strong> <strong>Evidence gate:</strong>
+<code>Accept: application/toon</code> returns TOON;
+<code>application/json</code> returns JSON;
+<code>Accept-Encoding: br</code> returns Brotli (decoded to assert
+equality).</li>
+<li><strong>P7.T4 — Revise <code>api/openapi.yaml</code> to
+TOON+JSON</strong> (currently JSON+TOML). <strong>Evidence
+gate:</strong> OpenAPI validator passes; content types =
+<code>application/toon</code> + <code>application/json</code>.</li>
+<li><strong>P7.T5 — Auth + rate limiting + ApiKeyAuth</strong> per spec.
+<strong>Evidence gate:</strong> unauthorized → 401; over-limit → 429
+(tested).</li>
+</ul>
+<hr />
+<h2 id="p8-shared-core-clients-r3-r6">P8 — Shared-core &amp; clients
+(R3, R6)</h2>
+<p><strong>Goal:</strong> one shared core; thin clients across
+CLI/TUI/REST/Web/Desktop/Mobile.</p>
+<ul>
+<li><strong>P8.T1 — Shared-core contract.</strong> generated OpenAPI
+client + MCP client lib; the single source clients consume.
+<strong>Evidence gate:</strong> generated client compiles; a smoke call
+hits the API.</li>
+<li><strong>P8.T2 — CLI (Cobra) &amp; TUI (Bubble Tea)</strong> over
+shared-core (Go). <strong>Evidence gate:</strong>
+<code>helix skill get android</code> prints real data; TUI renders the
+graph (screenshot/log).</li>
+<li><strong>P8.T3 — Web (React)</strong> over OpenAPI client.
+<strong>Evidence gate:</strong> build succeeds; wizard flow calls the
+API (e2e).</li>
+<li><strong>P8.T4 — Desktop (all OS)</strong> via Flutter (or Tauri
+wrapping web) — decision recorded. <strong>Evidence gate:</strong> one
+desktop build artifact produced per targeted OS in CI-capable form.</li>
+<li><strong>P8.T5 — Mobile:</strong> Android, iOS, <strong>HarmonyOS
+(Flutter-OHOS)</strong>, <strong>Aurora (omprussia embedder)</strong> —
+Flutter shared UI. <strong>Evidence gate:</strong> Android + iOS build;
+Harmony/Aurora build feasibility proven or risk-flagged with the exact
+blocker (no bluff).</li>
+</ul>
+<hr />
+<h2 id="p9-helix-ecosystem-agent-interop-r4-r5">P9 — Helix ecosystem
+&amp; agent interop (R4, R5)</h2>
+<p><strong>Goal:</strong> deep integration with HelixTrack, HelixAgent,
+HelixLLM (in <code>../helix_code/</code>) + Claude Code toolkit/aliases
++ OpenCode + Kimi Code.</p>
+<ul>
+<li><strong>P9.T1 — HelixLLM</strong> as a first-class ModelProvider
+(already in P3) + config wiring. <strong>Evidence gate:</strong>
+live/m“cked call through HelixLLM path.</li>
+<li><strong>P9.T2 — HelixTrack / HelixAgent</strong> integration per
+research spike (issue/skill sync, agent task handoff). <strong>Evidence
+gate:</strong> documented contract + one integration test/mocked
+round-trip.</li>
+<li><strong>P9.T3 — Claude Code:</strong> MCP server registered +
+toolkit aliases; OpenCode <code>opencode.jsonc</code> MCP entry; Kimi
+MCP entry. <strong>Evidence gate:</strong> config snippets + a real MCP
+connection from each client (or the exact reason one can’t be tested
+locally).</li>
+</ul>
+<hr />
+<h2 id="p10-opendesign-design-artifacts-r12-x4">P10 — OpenDesign design
+artifacts (R12, X4)</h2>
+<p><strong>Goal:</strong> all client/design assets via OpenDesign
+(<code>git@github.com:nexu-io/open-design.git</code>), exported to
+mandatory Constitution file types.</p>
+<ul>
+<li><strong>P10.T1 — Vendor OpenDesign</strong> under
+<code>submodules/open_design/</code> (or parent copy). <strong>Evidence
+gate:</strong> submodule resolves; license/inheritance pointers
+present.</li>
+<li><strong>P10.T2 — Wireframes + sketches</strong> for
+CLI/TUI/Web/Desktop/Mobile + the wizard flow. <strong>Evidence
+gate:</strong> files exist and open (SVG/PDF render check).</li>
+<li><strong>P10.T3 — Figma + exports (PDF, PSD, SVG)</strong> per
+Constitution mandatory design file types. <strong>Evidence
+gate:</strong> each artifact type present and validated.</li>
+<li><strong>P10.T4 — Architecture/diagram illustrations</strong>
+(Mermaid + exported). <strong>Evidence gate:</strong> Mermaid renders;
+exports produced.</li>
+</ul>
+<hr />
+<h2 id="p11-exhaustive-testing-r8">P11 — Exhaustive testing (R8)</h2>
+<p><strong>Goal:</strong> all 13 Constitution test types + Challenges +
+HelixQA banks; coverage → ~100% where the domain permits.</p>
+<ul>
+<li><strong>P11.T1 — Wire the 13 test types</strong> (per §11.4.169):
+unit, integration, e2e, contract, property, fuzz, mutation,
+performance/bench, load, security, regression, smoke, acceptance — each
+with paired mutations. <strong>Evidence gate:</strong> a runner executes
+all present types; the matrix of type→package is filled; paired
+mutations flip.</li>
+<li><strong>P11.T2 — Challenges</strong>
+(<code>vasic-digital/Challenges</code>) integrated. <strong>Evidence
+gate:</strong> challenge suite runs against the system; results
+pasted.</li>
+<li><strong>P11.T3 — HelixQA</strong>
+(<code>HelixDevelopment/HelixQA</code>) test banks wired.
+<strong>Evidence gate:</strong> HelixQA suite runs; pass/fail report
+pasted.</li>
+<li><strong>P11.T4 — Coverage gate.</strong>
+<code>go test -coverprofile</code> → report; drive toward ~100% on
+domain packages; document any justified exclusions. <strong>Evidence
+gate:</strong> coverage % pasted per package; CI gate set.</li>
+</ul>
+<hr />
+<h2
+id="p12-deployment-ops-systemctl-user-compose-scripts-r15-in-progress">P12
+— Deployment &amp; ops: systemctl (user) + Compose + scripts (R15) ·
+<em>in progress</em></h2>
+<p><strong>Goal:</strong> operable via <code>systemctl --user</code>
+with Docker/Podman Compose and a full script set.</p>
+<ul>
+<li><strong>P12.T1 — Compose (pgvector/pgvector:pg16) + app
+service.</strong> <em>(Stream B, in flight)</em> <strong>Evidence
+gate:</strong> <code>pg_isready</code> + <code>SELECT 1</code> +
+<code>CREATE EXTENSION vector</code> real output (or explicit “no engine
+here” + syntactic proof).</li>
+<li><strong>P12.T2 — <code>systemctl --user</code> unit</strong> (user
+scope, no sudo, linger hint). <em>(Stream B)</em> <strong>Evidence
+gate:</strong> unit installs to <code>~/.config/systemd/user/</code>,
+<code>daemon-reload</code> clean.</li>
+<li><strong>P12.T3 — scripts/: start, stop, restart, status, install,
+uninstall, logs.</strong> <em>(Stream B)</em> <strong>Evidence
+gate:</strong> <code>bash -n</code> + <code>shellcheck</code> clean on
+all; status-down path returns non-zero; up/down cycle proven where an
+engine exists.</li>
+<li><strong>P12.T4 — Reconcile compose location.</strong> one canonical
+compose (existing <code>project/docker-compose.yml</code> vs new
+<code>project/deploy/</code>) — no rival copies. <strong>Evidence
+gate:</strong> single compose referenced by scripts + unit.</li>
+</ul>
+<hr />
+<h2 id="p13-docs-docs-chain-packaging-r10-founding">P13 — Docs, Docs
+Chain, packaging (R10, founding)</h2>
+<p><strong>Goal:</strong> nano-detail documentation + Mermaid diagrams;
+Docs Chain incorporated; zip + tar.gz packaging.</p>
+<ul>
+<li><strong>P13.T1 — Docs Chain submodule</strong> fully incorporated
+(<code>submodules/docs_chain/</code> or parent). <strong>Evidence
+gate:</strong> submodule resolves; docs build passes through the
+chain.</li>
+<li><strong>P13.T2 — Nano-detail docs</strong>: architecture, data
+model, API, MCP/ACP, ops runbook, contributor guide — each with Mermaid.
+<strong>Evidence gate:</strong> docs build; every Mermaid diagram
+renders.</li>
+<li><strong>P13.T3 — Packaging.</strong> reproducible <code>zip</code> +
+<code>tar.gz</code> of the deliverable + release script.
+<strong>Evidence gate:</strong> both archives produced; checksums;
+extract-and-build smoke.</li>
+</ul>
+<hr />
+<h2 id="p14-validation-corpus-built-by-the-system-r13-r2">P14 —
+Validation corpus built <em>by the system</em> (R13, R2)</h2>
+<p><strong>Goal:</strong> create the ~40-tech corpus <strong>through the
+running system</strong> to prove it end-to-end.</p>
+<ul>
+<li><strong>P14.T1 — Seed baseline</strong> — <strong>DONE
+(0e0bc3b):</strong> 8 real skills, 43-node DAG, acyclic, verified.</li>
+<li><strong>P14.T2 — Drive the full list through the
+wizard/pipeline:</strong> android, android_aosp, rockchip, orange_pi,
+java, c, c++, kotlin, python, postgres, bash, go, gin_gonic, flutter,
+angular, typescript, javascript, major web/mobile/desktop frameworks,
+linux, macos, debugging, cmake, make, gcc, bazel, brotli, quic, http3,
+http, protocols, design_patterns, algorithms, security, snyk, sonarqube,
+maven, gradle.
+<ul>
+<li>Sub: each created via P5 on-demand + P4 jury; granulated per P1
+(atomic children under umbrellas).</li>
+<li><strong>Evidence gate:</strong> each tech results in a real,
+verified, committed skill; DAG stays acyclic; per-skill provenance +
+real sources; a final report lists node/edge counts and any tech that
+could not be verified (explicitly, no bluff).</li>
+</ul></li>
+</ul>
+<hr />
+<h2 id="x1-cross-cutting-submodule-resolution-sync-r7-r9-r10">X1 —
+Cross-cutting: submodule resolution &amp; sync (R7, R9, R10)</h2>
+<ul>
+<li>Canonical resolver = <code>helix-deps.yaml</code> + hardened
+<code>scripts/sync_submodules.sh</code> (parent priority → else
+<code>submodules/&lt;snake_case&gt;/</code>).</li>
+<li>Keep parent + local copies in sync with main/master. <strong>Flagged
+discrepancy:</strong> Constitution §11.4.28C mandates
+<em>single-canonical</em>; operator asked for <em>parent-priority + both
+synced</em>. <strong>Escalation open</strong> — resolve before any
+<code>--apply</code> run that would create a second copy.</li>
+<li><strong>Evidence gate (ongoing):</strong> every dependency resolves
+to exactly one canonical location; <code>ls-remote</code> reachability
+for each declared dep.</li>
+</ul>
+<h2 id="x2-cross-cutting-git-versionable-knowledge-growth-r14">X2 —
+Cross-cutting: git-versionable knowledge growth (R14)</h2>
+<ul>
+<li>Every skill create/update/merge = a real commit; repo history is the
+knowledge changelog.</li>
+<li><strong>Evidence gate:</strong> after any pipeline run,
+<code>git log</code> shows the corresponding skill commits with real
+diffs.</li>
+</ul>
+<h2 id="x3-cross-cutting-constitution-anti-bluff-gates-r8-r11">X3 —
+Cross-cutting: Constitution &amp; anti-bluff gates (R8, R11)</h2>
+<ul>
+<li>Inheritance gate + paired mutation stays green; every new gate ships
+with its paired mutation; no bypass flags; freshly discovered defects
+halt the loop.</li>
+<li><strong>Evidence gate:</strong>
+<code>tests/test_constitution_inheritance.sh</code> = PASS at every
+phase boundary.</li>
+</ul>
+<h2 id="x4-cross-cutting-design-system-r12">X4 — Cross-cutting: design
+system (R12)</h2>
+<ul>
+<li>All visual/design work flows through OpenDesign; exports in
+mandatory file types; diagrams in Mermaid + exported.</li>
+</ul>
+<hr />
+<h2 id="critical-path-parallelization">4. Critical path &amp;
+parallelization</h2>
+<pre><code>P0 (build/vet green)  ──►  P1 (model+TOON)  ──►  P2 (storage)  ──►  P3 (models)
+        │                                                              │
+        │                                                              ▼
+        │                                                  P4 (jury pipeline)
+        │                                                              │
+        ▼                                                              ▼
+  P12 ops (‖ now)                                            P5 (on-demand + wizard)
+  P10 design (‖)                                                       │
+  X1/X2/X3/X4 (‖ always)                                               ▼
+                                                        P6 (MCP/ACP) ─► P7 (API)
+                                                                         │
+                                                                         ▼
+                                                        P8 clients ─► P9 interop
+                                                                         │
+                                                                         ▼
+                                                     P11 testing ─► P13 docs/pkg ─► P14 corpus</code></pre>
+<ul>
+<li><strong>Parallelizable now (disjoint from P0’s Go build):</strong>
+P12 (ops scripts), P10 (design), P1 research (granularity), X1 sync
+hardening — all in flight or queued.</li>
+<li><strong>Hard serial spine:</strong> P0 → P1 → P2 → P4 → P5 → P6/P7 →
+P8. Clients (P8) cannot be trusted until P7 is real.</li>
+<li><strong>Testing (P11)</strong> is not a final phase only — each
+phase lands its own test types; P11 is the consolidation +
+Challenges/HelixQA + coverage gate.</li>
+</ul>
+<hr />
+<h2 id="danger-zones-mitigations">5. Danger zones &amp; mitigations</h2>
+<ol type="1">
+<li><strong>Aurora/HarmonyOS mobile</strong> — smallest ecosystem,
+highest risk. Mitigate: Flutter-OHOS + omprussia embedder spike early in
+P8; risk-flag with the exact blocker rather than bluffing a build.</li>
+<li><strong>TOON Go codec may not exist</strong> — mitigate: implement a
+spec-conformant Go marshaler with the format’s own test vectors (P1.T2);
+do not silently fall back to TOML/JSON-only.</li>
+<li><strong>Embedding dimension drift</strong> (768/1536/384) —
+mitigate: single config knob + a startup assertion that model-dim ==
+column-dim; migration if changed.</li>
+<li><strong>LLM jury false-approve</strong> (R11 risk) — mitigate: ≥2
+independent skeptic jurors + resource-reachability gate + sandbox; a
+fabricated skill must be provably rejected (P4.T4 gate).</li>
+<li><strong>Submodule single-canonical vs parent-sync conflict</strong>
+— mitigate: keep escalation X1 open; no second-copy <code>--apply</code>
+until resolved.</li>
+<li><strong>Concurrent agents on one repo</strong> — mitigate: disjoint
+file scopes per stream; orchestrator commits only re-verified state;
+upstreams get green state only.</li>
+</ol>
+<hr />
+<h2 id="master-deliverables-checklist">6. Master deliverables
+checklist</h2>
+<ul class="task-list">
+<li><label><input type="checkbox" />Backend builds+vets+runs; one DB
+layer; security clean (P0)</label></li>
+<li><label><input type="checkbox" />Skill model with atomic/composite
+granularity + typed edges (P1/R16)</label></li>
+<li><label><input type="checkbox" />TOON+JSON serialization with
+round-trip proof (P1/founding)</label></li>
+<li><label><input type="checkbox" />Postgres+pgvector schema, recursive
+CTE, vector search (P2)</label></li>
+<li><label><input type="checkbox" />Pluggable ModelProvider chain +
+embeddings (P3/R7)</label></li>
+<li><label><input type="checkbox" />Zero-bluff auto-growth jury pipeline
+(P4/R2/R11)</label></li>
+<li><label><input type="checkbox" />On-demand creation +
+learn-from-codebase + wizard (P5/R2/R6)</label></li>
+<li><label><input type="checkbox" />MCP + ACP + plugins with real-time
+growth (P6/R14)</label></li>
+<li><label><input type="checkbox" />Gin + QUIC/HTTP3 + Brotli + TOON
+API; OpenAPI (P7)</label></li>
+<li><label><input type="checkbox" />Shared-core +
+CLI/TUI/Web/Desktop/Mobile incl. Harmony/Aurora (P8/R3)</label></li>
+<li><label><input type="checkbox" />Helix ecosystem +
+Claude/OpenCode/Kimi interop (P9/R4)</label></li>
+<li><label><input type="checkbox" />OpenDesign artifacts:
+wireframes/Figma/PDF/PSD/SVG (P10/R12)</label></li>
+<li><label><input type="checkbox" />13 test types + Challenges + HelixQA
++ coverage ~100% (P11/R8)</label></li>
+<li><label><input type="checkbox" />systemctl –user + Compose + scripts
+(P12/R15)</label></li>
+<li><label><input type="checkbox" />Docs Chain + nano-detail docs +
+Mermaid + zip/tar.gz (P13/R10)</label></li>
+<li><label><input type="checkbox" />~40-tech corpus built <em>by the
+system</em>, verified, committed (P14/R13)</label></li>
+<li><label><input type="checkbox" />Cross-cutting: single-canonical
+submodules, git-versioning, Constitution gates, design
+(X1–X4)</label></li>
+</ul>
+<hr />
+<p><em>Every task above closes only on produced, re-verified, positive
+evidence. Upstreams receive only green, verified state. This plan is
+updated as phases land.</em></p>
+</body>
+</html>

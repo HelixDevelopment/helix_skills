@@ -1,0 +1,3486 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc 3.10" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>GAPS_AND_RISKS_REGISTER</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">GAPS_AND_RISKS_REGISTER</h1>
+</header>
+<h1
+id="gaps_and_risks_register-helixknowledge-skill-graph-system">GAPS_AND_RISKS_REGISTER
+— HelixKnowledge Skill Graph System</h1>
+<p><strong>Revision:</strong> 10 <strong>Last modified:</strong>
+2026-07-18T06:30:00Z</p>
+<blockquote>
+<p>Adversarial audit satisfying operator mandate <strong>R17</strong>.
+Every row carries concrete <code>file:line</code> evidence
+(positive-evidence-only, R11). Anything not directly verified is
+labelled <strong>UNCONFIRMED</strong>. Audit date: 2026-07-15. Scope
+audited: <code>IMPLEMENTATION_PLAN.md</code>,
+<code>REQUIREMENTS.md</code>, <code>SPEC.md</code>,
+<code>api/openapi.yaml</code>, and the full <code>project/</code> Go
+backend (<code>github.com/helixdevelopment/skill-system</code>, 53
+<code>.go</code> files, 0 tests).</p>
+<p><strong>Method note:</strong>
+<code>go build</code>/<code>go vet</code> are reported green by the
+task; this audit did not re-run them. Findings are about <em>design,
+behaviour, wiring, security, and contract fidelity</em>, not
+compilation.</p>
+</blockquote>
+<h2 id="summary-counts-2026-07-18-rev-10-all-items-g01g137">Summary
+counts (2026-07-18 Rev 10 — all items G01–G137)</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Status</th>
+<th>Count</th>
+<th>IDs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>OPEN — CRITICAL</strong></td>
+<td>1</td>
+<td>G04</td>
+</tr>
+<tr>
+<td><strong>OPEN — HIGH</strong></td>
+<td>64</td>
+<td>G09, G10, G12, G14, G15, G40, G42, G43, G59, G63, G69–G92 (×24),
+G93–G122 (×30)</td>
+</tr>
+<tr>
+<td><strong>OPEN — MEDIUM</strong></td>
+<td>25</td>
+<td>G17, G18, G30, G44, G45, G47, G55, G56, G58, G60, G61, G66, G123,
+G124–G135 (×12)</td>
+</tr>
+<tr>
+<td><strong>OPEN — LOW</strong></td>
+<td>4</td>
+<td>G37, G62, G67, G68</td>
+</tr>
+<tr>
+<td><strong>FIXED</strong></td>
+<td>41</td>
+<td>G01, G02, G03, G05, G06, G07, G08, G11, G13, G16, G19, G20, G21,
+G22, G23, G24, G25, G26, G27, G28, G29, G31, G32, G33, G34, G35, G36,
+G38, G39, G41, G46, G48, G49, G51, G52, G53, G54, G57, G64, G65,
+G137</td>
+</tr>
+<tr>
+<td><strong>OPEN — CRITICAL</strong></td>
+<td>3</td>
+<td>G01, G03, G04</td>
+</tr>
+<tr>
+<td><strong>OPEN — HIGH</strong></td>
+<td>63</td>
+<td>G09, G10, G14, G15, G40, G42, G43, G59, G63, G69–G92 (×24), G93–G122
+(×30)</td>
+</tr>
+<tr>
+<td><strong>OPEN — MEDIUM</strong></td>
+<td>25</td>
+<td>G17, G18, G30, G44, G45, G47, G55, G56, G58, G60, G61, G66, G123,
+G124–G135 (×12)</td>
+</tr>
+<tr>
+<td><strong>OPEN — LOW</strong></td>
+<td>4</td>
+<td>G37, G62, G67, G68</td>
+</tr>
+<tr>
+<td><strong>FIXED</strong></td>
+<td>40</td>
+<td>G02, G05, G06, G07, G08, G11, G12, G13, G16, G19, G20, G21, G22,
+G23, G24, G25, G26, G27, G28, G29, G31, G32, G33, G34, G35, G36, G38,
+G39, G41, G46, G48, G49, G51, G52, G53, G54, G57, G64, G65, G137</td>
+</tr>
+<tr>
+<td><strong>OPEN — HIGH</strong></td>
+<td>63</td>
+<td>G09, G10, G12, G14, G15, G40, G42, G43, G63, G69–G92 (×24), G93–G122
+(×30)</td>
+</tr>
+<tr>
+<td><strong>OPEN — MEDIUM</strong></td>
+<td>24</td>
+<td>G17, G18, G30, G44, G45, G47, G55, G56, G58, G61, G66, G123,
+G124–G135 (×12)</td>
+</tr>
+<tr>
+<td><strong>OPEN — LOW</strong></td>
+<td>3</td>
+<td>G37, G67, G68</td>
+</tr>
+<tr>
+<td><strong>FIXED</strong></td>
+<td>43</td>
+<td>G02, G03, G05, G06, G07, G08, G11, G13, G16, G19, G20, G21, G22,
+G23, G24, G25, G26, G27, G28, G29, G31, G32, G33, G34, G35, G36, G38,
+G39, G41, G46, G48, G49, G51, G52, G53, G54, G57, G59, G60, G62, G64,
+G65, G137</td>
+</tr>
+<tr>
+<td><strong>N/A</strong></td>
+<td>1</td>
+<td>G136 (meta-assessment task itself)</td>
+</tr>
+<tr>
+<td><strong>TOTAL</strong></td>
+<td><strong>136</strong></td>
+<td>(G01–G135 + G137; G136 is the assessment task, deliberately
+unrated)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Register-cleanup note (2026-07-17 Rev 8):</strong>
+Field-verification pass against every per-item STATUS line. Corrections
+from Rev 7: - G43 was wrongly in FIXED row; moved to OPEN HIGH (per-item
+status: FILED, PENDING). - G19 (Fixed→SPEC.md), G20 (COMPLETED), G28
+(Implemented) were in OPEN MEDIUM but have Fixed per-item statuses;
+moved to FIXED. - G137 was in OPEN HIGH but has Fixed per-item status;
+moved to FIXED. - FIXED count corrected from 75→39 (Rev 7 count was
+inflated; only 39 items have Fixed/Implemented/Completed/CLOSED per-item
+STATUS lines). - OPEN HIGH corrected from 28→64 (G43 added; G137
+removed; range counts 24+30 = 54 from G69–G122 are correct). - OPEN
+MEDIUM corrected from 26→25 (G19, G20, G28 removed; G28 was missed in
+Rev 7’s count adjustment). - G58 remains a placeholder (Type: TBD,
+Status: UNCONFIRMED) — no real finding filed; conductor must investigate
+and create the actual finding. The Fixed row captures all items whose
+per-item STATUS line reads Fixed, Implemented, Completed, or CLOSED.
+Open-item severity rows contain only OPEN items. <strong>Open-total
+verification:</strong> 3+63+25+4 = 95 open + 40 fixed + 1 N/A = 136
+total. ✓</p>
+</blockquote>
+<blockquote>
+<p>Severities for G52–G137 are <strong>proposed</strong> per G136 — see
+<code>research/g136_severity_assessment.md</code> for the per-item
+evidence and rationale. These proposals supersede the 2026-07-16 “not
+yet folded” note and are now the working baseline for the register.
+Items marked CLOSED remain in the historical counts but carry explicit
+<code>(closed)</code> annotations in their status lines.</p>
+</blockquote>
+<h3
+id="headline-the-running-binary-is-not-the-auditedhardened-codebase">Headline:
+the running binary is not the audited/hardened codebase</h3>
+<p>The single most important structural finding is that
+<strong><code>cmd/server/main.go</code> runs its own ad-hoc API and
+never imports <code>internal/api</code>,
+<code>internal/validation</code>, or
+<code>internal/autoexpand</code>.</strong> The hardened, spec-shaped
+handlers (with API-key auth, strict CORS, the “zero-bluff” jury
+pipeline, and the auto-growth pipeline) all exist as source but are
+<strong>dead code / unwired</strong>. The R1 security fixes and the
+R2/R8/R11 flagship features are therefore present in the tree but absent
+from the artifact — a textbook §11.4.108 SOURCE≠RUNTIME gap. G01/G02/G03
+all flow from this.</p>
+<hr />
+<h2 id="critical">CRITICAL</h2>
+<h3
+id="g01-two-rival-api-servers-the-hardened-internalapi-is-unwired-dead-code-the-live-server-has-no-auth-wildcard-cors">G01
+— Two rival API servers; the hardened <code>internal/api</code> is
+unwired dead code, the live server has no auth + wildcard CORS</h3>
+<ul>
+<li><strong>Category:</strong> inconsistency / security</li>
+<li><strong>Severity:</strong> critical — the R1-mandated CORS + api_key
+fixes are <em>not in the running binary</em>; the live REST surface is
+unauthenticated.</li>
+<li><strong>Evidence:</strong>
+<ul>
+<li>Hardened server exists: <code>internal/api/server.go:82-210</code>
+(<code>Server</code>, <code>APIKeyAuth</code>, strict
+<code>CORS</code>), <code>internal/api/middleware.go:280-310</code>
+(<code>APIKeyAuth</code>),
+<code>internal/api/middleware.go:328-387</code> (allowlist
+<code>CORS</code>), <code>internal/api/skills_handler.go</code> (full
+CRUD).</li>
+<li><code>internal/api</code> has <strong>zero importers</strong>
+(<code>grep -rln skill-system/internal/api</code> → no match).</li>
+<li>The actually-run server is <code>cmd/server/main.go:140-283</code>
+<code>setupAPI()</code>, which builds a <em>second</em> Gin router with
+its own <code>corsMiddleware()</code> that sets
+<code>Access-Control-Allow-Origin: *</code>
+<strong>unconditionally</strong>
+(<code>cmd/server/main.go:362-373</code>) and applies <strong>no API-key
+auth</strong> anywhere.</li>
+<li>Even the hardened path is fail-open: auth is applied only
+<code>if len(s.cfg.APIKeys) &gt; 0</code>
+(<code>internal/api/server.go:163</code>) — empty key set ⇒ all
+<code>/api/v1</code> open.</li>
+</ul></li>
+<li><strong>Why it matters:</strong> OpenAPI declares
+<code>ApiKeyAuth</code> on every endpoint; the deployed server enforces
+none. Anyone who can reach the port can read/write. It also means the
+“security clean” P0.T2 gate is satisfiable only against dead code — an
+anti-bluff (R11) hazard.</li>
+<li><strong>DECISION:</strong> Delete the <code>setupAPI()</code> router
+in <code>cmd/server/main.go</code>; wire
+<code>internal/api.Server</code> as the single REST surface, constructed
+with a real <code>Pool</code> adapter. Make auth
+<strong>fail-closed</strong>: if no keys configured, refuse to start (or
+bind loopback-only) rather than serve open. <strong>Alternatives
+rejected:</strong> (a) keep both and “pick at runtime” — guarantees
+drift and was the exact R1 dedupe smell; (b) add auth to the ad-hoc
+router — duplicates the hardened logic a third time.</li>
+<li><strong>STATUS (2026-07-18) — FIXED:</strong> Runtime security hole
+closed (2026-07-15, Fable-xhigh GO). Dead-server consolidation completed
+(2026-07-18): removed 6 dead handler files
+(<code>skills_handler.go</code>, <code>expand_handler.go</code>,
+<code>learn_handler.go</code>, <code>registry_handler.go</code>,
+<code>search_handler.go</code>, <code>server.go</code>) + dead
+<code>*Server</code> methods from <code>system_handler.go</code> — total
+-1826 lines. Alive standalone functions (<code>parseRequestBody</code>,
+<code>convertTOMLWrapper</code>, <code>exportToTOMLWrapper</code>,
+<code>MetricsHandler</code>, <code>VersionHandler</code>, etc.)
+extracted to <code>request_helpers.go</code>. <code>internal/api</code>
+coverage improved from 41.6% to 59.8%. Per §11.4.124: verified via grep
+that <code>Server</code> had zero non-test callers; all handler methods
+were only wired in dead <code>Server.RegisterHandlers()</code>. Full
+test suite 27/27 packages GREEN.</li>
+<li><strong>Test coverage:</strong> integration (auth 401 on
+missing/invalid key, fail-closed on empty key set), security (disallowed
+Origin gets no ACAO header; wildcard never co-occurs with credentials),
+contract (routes == OpenAPI), regression, smoke, mutation (reintroduce
+reflect-origin / drop auth → test fails). <strong>Challenges:</strong>
+yes (end-to-end unauthorised-access probe). <strong>HelixQA:</strong>
+yes.</li>
+</ul>
+<h3
+id="g02-the-sandbox-provides-no-isolation-default-path-executes-arbitrary-skill-code-on-the-host-rce-with-false-security-claims">G02
+— The “sandbox” provides no isolation: default path executes arbitrary
+skill code on the host (RCE), with false security claims</h3>
+<ul>
+<li><strong>Category:</strong> security / danger-zone</li>
+<li><strong>Severity:</strong> critical — latent (see reachability) but
+a full remote-code-execution primitive by design.</li>
+<li><strong>Evidence:</strong>
+<ul>
+<li>Default <code>sandbox_type = "wasm"</code>
+(<code>internal/config/config.go:179</code>,
+<code>config/config.toml</code>), and <code>createDefaultSandbox</code>
+maps <code>wasm</code>→<code>NewWASMSandbox</code>
+(<code>internal/validation/pipeline.go:121-135</code>).</li>
+<li>When no WASM runtime is found (the default on a bare host)
+<code>Execute</code> falls through to <code>executeProcess</code>, which
+runs code via the host interpreter: <code>python -c</code>,
+<code>bash -c</code>, <code>node -e</code>
+(<code>internal/validation/sandbox.go:86-105</code>,
+<code>206-290</code>, dispatch <code>237-245</code>). The Go path is
+literally <code>go run</code> on the host
+(<code>sandbox.go:143-203</code>).</li>
+<li>Isolation claims are false: the “restrict network” comment sets
+<code>LD_PRELOAD=</code> (<code>sandbox.go:257-260</code>), which does
+nothing to network; there is no seccomp/namespace/cgroup. Comment even
+admits “In production, this would use a proper WASM compiler service”
+(<code>sandbox.go:118-120</code>).</li>
+<li>The pipeline runs <strong>every fenced code block in skill markdown
+content</strong> regardless of language
+(<code>internal/validation/pipeline.go:336-374</code>,
+<code>extractCodeBlocks:383-420</code>) — documentation snippets get
+executed.</li>
+<li><strong>Reachability (honest boundary):</strong> currently
+<em>latent</em> because <code>internal/validation</code> has zero
+importers (see G03); it becomes live the moment P4 wires
+<code>Validate()</code> into the create/expand/MCP paths (which the plan
+intends). A skill body is fully attacker-controllable via
+<code>POST /skills</code> and MCP <code>skill_create</code>.</li>
+</ul></li>
+<li><strong>Why it matters:</strong> “sandbox validation” that runs
+untrusted input on the host, unauthenticated (G01), is the worst-case
+security defect; the naming is itself an anti-bluff violation
+(R11).</li>
+<li><strong>DECISION:</strong> Before wiring P4, replace the
+process-fallback with a real isolation boundary (rootless Podman/gVisor
+per Constitution §11.4.161, or a true WASM runtime with
+<code>wasmtime</code>), and <strong>fail-closed</strong>: if no isolated
+runtime is available, <code>SKIP</code> with reason — never silently
+execute on the host. Do <strong>not</strong> execute arbitrary
+documentation code blocks; only execute snippets explicitly tagged as
+runnable POCs. Delete the <code>LD_PRELOAD</code> “network restriction”
+line. <strong>Alternatives rejected:</strong> (a) keep process fallback
+“for dev” — one config typo = host RCE; (b) drop code execution entirely
+— loses the P4.T3 sandbox gate the zero-bluff pipeline needs.</li>
+<li><strong>Test coverage:</strong> security (network-egress attempt
+from snippet is blocked; filesystem write outside sandbox blocked;
+<code>fork</code>/resource limits enforced), integration (no-runtime ⇒
+SKIP not execute), fuzz (malicious snippet corpus), mutation (remove
+isolation flag → egress test fails), regression.
+<strong>Challenges:</strong> yes (escape-attempt bank).
+<strong>HelixQA:</strong> yes.</li>
+<li><strong>STATUS (2026-07-16):</strong>
+<code>Fixed (→ Fixed.md)</code> — <code>2befa77</code>. Mechanism: host
+code-execution DELETED BY CONSTRUCTION (no
+<code>os/exec</code>/<code>executeProcess</code>/<code>executeGoSnippet</code>/<code>WASMSandbox</code>/<code>LD_PRELOAD</code>
+remain; <code>StaticValidator</code> parses in-process only) —
+<strong>not</strong> that sandbox/WASM/Podman isolation was built. This
+closes G02 via a different mechanism than this item’s own DECISION text
+(a real isolation boundary); the effect is equivalent-or-stronger for
+the stated host-RCE risk since host execution no longer exists at
+all.</li>
+</ul>
+<h3
+id="g03-flagship-pipelines-are-dead-code-internalvalidation-jury-and-internalautoexpand-auto-growth-are-never-instantiated-worker-handlers-are-stubs">G03
+— Flagship pipelines are dead code: <code>internal/validation</code>
+(jury) and <code>internal/autoexpand</code> (auto-growth) are never
+instantiated; worker handlers are stubs</h3>
+<ul>
+<li><strong>Category:</strong> gap</li>
+<li><strong>Severity:</strong> critical — R2 (dynamic creation), R8/R11
+(zero-bluff validation), and the founding “central registrar +
+fully-automatic auto-growth jury” are unbuilt in the running
+system.</li>
+<li><strong>Evidence (as originally audited, 2026-07-15; see the dated
+STATUS note below for what this changed):</strong>
+<ul>
+<li><code>grep -rln skill-system/internal/validation</code> → <strong>no
+match</strong>; <code>grep -rln skill-system/internal/autoexpand</code>
+→ <strong>no match</strong>. Neither <code>NewPipeline</code> is ever
+called. <em>(The <code>internal/autoexpand</code> half of this claim is
+superseded — see STATUS below; the <code>internal/validation</code> half
+was not touched by this fix round and is not re-audited here.)</em></li>
+<li>Worker “handlers” are explicit stubs:
+<code>internal/worker/runner.go:317</code>
+(<code>// Job handlers (stub implementations…)</code>),
+<code>handleAutoExpand</code> returns <code>Success:true</code> with no
+work (<code>runner.go:320-335</code>), <code>handleValidate</code>
+likewise (<code>runner.go:337-349</code>),
+<code>handleCodeAnalysis</code> likewise
+(<code>runner.go:351-363</code>). <em>(<code>handleAutoExpand</code> is
+superseded — see STATUS below;
+<code>handleValidate</code>/<code>handleCodeAnalysis</code> remain
+accurate in substance, current-tree line numbers
+<code>runner.go:589-601</code>/<code>runner.go:603-615</code>, banner
+comment now at <code>runner.go:543</code>.)</em></li>
+<li>The worker <em>cycles</em> only log: <code>runAutoExpandCycle</code>
+iterates and increments a counter but creates nothing
+(<code>runner.go:440-481</code>); <code>runValidationCycle</code> only
+logs (<code>runner.go:483-507</code>). <em>(Still accurate; current-tree
+line numbers <code>runner.go:692-733</code> /
+<code>runner.go:735-759</code> respectively — both shifted by the same
+fix round that landed <code>handleAutoExpand</code>, see STATUS
+below.)</em></li>
+<li>The stub comments assert work that never happens (“Actual expansion
+is done by the autoExpandWorker polling loop”,
+<code>runner.go:332</code>; “Actual validation is done by the
+validationWorker”, <code>runner.go:347</code>) — bluff-comments (R11).
+<em>(The “Actual expansion…” bluff-comment for
+<code>handleAutoExpand</code> is REMOVED — see STATUS below. The “Actual
+validation is done by the validationWorker” bluff-comment for
+<code>handleValidate</code> remains, current-tree line
+<code>runner.go:599</code> — still false:
+<code>runValidationCycle</code> only logs, it does not
+validate.)</em></li>
+</ul></li>
+<li><strong>Why it matters:</strong> every skill created (REST or MCP)
+is written straight to the DB as <code>draft</code> with
+<strong>no</strong> resource-verify / sandbox / jury / cross-ref. The
+“zero-bluff guarantee”
+(<code>internal/validation/pipeline.go:1-4</code>) is not in force
+anywhere.</li>
+<li><strong>DECISION:</strong> Wire
+<code>validation.Pipeline.Validate</code> and
+<code>autoexpand.Pipeline.Run</code> into the worker’s real
+<code>handleValidate</code>/<code>handleAutoExpand</code> and into the
+create path; delete the stub comments; the worker cycles must call the
+pipelines, not log. Gate a “no skill reaches
+<code>validated</code>/<code>active</code> without a recorded jury
+verdict” invariant. <strong>Alternatives rejected:</strong> leaving
+pipelines as libraries “to be wired later” is the §11.4.197
+un-wired-research failure the Constitution forbids.</li>
+<li><strong>Test coverage:</strong> unit (pipeline stage state machine),
+integration (draft → jury → merge on real DB), e2e (create → validated
+only after ≥2 approvals), mutation (a fabricated skill must be rejected;
+strip a stage → test fails), regression. <strong>Challenges:</strong>
+yes (fabricated-skill-must-fail). <strong>HelixQA:</strong> yes
+(autonomous QA session over the pipeline).</li>
+<li><strong>STATUS (2026-07-17):</strong> FULLY LANDED — all three G03
+dispatch paths are now wired end-to-end:
+<ol type="1">
+<li><strong>Job-queue path</strong>: <code>handleAutoExpand</code>
+(<code>runner.go</code>) dispatches through
+<code>r.autoexpand.Run(...)</code>; <code>handleValidate</code>
+dispatches through <code>r.validator.Validate(...)</code>;
+<code>handleCodeAnalysis</code> dispatches through
+<code>r.codeAnalyzer.AnalyzeProject(...)</code>.</li>
+<li><strong>Auto-expand ticker cycle</strong>:
+<code>runAutoExpandCycle</code> now dispatches through
+<code>r.autoexpand.Run()</code> for each gap found (was log-only).</li>
+<li><strong>Validation ticker cycle</strong>:
+<code>runValidationCycle</code> now dispatches through
+<code>r.validator.Validate()</code> AND promotes validated skills to
+active via the new <code>store.UpdateStatus</code> method (was log-only
+with a TODO for promotion).</li>
+</ol>
+<ul>
+<li><code>store.UpdateStatus</code> method added — transactional status
+change with audit log, used by validation worker to promote skills draft
+→ active after passing all stages.</li>
+<li>Worker embedder seam wired (prior round) — <code>NewRunner</code>
+calls <code>db.NewEmbedderFromConfig(cfg.Embedding)</code> and passes to
+both <code>store.WithEmbedder(emb)</code> and
+<code>autoexpand.NewPipeline(store, aeEmbedder, ...)</code>.</li>
+<li><code>DraftSkill</code> drafts via provider-agnostic
+<code>generateSkillDraft</code> (prior round).</li>
+<li><strong>Remaining G03 items</strong>:
+<code>autoexpand.Pipeline.Run</code>’s own top-level gap-detection is
+structurally inert against any graph the store API constructs (tracked
+as G137); <code>internal/validation</code> package’s own internal gaps
+tracked separately.</li>
+</ul></li>
+</ul>
+<h3
+id="g04-zero-automated-tests-exist-the-r1-security-fixes-and-every-behaviour-have-no-proof">G04
+— Zero automated tests exist; the R1 security fixes and every behaviour
+have no proof</h3>
+<ul>
+<li><strong>Category:</strong> test-coverage</li>
+<li><strong>Severity:</strong> critical — direct violation of R8 (~100%
+across 13 test types + Challenges + HelixQA) and R11 (positive evidence
+only).</li>
+<li><strong>Evidence:</strong>
+<code>find project -name '*_test.go'</code> → <strong>0 files</strong>.
+The CORS allowlist (<code>middleware.go:328-387</code>) and api_key
+redaction/removal (<code>middleware.go:230-250</code>,
+<code>287-292</code>) compile but have <strong>no</strong> behavioural
+test. <code>IMPLEMENTATION_PLAN.md:117</code> (P0.T2) <em>promises</em>
+such a test; none exists. <code>REQUIREMENTS.md:113</code> records “0
+tests”.</li>
+<li><strong>Why it matters:</strong> every “green” claim is unbacked;
+regressions are undetectable; the anti-bluff covenant is unmet at the
+test layer.</li>
+<li><strong>DECISION:</strong> Land P0.T3 test bootstrap first, then
+per-package tables with paired mutations (§1.1) as each package is
+wired, starting with the security middleware (behavioural proof:
+disallowed origin rejected, credentials never with <code>*</code>,
+api_key never logged) and the DAG/graph correctness. Coverage gate in
+CI. <strong>Alternatives rejected:</strong> deferring tests to a final
+P11 phase — the plan already forbids this
+(<code>IMPLEMENTATION_PLAN.md:328</code>); untested code has been
+shipping bugs G06/G07/G11.</li>
+<li><strong>Test coverage:</strong> all 13 types are the deliverable
+here; prioritise unit + integration + contract + security + mutation
+first. <strong>Challenges:</strong> yes. <strong>HelixQA:</strong>
+yes.</li>
+</ul>
+<hr />
+<h2 id="high">HIGH</h2>
+<h3
+id="g05-llmjury-auto-approves-when-no-jury-is-configured-default-state">G05
+— <code>LLMJury</code> auto-approves when no jury is configured (default
+state)</h3>
+<ul>
+<li><strong>Category:</strong> danger-zone /
+security-of-correctness</li>
+<li><strong>Severity:</strong> high — the zero-bluff gate defaults to
+“approve everything”.</li>
+<li><strong>Evidence:</strong>
+<code>internal/validation/pipeline.go:428-439</code> —
+<code>if len(p.jury) == 0 { … Consensus: true … "no jury configured, auto-approved" }</code>.
+No <code>ModelProvider</code> chain exists yet (P3 unbuilt), so the jury
+slice is empty by default.</li>
+<li><strong>Why it matters:</strong> contradicts the founding “LLM jury
+(≥2 approvals)” and R11. A fabricated skill would pass the jury stage
+unconditionally.</li>
+<li><strong>DECISION:</strong> Fail-closed — an empty jury when
+<code>validation.enabled</code> is a hard error (or forces
+<code>require_human_review</code>), never an auto-pass. Require
+<code>approval_threshold ≥ 2</code> real votes. <strong>Alternatives
+rejected:</strong> “auto-pass in dev” — same bluff class as G02’s
+process fallback.</li>
+<li><strong>Test coverage:</strong> unit (empty jury ⇒ fail/blocked, not
+pass), integration (2-of-3 real approvals required), mutation (flip
+auto-pass back → test fails). <strong>Challenges:</strong> yes.
+<strong>HelixQA:</strong> yes.</li>
+<li><strong>STATUS (2026-07-16):</strong>
+<code>Fixed (→ Fixed.md)</code> — <code>2befa77</code>. LLM jury now
+fails CLOSED (empty jury BLOCKS, never auto-approves); two-factor
+consensus, both factors tested.</li>
+</ul>
+<h3
+id="g06-getdependencytree-returns-only-depth-1-children-recursive-tree-truncated">G06
+— <code>GetDependencyTree</code> returns only depth-1 children
+(recursive tree truncated)</h3>
+<ul>
+<li><strong>STATUS (2026-07-16):</strong>
+<code>Fixed (→ Fixed.md)</code> — <code>186e047</code>. Recursive
+cycle-guarded <code>GetDependencyTree</code> + MCP wire-in landed
+(supersedes the 2026-07-15 DESIGN DONE/Go-impl-PENDING note; design doc
+<code>research/g06_g07_skilltree_dag_design.md</code> preserved for
+history).</li>
+<li><strong>Category:</strong> existing-bug</li>
+<li><strong>Severity:</strong> high — the core “recursive dependency
+DAG” feature is broken; REST <code>/skills/:id/tree</code> and MCP
+<code>skill_tree</code> both under-report.</li>
+<li><strong>Evidence:</strong>
+<code>internal/skill/graph.go:280-307</code> builds
+<code>childrenMap</code> for all depths but attaches
+<strong>only</strong>
+<code>root.Children = childrenMap[rootSkill.ID]</code>
+(<code>graph.go:306</code>); grandchildren <code>Children</code> are
+never populated. MCP’s recursive serializer
+(<code>internal/mcp/tools.go:226-246</code>) therefore also emits a
+1-level tree despite recursing. Contrast <code>GetAllDependencies</code>
+(<code>graph.go:347-371</code>) which is correct (flat closure).</li>
+<li><strong>Why it matters:</strong> the founding requirement is
+“endless, deeply-recursive skill branching”; the tree API silently
+returns a shallow slice — wrong results presented as complete.</li>
+<li><strong>DECISION:</strong> Assemble the full tree from
+<code>childrenMap</code> recursively (attach children to every node by
+ID, cycle-guarded), or select <code>parent skill_id</code> in the CTE
+and build the tree in one pass. Add depth + cycle tests on the seed
+corpus. <strong>Alternatives rejected:</strong> documenting it as
+“direct deps only” — contradicts the API contract
+(<code>api/openapi.yaml:1355-1370</code> <code>SkillTreeNode</code> is
+recursive).</li>
+<li><strong>Test coverage:</strong> unit (tree assembly), integration
+(seed android closure returns known N-level tree), property (tree node
+count == closure size), regression, mutation (revert to depth-1 → test
+fails). <strong>Challenges:</strong> yes.</li>
+</ul>
+<h3
+id="g07-tomljson-dependencyresource-round-trip-is-broken-edges-silently-dropped-on-import">G07
+— TOML/JSON dependency+resource round-trip is broken (edges silently
+dropped on import)</h3>
+<ul>
+<li><strong>STATUS (2026-07-16):</strong>
+<code>Fixed (→ Fixed.md)</code> — <code>073192f</code>. Full 6-type TOML
+dependency/resource round-trip landed, no-silent-loss + strict-decode
+(supersedes the 2026-07-15 DESIGN DONE/Go-impl-PENDING note; design doc
+<code>research/g06_g07_skilltree_dag_design.md</code> preserved for
+history).</li>
+<li><strong>Category:</strong> existing-bug</li>
+<li><strong>Severity:</strong> high — breaks R14 git-versionable
+round-trip and the R6 wizard’s DAG mapping.</li>
+<li><strong>Evidence:</strong>
+<ul>
+<li>REST <code>POST /skills</code> discards <code>req.Deps</code> and
+<code>req.Resources</code> entirely — the built
+<code>models.Skill</code> sets only scalar fields
+(<code>internal/api/skills_handler.go:165-176</code>);
+<code>CreateDepsRequest</code>/<code>CreateResourceReq</code>
+(<code>skills_handler.go:33-45</code>) are parsed then ignored.</li>
+<li>REST import: <code>convertTOMLWrapper</code> creates
+<code>SkillDependency{RelationType:…}</code> but <strong>never sets
+<code>DependsOnName</code>/<code>DependsOn</code></strong> — the target
+name is thrown away (<code>skills_handler.go:548-565</code>, literally
+<code>_ = depName // placeholder for resolution</code>).</li>
+<li>Export <em>does</em> write <code>DependsOnName</code>
+(<code>skills_handler.go:611-616</code>), so export→import is
+non-idempotent: names go out, come back empty.</li>
+<li><strong>UNCONFIRMED:</strong> the MCP create path uses
+<code>skillStore.ImportFromTOML</code>
+(<code>internal/mcp/tools.go:275</code>), a different function in
+<code>internal/skill/import_export.go</code> not read in this pass —
+needs verification that it preserves edge names.</li>
+</ul></li>
+<li><strong>Why it matters:</strong> a skill graph whose <em>edges</em>
+vanish on ingest cannot resolve dependencies, run the recursive CTE, or
+drive the wizard; the DB drifts from the git-versioned TOML source of
+truth.</li>
+<li><strong>DECISION:</strong> Resolve dependency names → IDs at
+create/import (insert edges via <code>Store.AddDependency</code>, which
+already validates + cycle-checks, <code>graph.go:21-96</code>); persist
+resources; make export→import a proven identity round-trip.
+<strong>Alternatives rejected:</strong> deferring edge resolution to a
+later “linker” pass — leaves the graph disconnected in the interim and
+hides the drift.</li>
+<li><strong>Test coverage:</strong> unit (convertTOMLWrapper preserves
+names), integration (create with deps → edges in DB),
+property/round-trip (export→import→export byte-stable), contract,
+mutation (drop <code>DependsOnName</code> → round-trip test fails).
+<strong>Challenges:</strong> yes. <strong>HelixQA:</strong> yes.</li>
+</ul>
+<h3
+id="g08-no-toon-codec-exists-wire-format-mandate-unmet-openapi-still-on-jsontoml">G08
+— No TOON codec exists; wire format mandate unmet; OpenAPI still on
+JSON+TOML</h3>
+<ul>
+<li><strong>Category:</strong> gap / spec-drift</li>
+<li><strong>Severity:</strong> high — R/founding mandate “TOON primary +
+JSON fallback”; danger-zone #2 (silent fallback).</li>
+<li><strong>Evidence:</strong>
+<code>grep -rin toon --include='*.go'</code> → <strong>0
+matches</strong> in the whole backend. Content negotiation only knows
+JSON/TOML (<code>internal/api/middleware.go:114-148</code>,
+<code>response.go</code>). <code>api/openapi.yaml</code> still
+advertises <code>application/json</code> + <code>application/toml</code>
+throughout (e.g. <code>openapi.yaml:21-29</code>, <code>111-113</code>,
+<code>1043-1051</code>), never <code>application/toon</code>.
+<code>IMPLEMENTATION_PLAN.md:335</code> flags the exact risk;
+P1.T2/P7.T4 are queued not done.</li>
+<li><strong>Why it matters:</strong> clients told to expect TOON will
+get TOML/JSON with no signal — the silent-fallback bluff the plan warns
+about.</li>
+<li><strong>DECISION:</strong> Implement/vendor a spec-conformant Go
+TOON codec (<code>github.com/toon-format/toon</code>) with its own
+golden test vectors before advertising <code>application/toon</code>;
+until it exists, the API MUST NOT claim TOON. Revise
+<code>openapi.yaml</code> content-negotiation in the same change
+(P7.T4). <strong>Alternatives rejected:</strong> “interpret TOON as
+TOML” — explicitly superseded (<code>REQUIREMENTS.md:38-40</code>).</li>
+<li><strong>Test coverage:</strong> unit (round-trip
+struct→TOON→struct), contract (golden TOON fixtures byte-for-byte),
+integration (<code>Accept: application/toon</code> returns TOON; unknown
+→ JSON fallback with correct <code>Content-Type</code>), fuzz (malformed
+TOON rejected), mutation (swap codec to JSON → golden test fails).
+<strong>Challenges:</strong> yes.</li>
+<li><strong>STATUS (2026-07-16):</strong>
+<code>Implemented (→ Fixed.md)</code> — <code>2785e11</code>. TOON codec
++ <code>application/toon</code> content negotiation landed.</li>
+</ul>
+<h3
+id="g09-pervasive-openapi-implementation-drift-most-documented-endpoints-are-unimplemented-or-differently-shaped">G09
+— Pervasive OpenAPI ↔︎ implementation drift; most documented endpoints
+are unimplemented or differently shaped</h3>
+<ul>
+<li><strong>Category:</strong> spec-drift</li>
+<li><strong>Severity:</strong> high — the contract is the “single source
+of truth” for R3 thin clients (<code>REQUIREMENTS.md:156</code>);
+clients generated from it will not work.</li>
+<li><strong>Evidence (spec → live route in
+<code>cmd/server/main.go:169-243</code>):</strong>
+<ul>
+<li><code>POST /search</code> (<code>openapi.yaml:506-516</code>) → live
+is <code>GET /api/v1/skills/search?q=</code> (<code>main.go:182</code>).
+Also the hardened <code>internal/api/server.go:182</code> registers
+<code>GET /search</code> — both disagree with the POST spec.</li>
+<li><code>GET /registry/missing</code> (<code>openapi.yaml:610</code>) →
+hardened route is <code>GET /registry/missing-deps/:id</code>
+(<code>internal/api/server.go:189</code>); live server has
+<code>GET /api/v1/missing</code> (<code>main.go:234</code>).</li>
+<li><code>POST /expand/{name}</code> (<code>openapi.yaml:703</code>) →
+hardened <code>POST /expand</code> no name param
+(<code>server.go:198</code>); live server has <strong>no</strong> expand
+route at all.</li>
+<li><code>POST /learn</code> + <code>GET /evidences/{skill_name}</code>
+(<code>openapi.yaml:807, 874</code>) → hardened
+<code>POST /learn/projects</code>,
+<code>GET /learn/evidences/:skill_id</code>
+(<code>server.go:206-208</code>); live server has neither.</li>
+<li><code>/health</code>, <code>/metrics</code>, <code>/version</code>
+are documented under <code>/api/v1</code> with <code>ApiKeyAuth</code> +
+401 (<code>openapi.yaml:36, 913-972</code>) but live are top-level and
+unauthenticated (<code>main.go:151</code>,
+<code>server.go:155-157</code>).</li>
+<li>Live server implements only list/search/get/tree/coverage/missing
+(<code>main.go:170-243</code>) — no create/update/delete/import/export
+via REST.</li>
+</ul></li>
+<li><strong>Why it matters:</strong> contract-first codegen (P8) will
+produce clients calling endpoints that 404 or expect the wrong
+verb/shape.</li>
+<li><strong>DECISION:</strong> Treat <code>openapi.yaml</code> as
+authoritative, regenerate handlers/routes to match, and add a
+contract-test gate (schema-validate every response, assert route table
+== spec) that fails CI on drift. Do this <strong>after</strong> G01
+collapses to one server. <strong>Alternatives rejected:</strong>
+hand-syncing docs to code — drift returns immediately without a
+gate.</li>
+<li><strong>Test coverage:</strong> contract (spec-validation per
+endpoint + route-parity), integration, regression, smoke, mutation
+(rename a route → parity test fails). <strong>Challenges:</strong> yes.
+<strong>HelixQA:</strong> yes.</li>
+</ul>
+<h3
+id="g10-embedding-dimension-no-modelcolumn-assertion-vector768-hard-coded-openai-vector-length-unchecked-non-openailocal-providers-unsupported">G10
+— Embedding dimension: no model↔︎column assertion;
+<code>vector(768)</code> hard-coded; OpenAI vector length unchecked;
+non-openai/local providers unsupported</h3>
+<ul>
+<li><strong>STATUS (2026-07-15):</strong> DESIGN DONE + spot-verified vs
+<code>255061b</code> (<code>vector(768)</code> hard-coded at
+<code>001_initial.up.sql:14</code>) →
+<code>research/g10_embedding_provider_design.md</code> (23 tests; also
+covers G27 <code>EmbedAsync</code>/<code>sanitizeTableName</code>).
+Decision = <code>(provider,model)→dim</code> registry + fail-closed
+boot-time <code>AssertEmbeddingDimension</code> (§11.4.201) + templated
+<code>vector(N)</code> + OpenAI length check +
+<code>validateTableName</code> reject-not-strip. Go impl PENDING — needs
+embedder-construction wiring (<code>cmd/*</code>); composes P1.T1
+additively (zero embedding-DDL overlap).</li>
+<li><strong>Category:</strong> danger-zone / inconsistency</li>
+<li><strong>Severity:</strong> high — the 768/1536/384 conflict is
+“resolved” only by two unenforced constants that can silently disagree
+at runtime.</li>
+<li><strong>Evidence:</strong>
+<ul>
+<li>SQL columns hard-code <code>vector(768)</code>
+(<code>migrations/001_initial.up.sql:14, 60</code>); config default
+<code>Dimensions: 768</code>
+(<code>internal/config/config.go:174</code>). They agree <strong>by
+coincidence</strong>, not by construction — the migration is not
+templated from config.</li>
+<li>No startup assertion that
+<code>embedder.Dimensions() == column dim</code> exists (danger-zone #3,
+<code>IMPLEMENTATION_PLAN.md:336</code>, is unmet).
+<code>config.validate</code> only checks <code>dimensions &gt; 0</code>
+(<code>config.go:407-409</code>).</li>
+<li><code>OpenAIEmbedder.Embed</code> never verifies the returned vector
+length equals <code>e.dimensions</code>
+(<code>internal/db/embedding.go:124-143</code>) — contrast
+<code>LocalEmbedder</code> which does
+(<code>embedding.go:257-262</code>). A model returning 1536 will be
+handed to a <code>vector(768)</code> insert → runtime failure.</li>
+<li><code>NewEmbedderFromConfig</code> supports only
+<code>"openai"</code>/<code>"local"</code>
+(<code>embedding.go:294-308</code>), but <code>SPEC.md:396</code> config
+lists <code>anthropic</code> and R7 mandates HelixLLM/LLMsVerifier
+providers — those configs error at startup.</li>
+</ul></li>
+<li><strong>Why it matters:</strong> a single config edit
+(e.g. switching to a 1536-native model) produces opaque insert failures;
+the blueprint’s 1536 assumption is silently incompatible.</li>
+<li><strong>DECISION:</strong> Pin <strong>768</strong> as the shipped
+default (matches SPEC + current column + research “sweet spot”,
+<code>SPEC.md:12</code>); make <code>vector(N)</code> a migration
+parameter driven by <code>config.embedding.dimensions</code>; add a
+<strong>startup assertion</strong> that queries
+<code>information_schema</code>/<code>pg_attribute</code> for the
+column’s declared dim and fails fast on mismatch; add an OpenAI
+response-length check; extend the provider factory for
+HelixLLM/OpenAI-compatible providers (R7). <strong>Alternatives
+rejected:</strong> (a) support all dims live via runtime re-index —
+expensive, out of MVP scope; (b) leave 768 hard-coded and undocumented —
+reproduces the drift.</li>
+<li><strong>Test coverage:</strong> unit (provider factory
+incl. helixllm; OpenAI length mismatch rejected), integration (startup
+fails on dim mismatch; correct dim inserts), contract (config schema),
+mutation (change column to 1536, keep config 768 → startup assertion
+fails). <strong>Challenges:</strong> yes.</li>
+</ul>
+<h3
+id="g11-worker-does-no-real-work-and-can-panic-the-process-unchecked-type-assertions-in-a-recover-less-goroutine">G11
+— Worker does no real work and can panic the process (unchecked type
+assertions in a recover-less goroutine)</h3>
+<ul>
+<li><strong>STATUS (2026-07-16):</strong>
+<code>Fixed (→ Fixed.md)</code> — <code>0e255b4</code>. Worker panic
+firewall landed (recover + backoff-restart wrapper on every worker
+goroutine + per-job firewall); supersedes the 2026-07-15 DESIGN
+DONE/Go-impl-PENDING note (design doc
+<code>research/g11_worker_design.md</code> preserved for history).</li>
+<li><strong>Category:</strong> existing-bug / gap</li>
+<li><strong>Severity:</strong> high — background
+auto-growth/validation/review are non-functional; a crash vector
+exists.</li>
+<li><strong>Evidence:</strong> stubs at
+<code>internal/worker/runner.go:317-368</code>; cycles that only log
+(<code>runner.go:440-507</code>). <code>runRegistryReview</code> does
+<code>coverage["total_skills"].(int)</code> and
+<code>coverage["coverage_percentage"].(string)</code>
+(<code>runner.go:518-519</code>) — unchecked assertions; if
+<code>GetCoverage</code> returns a differently-typed/absent key the
+goroutine panics, and worker goroutines have <strong>no
+<code>recover()</code></strong> (<code>runner.go:375-434</code>), so the
+process dies. (The API <code>Recovery()</code> middleware,
+<code>middleware.go:254-276</code>, does not cover worker
+goroutines.)</li>
+<li><strong>Why it matters:</strong> the “central registrar +
+fully-automatic auto-growth” is the product’s core promise (R2) and it
+is inert; the panic risk turns a data-shape change into an outage.</li>
+<li><strong>DECISION:</strong> Implement the handlers/cycles against
+<code>autoexpand</code>/<code>validation</code> (see G03); replace
+unchecked assertions with comma-ok + typed struct returns from
+<code>GetCoverage</code>; add a <code>recover()</code> + restart wrapper
+around every worker goroutine. <strong>Alternatives rejected:</strong>
+keeping stubs “until P4/P5” — un-wired-research (§11.4.197) and the
+panic ships regardless.</li>
+<li><strong>Test coverage:</strong> unit (cycle calls pipeline; coverage
+type-safety), integration (worker creates a real skill from a seeded
+gap), chaos (malformed coverage map ⇒ logged error not panic), mutation
+(reintroduce bare assertion → panic test fails).
+<strong>Challenges:</strong> yes. <strong>HelixQA:</strong> yes.</li>
+</ul>
+<h3
+id="g12-tree-sitter-is-a-stub-native-parsing-always-fails-regex-only-kotlinc-unsupported-despite-being-configured">G12
+— tree-sitter is a stub: native parsing always fails; regex-only;
+Kotlin/C# unsupported despite being configured</h3>
+<ul>
+<li><strong>STATUS (2026-07-17):</strong> COMPLETED — CGO/native
+tree-sitter split landed (<code>4f5fdd5</code>).
+<code>treesitter_native.go</code> (584 lines,
+<code>//go:build cgo</code>) implements real native parsing via
+<code>github.com/tree-sitter/go-tree-sitter</code> with grammars for Go,
+Python, Java, JavaScript, C, C++, Rust, C#, and Kotlin.
+<code>treesitter_native_stub.go</code> (<code>//go:build !cgo</code>)
+preserves the regex-only fallback. <code>cgoAvailable</code>
+package-level var replaces the old <code>cgoEnabled()</code> stub.
+<code>initNativeParser</code> now constructs real
+<code>sitter.Parser</code> + sets language via grammar module’s
+<code>Language()</code>. <code>parseNative</code> builds real AST
+(<code>Tree.Root</code> with <code>TSNode</code> tree).
+<code>extractImportsNative</code>/<code>extractFunctionsNative</code>/<code>extractClassesNative</code>
+walk the real AST via tree-sitter queries. <code>FidelityNative</code>
+set on all native-parse results. All 13 tests pass (including #6 CGO
+native path — now exercises real tree-sitter). Full suite GREEN (24
+packages, CGO_ENABLED=1). Bash/Dart same-class defect tracked as
+follow-up per design doc §5.</li>
+<li><strong>Category:</strong> gap</li>
+<li><strong>Severity:</strong> high — R2 requires tree-sitter as a
+<em>working POC, not a stub</em>; learn-from-codebase (R2/R6/P5) rests
+on it.</li>
+<li><strong>Evidence:</strong> <code>initNativeParser</code>
+<strong>always</strong> returns an error
+(<code>internal/codeanalysis/treesitter.go:106-131</code>);
+<code>parseNative</code>/<code>extractImportsNative</code>/<code>extractFunctionsNative</code>/<code>extractClassesNative</code>
+all return <code>"not implemented"</code>
+(<code>treesitter.go:160, 230, 235, 240</code>). Only regex fallback
+runs. <code>compilePatterns</code> has <strong>no <code>kotlin</code> or
+<code>csharp</code> case</strong> (<code>treesitter.go:264-296</code>),
+yet <code>kotlin</code> is in the default analysis languages
+(<code>config.go:194</code>) and normalizeLanguage maps
+<code>kt</code>→<code>kotlin</code> (<code>treesitter.go:558-559</code>)
+— Kotlin files yield an empty pattern set ⇒ zero extraction.</li>
+<li><strong>Why it matters:</strong> “learn from real codebases” over
+Java/Kotlin/C++ (R13 corpus) will silently extract little/nothing for
+Kotlin and rely on brittle regex for the rest — evidence quality the
+jury cannot trust.</li>
+<li><strong>DECISION:</strong> Land a CGO tree-sitter build (grammars
+for the R13 languages) behind a build tag, with the regex parser as an
+explicit, labelled fallback that reports reduced fidelity (never
+silently); add Kotlin/C# patterns to the fallback in the interim. Prove
+extraction on a real repo (P5.T2 gate). <strong>Alternatives
+rejected:</strong> shipping regex-only as “tree-sitter” — an
+anti-bluff/naming violation (R11).</li>
+<li><strong>Test coverage:</strong> unit (per-language extraction
+incl. kotlin), integration (parse a real Android/Kotlin repo → real
+symbols), fuzz (malformed source doesn’t crash), mutation (remove a
+grammar → extraction test fails). <strong>Challenges:</strong> yes.</li>
+</ul>
+<h3 id="g13-two-rival-docker-compose.yml-files-rival-copy-risk">G13 —
+Two rival <code>docker-compose.yml</code> files (rival-copy risk)</h3>
+<ul>
+<li><strong>STATUS (2026-07-16):</strong>
+<code>Completed (→ Fixed.md)</code> — <code>9b85df2</code>. Compose
+canonicalization onto <code>deploy/</code> with app+monitoring profiles
+landed, closing G13’s own scope (the sibling G17/G22/G23/G24 decisions
+recorded in this same design pass are tracked under their own ids, see
+below); design doc <code>research/ops_hardening_design.md</code>
+preserved for history.</li>
+<li><strong>Category:</strong> ops</li>
+<li><strong>Severity:</strong> high — P12.T4 explicitly requires one
+canonical compose; two exist now.</li>
+<li><strong>Evidence:</strong> <code>project/docker-compose.yml</code>
+(9198 bytes) <strong>and</strong>
+<code>project/deploy/docker-compose.yml</code> (3332 bytes) both
+present. <code>IMPLEMENTATION_PLAN.md:258</code> (P12.T4) calls for
+exactly one; the scripts/systemd unit must reference a single file.</li>
+<li><strong>Why it matters:</strong> divergent compose files drift
+(ports, image tags, env, volumes); operators/scripts pin the wrong one;
+reproducibility breaks.</li>
+<li><strong>DECISION:</strong> Choose <code>project/deploy/</code> as
+the canonical ops home (it already carries <code>.env.example</code>,
+<code>systemd/</code>), delete/merge the root
+<code>docker-compose.yml</code>, and have <code>scripts/*</code> + the
+<code>systemd --user</code> unit reference only the canonical path.
+<strong>Alternatives rejected:</strong> keeping both “for dev vs deploy”
+— the exact rival-copy anti-pattern; use compose overrides/profiles
+instead if two modes are truly needed.</li>
+<li><strong>Test coverage:</strong> smoke (compose up →
+<code>pg_isready</code>, <code>CREATE EXTENSION vector</code>,
+<code>SELECT 1</code>), integration (scripts reference the one file),
+regression (grep gate: no second compose), acceptance (systemctl –user
+up/down cycle). <strong>Challenges:</strong> yes.</li>
+</ul>
+<h3
+id="g14-submodule-policy-conflict-11.4.28c-single-canonical-vs-operator-parent-priorityboth-synced-unresolved-all-7-declared-deps-unvendored">G14
+— Submodule policy conflict (§11.4.28C single-canonical vs operator
+parent-priority+both-synced) unresolved; all 7 declared deps
+unvendored</h3>
+<ul>
+<li><strong>Category:</strong> supply-chain / ops</li>
+<li><strong>Severity:</strong> high — an open governance escalation
+blocks P3/P7/P8/P10/P11/P13 dependency work.</li>
+<li><strong>Evidence:</strong> <code>project/helix-deps.yaml</code>
+header asserts §11.4.28C “ONE canonical location … Nested own-org
+submodule chains are FORBIDDEN”; <code>REQUIREMENTS.md:76-79</code> (R9)
+wants “parent-dir versions have PRIORITY. BOTH copies must always be in
+sync”; <code>IMPLEMENTATION_PLAN.md:286</code> (X1) records the
+escalation as <strong>open</strong> (“no second-copy
+<code>--apply</code> until resolved”). The manifest declares 7 deps
+(llms_verifier, helix_llm, helix_agent, embeddings, helix_qa,
+challenges, docs_chain) all <code>layout: grouped</code> — none are
+vendored yet (<code>submodules/</code> absent).</li>
+<li><strong>Why it matters:</strong> the two policies are literally
+contradictory (one canonical copy vs two synced copies); acting on
+either without a decision risks a §9.2 data-safety/duplication mistake
+and blocks R7/R8/R10.</li>
+<li><strong>DECISION (recommended reconciliation):</strong> treat the
+<strong>parent-ecosystem copy as the single logical canonical</strong>
+and any <code>submodules/&lt;name&gt;/</code> as a <strong>read-only
+mechanical mirror</strong> pinned to the same commit by
+<code>sync_submodules.sh</code> (verify-only by default,
+<code>--apply</code> gated). This satisfies §11.4.28C’s “one canonical”
+<em>semantically</em> (one source of truth) while honouring the
+operator’s “parent priority + both in sync” <em>operationally</em> (the
+mirror is derived, never independently edited). Escalate this exact
+framing to the operator for sign-off before any <code>--apply</code>.
+<strong>Alternatives rejected:</strong> (a) two independently-editable
+copies — violates §11.4.28C and invites divergence; (b) delete the
+parent copy and vendor only under <code>submodules/</code> — violates
+the operator’s parent-priority mandate.</li>
+<li><strong>Test coverage:</strong> integration
+(<code>sync_submodules.sh</code> dry-run resolves each dep to exactly
+one canonical + a pinned mirror), security (fail-closed on unexpected
+path — already hardened, <code>REQUIREMENTS.md:197</code>), regression
+(<code>ls-remote</code> reachability per dep), mutation (introduce a
+nested own-org submodule → sync fails). <strong>Challenges:</strong>
+yes.</li>
+</ul>
+<h3
+id="g15-aurora-os-harmonyos-client-feasibility-unproven-highest-client-risk">G15
+— Aurora OS / HarmonyOS client feasibility unproven (highest client
+risk)</h3>
+<ul>
+<li><strong>Category:</strong> danger-zone / gap</li>
+<li><strong>Severity:</strong> high — R3 hard-requires Aurora +
+HarmonyOS clients; the plan itself ranks this the top danger.</li>
+<li><strong>Evidence:</strong> <code>IMPLEMENTATION_PLAN.md:334</code>
+(danger-zone #1) and P8.T5 (<code>:215</code>) both flag Aurora/Harmony
+as “smallest ecosystem, highest risk”; <code>REQUIREMENTS.md:160</code>
+build order ends “Aurora last (highest risk)”. The only proposed path is
+Flutter-OHOS + the omprussia embedder
+(<code>REQUIREMENTS.md:158-160</code>) — a spike, not a proven build. No
+client code exists (P8 not started).</li>
+<li><strong>Why it matters:</strong> if the embedder path is infeasible,
+R3 cannot be met on those OSes and must be re-scoped honestly, not
+bluffed.</li>
+<li><strong>DECISION:</strong> Run the Flutter-OHOS + omprussia spike
+<strong>early</strong> (before committing the shared-core client
+architecture), and risk-flag with the <strong>exact blocker</strong> (no
+bluffed build) if it fails, per §11.4.112 (structural-impossibility gets
+an evidence-backed won’t-fix) rather than a silent gap. Because every
+surface is a thin OpenAPI/MCP client, the backend contract is the
+de-risking asset — freeze it first. <strong>Alternatives
+rejected:</strong> building Aurora last “and hoping” — the plan already
+warns against; deferring the spike hides the risk until the end.</li>
+<li><strong>Test coverage:</strong> acceptance (one build artifact per
+OS or a documented blocker), smoke (thin client hits
+<code>/health</code> + wizard), contract (generated client compiles
+against OpenAPI). <strong>Challenges:</strong> yes (per-OS build
+feasibility). <strong>HelixQA:</strong> device-lab dependent — flag as
+operator-attended where autonomous build is infeasible.</li>
+</ul>
+<hr />
+<h2 id="medium">MEDIUM</h2>
+<h3
+id="g16-sandbox_type-wasm-never-actually-uses-wasm-docker-sandbox-has-conflicting-mounts">G16
+— <code>sandbox_type = "wasm"</code> never actually uses WASM; Docker
+sandbox has conflicting mounts</h3>
+<ul>
+<li><strong>Category:</strong> weakness</li>
+<li><strong>Severity:</strong> medium</li>
+<li><strong>Evidence:</strong> even with a runtime present, the Go path
+is <code>go run</code>
+(<code>internal/validation/sandbox.go:132-136</code>) and non-Go langs
+fall to <code>executeProcess</code> (<code>sandbox.go:138-139</code>);
+“WASM” is a misnomer. <code>DockerSandbox.Execute</code> mounts
+<code>-v tmpDir:/tmp:ro</code> <strong>and</strong>
+<code>--tmpfs /tmp:…</code> (<code>sandbox.go:407-408</code>) — the
+tmpfs shadows the read-only bind, so <code>go run /tmp/main.go</code>
+reads an empty <code>/tmp</code> (<code>sandbox.go:387</code>).</li>
+<li><strong>Why it matters:</strong> the isolation story is inconsistent
+and the Docker path is subtly broken for the Go case.</li>
+<li><strong>DECISION:</strong> Rename/replace per G02; if Docker is the
+isolation boundary, mount code at a distinct path
+(e.g. <code>/work:ro</code>) and drop the conflicting tmpfs, or pass
+code via stdin. <strong>Alternatives rejected:</strong> leaving the dual
+<code>/tmp</code> mount — non-deterministic behaviour.</li>
+<li><strong>Test coverage:</strong> integration (Docker path runs the
+mounted file), unit (mount args well-formed), mutation (reintroduce dual
+/tmp → test fails).</li>
+<li><strong>STATUS (2026-07-16):</strong>
+<code>Fixed (→ Fixed.md)</code> — <code>2befa77</code>. Same commit as
+G02 — host code-execution DELETED BY CONSTRUCTION (removes the Go
+<code>go run</code>/dual-<code>/tmp</code>-mount problem by deleting the
+executable path entirely, not by fixing the mount).</li>
+</ul>
+<h3
+id="g17-weakcommitted-default-db-password-config-validation-misses-providersandbox-enums">G17
+— Weak/committed default DB password; config validation misses
+provider/sandbox enums</h3>
+<ul>
+<li><strong>Category:</strong> weakness / security</li>
+<li><strong>Severity:</strong> medium</li>
+<li><strong>Evidence:</strong>
+<code>internal/config/config.go:167</code> defaults
+<code>Password: "secret"</code>; <code>config/config.toml</code> ships
+<code>password = "secret"</code>. <code>config.validate</code>
+(<code>config.go:390-433</code>) never validates
+<code>embedding.provider</code>, <code>validation.sandbox_type</code>,
+<code>logging.level</code>, or <code>mcp.transport</code> against their
+allowed sets — a typo (<code>provder = "opennai"</code>) fails late,
+deep in the call stack.</li>
+<li><strong>Why it matters:</strong> weak default invites deployment
+as-is; unvalidated enums produce confusing runtime errors.</li>
+<li><strong>DECISION:</strong> Require the DB password via env with
+<strong>no</strong> working default (fail-closed if unset in non-dev);
+validate all closed-set config fields in <code>validate()</code>.
+<code>deploy/.env</code> is correctly git-ignored
+(<code>.gitignore:21</code>) and untracked — keep it so.
+<strong>Alternatives rejected:</strong> documented default password — a
+standing credential-hygiene risk (§11.4.10).</li>
+<li><strong>Test coverage:</strong> unit (invalid provider/sandbox/level
+rejected; empty password rejected in prod mode), security (no secret in
+tracked files — pre-commit grep), mutation (add an invalid enum →
+validate fails).</li>
+<li><strong>STATUS (2026-07-15):</strong> DESIGN DONE →
+<code>research/ops_hardening_design.md</code>; impl PENDING.</li>
+</ul>
+<h3
+id="g18-cors-allowlist-unreachable-on-the-live-path-spec-config-sample-omits-allowed_origins">G18
+— CORS allowlist unreachable on the live path; SPEC config sample omits
+<code>allowed_origins</code></h3>
+<ul>
+<li><strong>Category:</strong> weakness / spec-drift</li>
+<li><strong>Severity:</strong> medium</li>
+<li><strong>Evidence:</strong> the hardened, config-driven allowlist
+lives in <code>internal/api</code> (<code>middleware.go:328-387</code>,
+fed by <code>ServerConfig.AllowedOrigins</code>,
+<code>config.go:59-63</code>) but the live server uses
+<code>corsMiddleware()</code> wildcard
+(<code>cmd/server/main.go:362-373</code>) and never reads
+<code>AllowedOrigins</code>. <code>SPEC.md:376-384</code> config sample
+has no <code>allowed_origins</code>, and <code>config/config.toml</code>
+— the shipped template — likewise omits it, so operators won’t know to
+set it.</li>
+<li><strong>Why it matters:</strong> once G01 is fixed, a browser client
+still breaks unless <code>allowed_origins</code> is documented and set;
+today it’s wildcard-open.</li>
+<li><strong>DECISION:</strong> Wire <code>AllowedOrigins</code>
+end-to-end (config→ServerConfig→CORS), document it in
+<code>config.toml</code> + SPEC §8 with a safe example, default empty
+(fail-closed). <strong>Alternatives rejected:</strong> wildcard default
+— the security posture R1 removed.</li>
+<li><strong>Test coverage:</strong> integration (config allowlist
+honoured), security (non-allowlisted origin blocked), contract (config
+documents the key).</li>
+<li><strong>STATUS (2026-07-15):</strong> DESIGN DONE + verified vs
+<code>255061b</code> →
+<code>research/g18_g25_g26_correctness_bundle.md</code>. Security half
+CLOSED by G01 (<code>cmd/server/main.go:151</code>
+<code>router.Use(api.CORS(cfg.Server.AllowedOrigins))</code>; wildcard
+<code>corsMiddleware</code> deleted; empty-allowlist proven live by
+<code>cmd/server/security_test.go:105 TestNoWildcardCORSOnLivePaths</code>).
+Two residuals OPEN: (a) <code>SPEC.md</code> §8 config sample still
+omits
+<code>allowed_origins</code>/<code>api_keys</code>/<code>auth_disabled</code>
+(G01 touched no <code>.md</code>); (b) no live-<code>buildRouter</code>
+test for a POPULATED allowlist. Narrowed to the SPEC doc update + 1
+integration test; runtime-wiring clause closable per §11.4.90
+(<code>superseded-by-later-mandate</code>, cites G01
+<code>1a1a3f3</code>). Impl PENDING.</li>
+</ul>
+<h3 id="g19-spec.md-8-config-sample-uses----comments-invalid-toml">G19 —
+<code>SPEC.md §8</code> config sample uses <code>--</code> comments
+(invalid TOML)</h3>
+<ul>
+<li><strong>Category:</strong> spec-drift / doc</li>
+<li><strong>Severity:</strong> medium (doc only; the real file is
+correct)</li>
+<li><strong>Evidence:</strong>
+<code>SPEC.md:381, 396, 404, 407, 425</code> use <code>-- comment</code>
+syntax inside a <code>config.toml</code> block; TOML comments are
+<code>#</code>. The actual <code>config/config.toml</code> correctly
+uses <code>#</code>. A reader copy-pasting the SPEC sample gets a file
+that fails <code>toml.DecodeFile</code>
+(<code>config.go:251</code>).</li>
+<li><strong>Why it matters:</strong> nano-detail-docs mandate (founding)
+is undermined by a sample that won’t parse; erodes trust in the
+spec.</li>
+<li><strong>DECISION:</strong> Fix the SPEC §8 sample to <code>#</code>
+comments and add a docs lint that TOML-parses fenced <code>toml</code>
+blocks in the docs (composes with Docs Chain, R10). <strong>Alternatives
+rejected:</strong> leaving it — a latent copy-paste footgun.</li>
+<li><strong>Test coverage:</strong> unit/lint (parse every ```toml block
+in docs), regression.</li>
+<li><strong>STATUS:</strong> <code>Fixed (→ SPEC.md)</code> —
+2026-07-17. All 8 <code>-- comment</code> usages in TOML blocks (SPEC.md
+§8 config sample) changed to <code># comment</code>. The <code>--</code>
+comments in the SQL block (§5) are valid SQL syntax and were left
+unchanged.</li>
+</ul>
+<h3
+id="g20-auto-expand-fabricates-placeholder-skills-without-an-llm-couples-to-concrete-openaillm-drafted-resources-never-persisted">G20
+— Auto-expand fabricates placeholder skills without an LLM; couples to
+concrete <code>*OpenAILLM</code>; drafted resources never persisted</h3>
+<ul>
+<li><strong>Category:</strong> weakness / gap (latent — package unwired
+per G03)</li>
+<li><strong>Severity:</strong> medium</li>
+<li><strong>Evidence:</strong> with <code>p.llm == nil</code> (the
+default until P3), <code>DraftSkill</code> returns
+<code>createMinimalDraft</code>
+(<code>internal/autoexpand/pipeline.go:209-213</code>), which stores
+boilerplate content (“This skill was auto-generated to fill a gap”,
+<code>pipeline.go:282-311</code>) as a real skill — fake knowledge
+(R11). <code>DraftSkill</code> type-asserts
+<code>p.llm.(*OpenAILLM)</code> and errors on any other
+<code>LLMClient</code> (<code>pipeline.go:215-218</code>), defeating the
+interface and R7 pluggability. In <code>Run</code>, drafted
+<code>resources</code> get a <code>SkillID</code> assigned but are
+<strong>never persisted</strong>
+(<code>pipeline.go:401-403</code>).</li>
+<li><strong>Why it matters:</strong> once wired, auto-growth would flood
+the graph with placeholder skills and drop their resources — the
+opposite of the zero-bluff promise.</li>
+<li><strong>DECISION:</strong> Never persist a placeholder as a real
+skill — either produce genuine LLM content or mark the gap as unfilled;
+program to the <code>LLMClient</code> interface (remove the concrete
+assertion); persist resources in the same transaction as the skill.
+<strong>Alternatives rejected:</strong> keeping the minimal-draft
+fallback for “graceful degradation” — degrades into bluff data.</li>
+<li><strong>Test coverage:</strong> unit (nil LLM ⇒ no placeholder
+persisted; interface pluggability), integration (draft → resources
+persisted), mutation (reintroduce placeholder-persist → anti-bluff test
+fails). <strong>Challenges:</strong> yes.</li>
+<li><strong>STATUS (2026-07-15):</strong> DESIGN DONE + all file:line
+claims verified vs <code>255061b</code> →
+<code>research/g20_autoexpand_realgrowth_design.md</code>. Confirmed:
+<code>internal/autoexpand/pipeline.go:211/226</code>
+<code>createMinimalDraft</code>, <code>:215</code>
+<code>p.llm.(*OpenAILLM)</code> concrete assertion, <code>:282</code>
+the placeholder fabricator; <code>llm.go:26</code>
+<code>LLMClient</code> interface; <code>NewLLMClientFromConfig</code>
+factory CONFIRMED ABSENT everywhere (the R19 plug-in point). Decision =
+delete <code>createMinimalDraft</code>, program to
+<code>LLMClient</code> (no <code>*OpenAILLM</code> assertion),
+transactional <code>Store.CreateWithResources</code>, compose G05 jury.
+Composes R19 (<code>research/r19_anthropic_api_support_design.md</code>
+— Anthropic as an <code>LLMClient</code> + the missing factory).
+<em>(The <code>pipeline.go:215-218</code> concrete-assertion citation in
+this note is now STALE — see the dated STATUS note below, which
+supersedes the “Go impl PENDING” verdict for the assertion half
+specifically.)</em></li>
+<li><strong>STATUS (2026-07-16):</strong> PARTIALLY LANDED — the
+concrete-<code>*OpenAILLM</code>-assertion half of this item is FIXED
+this round (via G03 fix round): <code>DraftSkill</code>
+(<code>pipeline.go:232</code>) now drafts through the provider-agnostic
+<code>generateSkillDraft</code>
+(<code>internal/autoexpand/llm.go:249</code>, which the exported
+<code>OpenAILLM.GenerateSkillDraft</code>, <code>llm.go:216</code>,
+itself delegates to) instead of asserting
+<code>p.llm.(*OpenAILLM)</code> — the assertion no longer exists
+anywhere in <code>pipeline.go</code>, so the previous
+<code>pipeline.go:215-218</code> citation is stale; ANY configured
+<code>LLMClient</code> (including <code>*AnthropicLLM</code>, per
+R19/G28) now drafts successfully. <strong>The type-assertion coupling is
+resolved — G03 worker-dispatch wiring was the enabling fix.</strong>
+Still OPEN, unchanged by this round: the no-LLM
+<code>createMinimalDraft</code> placeholder-persist fallback
+(<code>pipeline.go:294-323</code>, called from the
+<code>p.llm == nil</code> branch at <code>pipeline.go:219</code> and
+from the LLM-error fallback at <code>pipeline.go:238</code>) is
+untouched — a placeholder skill is still persisted as a real skill on
+either path; and drafted <code>resources</code> are still never
+persisted, only <code>SkillID</code>-stamped in memory
+(<code>pipeline.go:362-367</code>, comment explicitly notes “persistence
+of the resources themselves is a separate, pre-existing follow-up”).
+Composes G03 (this is the fix that let G03’s worker-dispatch wiring land
+— a nil-<code>LLMClient</code>-assertion error on every non-OpenAI
+provider would otherwise have broken any
+<code>"anthropic"</code>-configured worker’s draft path).</li>
+<li><strong>STATUS (2026-07-17):</strong> COMPLETED — all three G20
+defects CLOSED. (1) <strong>Placeholder persist deleted</strong>:
+<code>DraftSkill</code> now returns an error when
+<code>p.llm == nil</code> (instead of falling through to
+<code>createMinimalDraft</code>); the LLM-error branch likewise returns
+the error instead of silently degrading to a placeholder. No placeholder
+content is ever persisted as a real skill. (2) <strong>Resources
+persisted</strong>: <code>draftPersistAndCrossReference</code> calls
+<code>p.store.BulkAddResources</code> after creating the skill;
+resources are written to the DB, not just <code>SkillID</code>-stamped
+in memory. (3) <strong>Type-assertion already removed in prior
+round</strong>. Anti-bluff regression test
+<code>pipeline_crossreference_test.go</code> updated to assert
+error-on-nil-LLM (not placeholder persist); verified that
+<code>store.GetByName</code> returns nothing on the nil-LLM path.
+Cross-reference test
+(<code>TestDraftPersistAndCrossReference_PersistsAndCrossReferences_RequiresLiveDatabase</code>)
+confirms no phantom skill row is created. All <code>-short -race</code>
+tests GREEN across 23 packages.</li>
+</ul>
+<h3
+id="g21-resource-verification-is-shallow-head-only-best-effort-hash-fail-open-on-fetch-errors">G21
+— Resource verification is shallow (HEAD-only, best-effort hash,
+fail-open on fetch errors)</h3>
+<ul>
+<li><strong>Category:</strong> weakness</li>
+<li><strong>Severity:</strong> medium</li>
+<li><strong>Evidence:</strong> <code>verifySingleResource</code>
+(<code>internal/validation/pipeline.go:259-303</code>) passes on any
+HEAD <code>&lt; 400</code>; the content-hash check only runs when a
+prior hash exists and returns <code>nil</code> (pass) on any GET/read
+error (<code>pipeline.go:280-292</code>). SSRF is possible — arbitrary
+skill-supplied URLs are fetched server-side with no allowlist.</li>
+<li><strong>Why it matters:</strong> “source verification” (stage 1 of
+the zero-bluff pipeline) can be satisfied by any reachable URL; a
+moved/altered doc without a stored hash passes; skill-controlled URLs
+enable SSRF.</li>
+<li><strong>DECISION:</strong> Require a stored hash for
+<code>official-doc</code>/<code>code</code> resources, treat fetch/read
+errors as verification failures (not pass), and add an egress allowlist
+/ block link-local + metadata IPs (SSRF guard). <strong>Alternatives
+rejected:</strong> HEAD-only reachability as sufficient — it proves
+nothing about content (R11).</li>
+<li><strong>Test coverage:</strong> unit (dead URL fails, mismatched
+hash fails, fetch error fails-closed), security (SSRF to 169.254.169.254
+blocked), integration, mutation (flip fail-open back → test fails).
+<strong>Challenges:</strong> yes.</li>
+<li><strong>STATUS (2026-07-16):</strong>
+<code>Fixed (→ Fixed.md)</code> — <code>2befa77</code>. SSRF egress
+guard now blocks the full private/reserved space
+(RFC1918/ULA/link-local/metadata) +
+<code>additionalBlockedRanges</code>, re-screened on every dial via
+<code>net.Dialer.Control</code>.</li>
+</ul>
+<h3
+id="g22-no-rate-limiting-auth-on-the-live-server-body-limit-only-brotli-flush-errors-ignored">G22
+— No rate limiting / auth on the live server; body limit only; Brotli
+flush errors ignored</h3>
+<ul>
+<li><strong>Category:</strong> weakness / performance</li>
+<li><strong>Severity:</strong> medium</li>
+<li><strong>Evidence:</strong> P7.T5 (auth + rate limiting,
+<code>IMPLEMENTATION_PLAN.md:203</code>) is unbuilt; the live server has
+neither (<code>cmd/server/main.go:140-283</code>).
+<code>MaxBodySize(100MB)</code> is applied only in the hardened (dead)
+path (<code>internal/api/server.go:149</code>), not live. Brotli
+<code>Flush()</code>/<code>Close()</code> return values are discarded
+(<code>internal/api/middleware.go:106-107</code>), so a compression
+error yields a silently truncated response.</li>
+<li><strong>Why it matters:</strong> unauthenticated + unthrottled +
+code-executing endpoints (post-G03 wiring) are a DoS/abuse surface;
+silent truncation corrupts responses.</li>
+<li><strong>DECISION:</strong> Add token-bucket rate limiting + the
+100MB body cap to the unified server (G01); handle Brotli errors (abort
+the response on failure). <strong>Alternatives rejected:</strong>
+relying on an upstream proxy for limits — the app must be safe
+standalone per the deploy model (systemctl –user, R15).</li>
+<li><strong>Test coverage:</strong> load (429 over-limit), integration
+(413 over-size), unit (Brotli error handled), security, regression.</li>
+<li><strong>STATUS (2026-07-16):</strong>
+<code>Fixed (→ Fixed.md)</code> — <code>e81a493</code>. Rate-limit +
+body-cap + Brotli-error hardening landed.</li>
+</ul>
+<h3
+id="g23-migrations-loaded-from-a-cwd-relative-path-failure-only-warns-and-the-server-continues">G23
+— Migrations loaded from a cwd-relative path; failure only warns and the
+server continues</h3>
+<ul>
+<li><strong>Category:</strong> ops</li>
+<li><strong>Severity:</strong> medium</li>
+<li><strong>Evidence:</strong>
+<code>db.Migrate(ctx, pool, "./migrations")</code>
+(<code>cmd/server/main.go:84</code>) is cwd-relative; on failure the
+server logs <code>Warn</code> and keeps running
+(<code>main.go:85-88</code>), so it can serve traffic against a
+schema-less DB and fail every query.</li>
+<li><strong>Why it matters:</strong> silent boot on a broken schema is a
+§11.4.108 runtime hazard; running from a different directory skips
+migrations entirely.</li>
+<li><strong>DECISION:</strong> Resolve the migrations dir from
+config/embed (<code>embed.FS</code>), and <strong>fail-fast</strong>
+(exit non-zero) if migrations don’t apply. <strong>Alternatives
+rejected:</strong> warn-and-continue — hides a fatal state.</li>
+<li><strong>Test coverage:</strong> integration (missing migrations dir
+⇒ startup fails), smoke (<code>migrate up</code> on fresh pgvector DB,
+<code>\d+</code> verified), regression.</li>
+<li><strong>STATUS (2026-07-16):</strong>
+<code>Fixed (→ Fixed.md)</code> — <code>ffada37</code>.
+<code>embed.FS</code> migrations + fail-closed startup landed.</li>
+</ul>
+<hr />
+<h2 id="low">LOW</h2>
+<h3
+id="g24-healthmetricsversion-unauthenticated-metrics-exposes-prometheus-internals-publicly">G24
+— Health/metrics/version unauthenticated; <code>/metrics</code> exposes
+Prometheus internals publicly</h3>
+<ul>
+<li><strong>Category:</strong> security</li>
+<li><strong>Severity:</strong> low</li>
+<li><strong>Evidence:</strong> <code>cmd/server/main.go:151</code>
+(<code>/health</code>), <code>internal/api/server.go:155-157</code>
+register these outside auth; OpenAPI marks them
+<code>ApiKeyAuth</code>/401 (<code>openapi.yaml:913-972</code>).
+<code>/metrics</code> returns full Prometheus exposition
+(<code>middleware.go:22-52</code> counters).</li>
+<li><strong>Impact:</strong> minor info-leak (internal metrics,
+versions) to anonymous callers.</li>
+<li><strong>DECISION:</strong> Keep <code>/health</code> open
+(liveness), but gate <code>/metrics</code> behind auth or bind it to a
+private interface; align <code>/version</code> with the contract.
+<strong>Alternatives rejected:</strong> authing <code>/health</code> —
+breaks orchestrator probes.</li>
+<li><strong>Test coverage:</strong> security (anonymous
+<code>/metrics</code> denied where required), contract, regression.</li>
+<li><strong>STATUS (2026-07-16):</strong>
+<code>Fixed (→ Fixed.md)</code> — <code>7e70754</code>.
+<code>/health</code>/<code>/metrics</code>/<code>/version</code>
+hardening + OpenAPI reconciliation landed (current HEAD).</li>
+</ul>
+<h3
+id="g25-removedependency-ignores-name-lookup-errors-audit-log-with-empty-names">G25
+— <code>RemoveDependency</code> ignores name-lookup errors → audit log
+with empty names</h3>
+<ul>
+<li><strong>Category:</strong> weakness</li>
+<li><strong>Severity:</strong> low</li>
+<li><strong>Evidence:</strong>
+<code>internal/skill/graph.go:103-104</code> discard the
+<code>Scan</code> error via <code>_ =</code>; if a skill is already
+gone, the audit entry records empty
+<code>from</code>/<code>to</code>.</li>
+<li><strong>Impact:</strong> degraded audit fidelity (R11 evidence
+trail).</li>
+<li><strong>DECISION:</strong> Capture names best-effort but record the
+not-found condition explicitly in the audit detail. <strong>Alternatives
+rejected:</strong> ignoring silently — weakens the audit trail.</li>
+<li><strong>Test coverage:</strong> unit (audit detail records missing
+name), regression.</li>
+<li><strong>STATUS (2026-07-16):</strong>
+<code>Fixed (→ Fixed.md)</code> — <code>67ce4d6</code>.
+<code>buildRemovalAuditDetail</code> helper landed — audit-log
+empty-name-on-lookup-error fixed; supersedes the 2026-07-15 DESIGN
+DONE/Go-impl-PENDING note (design doc
+<code>research/g18_g25_g26_correctness_bundle.md</code> preserved for
+history).</li>
+</ul>
+<h3
+id="g26-var-default-cannot-resolve-to-an-intentionally-empty-value-providermodel-env-substitution-edge-cases">G26
+— <code>${VAR:-default}</code> cannot resolve to an intentionally-empty
+value; provider/model env-substitution edge cases</h3>
+<ul>
+<li><strong>Category:</strong> weakness</li>
+<li><strong>Severity:</strong> low</li>
+<li><strong>Evidence:</strong> <code>interpolate</code> treats any
+unset-or-empty env as “use default”
+(<code>internal/config/config.go:342-348</code>) — an env var explicitly
+set to <code>""</code> falls through to the default, so an operator
+cannot blank a value via env.</li>
+<li><strong>Impact:</strong> surprising config behaviour for empty
+overrides.</li>
+<li><strong>DECISION:</strong> Distinguish “unset”
+(<code>os.LookupEnv</code>) from “empty” so an explicit empty override
+is honoured. <strong>Alternatives rejected:</strong> documenting the
+quirk — still astonishing.</li>
+<li><strong>Test coverage:</strong> unit (empty-override honoured; unset
+uses default), regression.</li>
+<li><strong>STATUS (2026-07-16):</strong>
+<code>Fixed (→ Fixed.md)</code> — <code>fb94352</code>.
+<code>os.Getenv</code>→<code>os.LookupEnv</code> switch landed —
+explicit-empty override now honored; supersedes the 2026-07-15 DESIGN
+DONE note (design doc
+<code>research/g18_g25_g26_correctness_bundle.md</code> preserved for
+history).</li>
+</ul>
+<h3
+id="g27-sanitizetablename-silently-strips-instead-of-rejecting-embedasync-result-channel-semantics">G27
+— <code>sanitizeTableName</code> silently strips instead of rejecting;
+<code>EmbedAsync</code> result-channel semantics</h3>
+<ul>
+<li><strong>Category:</strong> weakness</li>
+<li><strong>Severity:</strong> low</li>
+<li><strong>Evidence:</strong>
+<code>internal/db/vector.go:288-296</code> strips non-alnum chars rather
+than rejecting (<code>"skills; DROP"</code>→<code>"skillsDROP"</code>);
+safe today because callers pass internal constants only
+(<code>vector.go:216, 226</code>), but a future dynamic caller could hit
+a wrong-but-valid table name. <code>EmbedAsync</code>
+(<code>internal/db/embedding.go:359-405</code>) is correct (buffered to
+<code>len(texts)</code>), noted only as a caller-contract reminder.</li>
+<li><strong>Impact:</strong> latent foot-gun if table names ever become
+user-influenced.</li>
+<li><strong>DECISION:</strong> Reject invalid table names outright
+(return error) and keep the caller set to a fixed allowlist enum.
+<strong>Alternatives rejected:</strong> silent stripping — masks
+programmer error.</li>
+<li><strong>Test coverage:</strong> unit (invalid table name rejected),
+security, regression.</li>
+<li><strong>STATUS (2026-07-16):</strong>
+<code>Fixed (→ Fixed.md)</code> — <code>e48b5a4</code>.
+<code>sanitizeTableName</code> replaced with
+<code>validateTableName</code> (reject, not strip).</li>
+</ul>
+<h3
+id="g28-anthropic-messages-api-as-a-first-class-llmclient-provider-r19-newllmclientfromconfig-factory-absent">G28
+— Anthropic Messages API as a first-class <code>LLMClient</code>
+provider (R19); <code>NewLLMClientFromConfig</code> factory absent</h3>
+<ul>
+<li><strong>Category:</strong> feature / gap (R19 — operator mandate
+2026-07-15)</li>
+<li><strong>Severity:</strong> medium</li>
+<li><strong>Evidence:</strong> the <code>LLMClient</code> interface
+(<code>internal/autoexpand/llm.go:26-29</code>, single
+<code>Generate(ctx,prompt,maxTokens)</code>) has ONE impl —
+<code>*OpenAILLM</code>; no <code>NewLLMClientFromConfig</code> factory
+exists anywhere at <code>255061b</code> (grep=0), so an Anthropic (or
+any non-OpenAI) provider cannot be selected by config. R7 pluggability +
+R19 Anthropic support both block on this. G20’s fix removes the
+<code>p.llm.(*OpenAILLM)</code> assertion (the coupling); R19 adds the
+provider.</li>
+<li><strong>Why it matters:</strong> R19 (operator mandate) requires
+Anthropic’s Messages API as a first-class provider for the G05 jury +
+G20 auto-growth; without the factory + an <code>AnthropicLLM</code>,
+“supports Anthropic” is unmet.</li>
+<li><strong>DECISION:</strong> add an <code>AnthropicLLM</code> (thin
+<code>net/http</code>, <code>POST {base}/v1/messages</code>,
+<code>x-api-key</code> + <code>anthropic-version: 2023-06-01</code>, NO
+temperature/top_p/top_k — newer Claude models 400 on non-default
+sampling; a policy refusal ⇒ error, never <code>("",nil)</code>)
+implementing <code>LLMClient</code>; add
+<code>NewLLMClientFromConfig(cfg,logger)</code> dispatching
+<code>openai|anthropic|local|helixllm</code> (fail-closed on unknown),
+mirroring <code>NewEmbedderFromConfig</code>
+(<code>internal/db/embedding.go:293</code>). Thin client, NOT the
+<code>anthropic-sdk-go</code> submodule (§11.4.28 house-style; avoids a
+G14-class dep escalation). <strong>Alternatives rejected:</strong>
+vendoring the full SDK for one endpoint; a verbatim
+<code>*OpenAILLM</code> port (would 400 on sampling params). Embeddings:
+Anthropic has NO first-party embeddings (§11.4.99-verified live) — stays
+on G10’s provider set; <code>"anthropic"</code> is never an
+<code>EmbeddingConfig.Provider</code>.</li>
+<li><strong>Test coverage:</strong> 13 — 9 unit (factory dispatch ×4,
+header/request mapping incl. no-sampling-params, response parse, non-2xx
+error map, refusal handling), 2 integration (live <code>Generate</code>
+behind <code>integration</code> tag +
+SKIP-without-<code>ANTHROPIC_API_KEY</code>; <code>Pipeline.Run</code>
+via Anthropic asserts no placeholder), 2 paired §1.1 mutations.
+<strong>Challenges:</strong> yes.</li>
+<li><strong>STATUS (2026-07-16):</strong>
+<code>Implemented (→ Fixed.md)</code> — <code>f083328</code>. Anthropic
+Messages API <code>LLMClient</code> provider +
+<code>NewLLMClientFromConfig</code> factory landed — closes G28’s own
+scope (provider + factory); wiring into autoexpand/G03 is explicitly
+separate and NOT claimed done by this flip (supersedes the 2026-07-15
+DESIGN DONE/Go-impl-PENDING note; design doc
+<code>research/r19_anthropic_api_support_design.md</code> preserved for
+history). <strong>OPEN operator sub-decision (§11.4.66,
+non-blocking):</strong> whether to ALSO expose an
+Anthropic-Messages-<em>shaped</em> server surface for R4 interop — R19’s
+recommendation is NO (R4 already solved via MCP for every named CLI
+agent); recorded, deferred-safe default = do not build the redundant
+surface now (§11.4.101).</li>
+</ul>
+<h3
+id="g29-store.search-advertises-hybrid-vector-search-but-is-trigramilike-only-store.vectorsearch-has-zero-callers">G29
+— <code>Store.Search</code> advertises “hybrid vector search” but is
+trigram/ILIKE-only; <code>Store.VectorSearch</code> has zero
+callers</h3>
+<ul>
+<li><strong>Category:</strong> bug / doc-bluff (§11.4 / §11.4.6)</li>
+<li><strong>Severity:</strong> high</li>
+<li><strong>Evidence:</strong>
+<code>internal/skill/store.go:50-118</code> <code>Store.Search</code> —
+doc-comment claims hybrid vector search; body is ILIKE/trigram only, no
+query embedding used. <code>Store.VectorSearch</code>
+(<code>store.go:574-609</code>), the real pgvector KNN path, has
+<strong>zero callers</strong> (grep=0) across MCP
+<code>skill_search</code> + REST + pipeline dedup.</li>
+<li><strong>Impact:</strong> the advertised semantic search is not
+delivered (keyword-only); a doc-comment claims a capability the code
+does not deliver (§11.4 code-layer bluff); the flagship pgvector search
+is dead (§11.4.124). R2/R13 make semantic retrieval core.</li>
+<li><strong>DECISION:</strong> wire <code>VectorSearch</code> into
+<code>Search</code> (embed query → vector KNN + trigram, weighted/RRF
+merge) rather than correct-the-doc-to-keyword-only. <strong>Alternatives
+rejected:</strong> downgrading the doc-comment (abandons a core R2/R13
+capability).</li>
+<li><strong>Test coverage:</strong> unit (a semantically-near
+non-substring match ranks above a trigram-only match;
+<code>VectorSearch</code> reached), integration (live pgvector KNN),
+paired mutation (revert to ILIKE-only → hybrid test FAILs), regression.
+<strong>Challenges:</strong> yes.</li>
+<li><strong>STATUS (2026-07-15):</strong> DISCOVERED (discovery-audit
+§11.4.118) →
+<code>research/p05_completion_audit_and_discovery.md</code>. Design +
+impl PENDING. HIGH — anti-bluff (doc claims a capability the code
+lacks).</li>
+<li><strong>STATUS (2026-07-17):</strong>
+<code>Fixed (→ Fixed.md)</code> — hybrid search landed:
+<code>Store.Search</code> now embeds the query via
+<code>EmbedAsync</code> + runs <code>VectorSearch</code> KNN in parallel
+with trigram, merging results by weighted RRF.
+<code>Store.VectorSearch</code> now has real callers (MCP
+<code>skill_search</code> + REST). Doc-comment bluff corrected. Closes
+G29’s own scope.</li>
+</ul>
+<h3
+id="g30-learn_from_project-returns-a-job-id-that-can-never-be-status-checked">G30
+— <code>learn_from_project</code> returns a job ID that can never be
+status-checked</h3>
+<ul>
+<li><strong>Category:</strong> bug / gap</li>
+<li><strong>Severity:</strong> medium</li>
+<li><strong>Evidence:</strong>
+<code>internal/skill/store.go:546-568</code> +
+<code>internal/mcp/tools.go:336</code> — the tool enqueues a job +
+returns a job ID, but no status-query path (no
+<code>GetJobStatus</code>-by-ID) exists; the caller cannot poll
+completion.</li>
+<li><strong>Impact:</strong> R6 wizard + R14 real-time growth report a
+job ID the client cannot resolve → the progress-reporting contract is
+broken (§11.4.116-class).</li>
+<li><strong>DECISION:</strong> add a job-status store (status by job ID:
+queued/running/done/failed + progress) + an MCP/REST status tool; the
+async pipeline writes status transitions.</li>
+<li><strong>Test coverage:</strong> unit (status transitions),
+integration (enqueue→poll→done), paired mutation, regression.</li>
+<li><strong>STATUS (2026-07-15):</strong> DISCOVERED → p05 doc. Design +
+impl PENDING.</li>
+</ul>
+<h3
+id="g31-learn_from_project-project_path-has-zero-validation-path-traversal-lfi-primitive-when-g03-wiring-lands">G31
+— <code>learn_from_project</code> <code>project_path</code> has zero
+validation → path-traversal / LFI primitive when G03 wiring lands</h3>
+<ul>
+<li><strong>Category:</strong> security (latent)</li>
+<li><strong>Severity:</strong> high (latent)</li>
+<li><strong>Evidence:</strong>
+<code>internal/mcp/tools.go:314-350</code> passes
+<code>project_path</code> unvalidated to
+<code>internal/codeanalysis/analyzer.go:196-240</code>, which walks the
+filesystem from it. Today the analyzer is not fully wired (G03) →
+latent; when G03 lands, an attacker-supplied <code>project_path</code>
+(<code>/etc</code>, <code>../../</code>, absolute host paths) becomes a
+local-file-inclusion / traversal read primitive on the (currently
+unauthenticated) MCP surface.</li>
+<li><strong>Impact:</strong> arbitrary-directory read once G03 wires the
+analyzer → high.</li>
+<li><strong>DECISION:</strong> validate <code>project_path</code> BEFORE
+the walk — canonicalize (<code>filepath.Abs</code>+<code>Clean</code>,
+resolve symlinks), enforce a config-driven allowlisted root prefix,
+reject traversal/absolute-escape, fail-closed. MUST land WITH or BEFORE
+G03.</li>
+<li><strong>Test coverage:</strong> security (traversal
+<code>../</code>, symlink-escape, absolute-outside-root all rejected),
+unit (in-root accepted), paired mutation (drop validation → traversal
+test FAILs), regression.</li>
+<li><strong>STATUS (2026-07-16):</strong>
+<code>Fixed (→ Fixed.md)</code> — <code>cbaf5fb</code>.
+Path-traversal/LFI jail on <code>learn_from_project</code>
+<code>project_path</code> landed
+(<code>cbaf5fb feat(mvp/skill-graph): G31 path-traversal/LFI jail on learn_from_project project_path</code>,
+confirmed real — resolves the earlier hash-verification gap; supersedes
+the 2026-07-15 DISCOVERED note).</li>
+</ul>
+<h3
+id="g32-registry.reviewscheduler-fully-built-but-has-zero-callers-dead-flagship-pipeline">G32
+— <code>registry.ReviewScheduler</code> fully built but has zero callers
+(dead flagship pipeline)</h3>
+<ul>
+<li><strong>Category:</strong> bug / dead-flagship (§11.4.108 layer-2/3,
+§11.4.124)</li>
+<li><strong>Severity:</strong> high</li>
+<li><strong>Evidence:</strong> <code>internal/registry</code>
+<code>ReviewScheduler</code> is complete but grep=0 callers — never
+instantiated/started by <code>cmd/server</code> or
+<code>cmd/worker</code>.</li>
+<li><strong>Impact:</strong> the periodic skill-review / re-validation
+pipeline (a flagship maintenance mechanism) never runs in production →
+skills are never re-reviewed; SOURCE-green-but-RUNTIME-dead
+(§11.4.108).</li>
+<li><strong>DECISION (§11.4.124 investigate-before-remove):</strong>
+git-history investigate whether it was wired-then-regressed vs
+never-completed; then WIRE it (start from <code>cmd/worker</code> under
+the single-owner advisory lock) + add the missing wiring tests — NOT
+remove (required functionality, not obsolescence).</li>
+<li><strong>Test coverage:</strong> integration (scheduler runs a review
+cycle on a real DB), unit (cadence), paired mutation, regression + a
+§11.4.108 runtime-signature (scheduler tick observable on a clean
+deploy).</li>
+<li><strong>STATUS (2026-07-16):</strong>
+<code>Fixed (→ Fixed.md)</code> — <code>25516a5</code>.
+<code>registryReviewWorker</code>→<code>RunReviewOnce</code> wire-in
+landed + age-mark-ordering fix; supersedes the 2026-07-15 DISCOVERED
+note.</li>
+</ul>
+<h3
+id="g33-store.exporttotoml-swallows-a-db-error-empty-dependency-name-in-exported-skill-file">G33
+— <code>Store.ExportToTOML</code> swallows a DB error → empty dependency
+name in exported skill file</h3>
+<ul>
+<li><strong>Category:</strong> bug</li>
+<li><strong>Severity:</strong> low</li>
+<li><strong>Evidence:</strong> <code>internal/skill/store.go</code>
+<code>ExportToTOML</code> discards a row-scan error path → a dependency
+name can serialize empty.</li>
+<li><strong>Impact:</strong> a git-versioned TOML skill file (R14 source
+of truth) can be silently written with a blank dep name → corrupt
+round-trip.</li>
+<li><strong>DECISION:</strong> propagate the scan error (fail the
+export) rather than emit a partial file. <strong>Alternatives
+rejected:</strong> best-effort partial export (corrupts the R14 SoT
+silently).</li>
+<li><strong>Test coverage:</strong> unit (scan error → export errors, no
+partial file), regression, paired mutation.</li>
+<li><strong>STATUS (2026-07-16):</strong>
+<code>Fixed (→ Fixed.md)</code> — <code>b8d0e56</code>.
+<code>ExportToTOML</code> scan-error propagation landed; supersedes the
+2026-07-15 DISCOVERED note.</li>
+</ul>
+<h3
+id="g34-unchecked-rid.string-type-assertion-in-request-id-middleware">G34
+— unchecked <code>rid.(string)</code> type assertion in request-id
+middleware</h3>
+<ul>
+<li><strong>Category:</strong> weakness</li>
+<li><strong>Severity:</strong> low-medium</li>
+<li><strong>Evidence:</strong>
+<code>internal/api/middleware.go:184, 258-268</code> —
+<code>rid.(string)</code> without the comma-ok form; a non-string
+context value panics the request goroutine.</li>
+<li><strong>Impact:</strong> a mis-set request-id context value →
+per-request panic (DoS-ish); today the setter is internal so
+unreachable, but a latent foot-gun.</li>
+<li><strong>DECISION:</strong> comma-ok assertion with a safe fallback
+(empty/regenerated id); never panic on a context-value shape.</li>
+<li><strong>Test coverage:</strong> unit (non-string context value → no
+panic, fallback id), regression, paired mutation.</li>
+<li><strong>STATUS (2026-07-16):</strong>
+<code>Fixed (→ Fixed.md)</code> — <code>08299e4</code>.
+<code>rid.(string)</code> comma-ok fix landed; supersedes the 2026-07-15
+DISCOVERED note.</li>
+</ul>
+<h3
+id="g35-cli-tui-send-authorization-bearer-but-the-server-reads-x-api-key-both-first-party-clients-401-the-moment-g01-auth-enforces">G35
+— CLI + TUI send <code>Authorization: Bearer</code> but the server reads
+<code>X-API-Key</code> → both first-party clients 401 the moment G01
+auth enforces</h3>
+<ul>
+<li><strong>Category:</strong> bug / integration regression (latent,
+§11.4.108)</li>
+<li><strong>Severity:</strong> high</li>
+<li><strong>Evidence:</strong> CLI
+<code>cmd/cli/commands/common.go:55</code> + TUI
+<code>.../api_client.go:76</code> set
+<code>Authorization: Bearer &lt;key&gt;</code>; the server auth
+middleware <code>internal/api/middleware.go:292</code> reads
+<code>X-API-Key</code>. Header mismatch → 401 for both clients once the
+G01 hardened auth is actually enforced on the live listener.</li>
+<li><strong>Impact:</strong> the two shipped first-party clients cannot
+authenticate against their own backend the moment auth is enforced (the
+fix breaks the clients) — a real user-visible break.</li>
+<li><strong>DECISION:</strong> unify the auth-header contract — fix both
+clients to send <code>X-API-Key</code> (server-canonical) OR make the
+server accept both (documented); add a contract test asserting
+client-sent header == server-read header (§11.4.135 recurrence
+guard).</li>
+<li><strong>Test coverage:</strong> contract (client header == server
+header), integration (CLI/TUI authenticate against an auth-enforced
+server), paired mutation (revert a client to Bearer → contract test
+FAILs), regression.</li>
+<li><strong>STATUS (2026-07-16):</strong>
+<code>Fixed (→ Fixed.md)</code> — <code>6f334c1</code>. X-API-Key header
+unification across all 7 first-party senders landed; supersedes the
+2026-07-15 DISCOVERED note.</li>
+</ul>
+<h3
+id="g36-ssrf-blocklist-non-zero-0.0.0.08-hosts-not-explicitly-blocked-residual-the-dangerous-0.0.0.0-is-caught">G36
+— SSRF blocklist: non-zero <code>0.0.0.0/8</code> hosts not explicitly
+blocked (residual; the dangerous <code>0.0.0.0</code> IS caught)</h3>
+<ul>
+<li><strong>Category:</strong> security (residual)</li>
+<li><strong>Severity:</strong> low</li>
+<li><strong>Evidence:</strong> G01/G02 Fable-xhigh review residual —
+<code>internal/validation/sandbox.go</code> blocks <code>0.0.0.0</code>
+itself (the localhost-mapping danger) +
+<code>additionalBlockedRanges</code>; other <code>0.0.0.0/8</code>
+addresses (RFC 1122 “this network”) are not explicitly listed. Proven
+NOT live-reachable as a localhost bypass (only <code>0.0.0.0</code> maps
+to localhost on Linux).</li>
+<li><strong>Impact:</strong> minimal — the exploitable case
+(<code>0.0.0.0</code>→localhost) is blocked; residual is
+defense-in-depth completeness.</li>
+<li><strong>DECISION:</strong> add <code>0.0.0.0/8</code> to
+<code>additionalBlockedRanges</code> for completeness (never a
+legitimate egress target); low priority.</li>
+<li><strong>Test coverage:</strong> unit (<code>0.0.0.x</code>
+rejected), paired mutation, regression.</li>
+<li><strong>STATUS (2026-07-16):</strong>
+<code>Fixed (→ Fixed.md)</code> — <code>912cfb7</code>.
+<code>0.0.0.0/8</code> added to the SSRF blocklist; supersedes the
+2026-07-15 TRACKED note.</li>
+</ul>
+<h3
+id="g37-import-skills-path-honors-client-status-on-the-proven-dead-api.server-router-o3-consolidation">G37
+— Import-skills path honors client status on the proven-DEAD
+<code>api.Server</code> router (O3 consolidation)</h3>
+<ul>
+<li><strong>Category:</strong> weakness (latent / dead-path,
+§11.4.108)</li>
+<li><strong>Severity:</strong> low</li>
+<li><strong>Evidence:</strong> G02 Fable review residual —
+<code>internal/api/skills_handler.go:546-559</code>
+<code>handleImportSkills</code>/<code>createReqToModel</code> correctly
+honors client status, but on the <code>internal/api.Server</code> router
+that is proven DEAD (the live server is the consolidated hardened
+listener; O3 tracks consolidating/removing the dead
+<code>api.Server</code>).</li>
+<li><strong>Impact:</strong> none live today (dead router); relevant
+only if <code>api.Server</code> is re-activated. Tracked to avoid a
+§11.4.108 SOURCE-green-RUNTIME-dead confusion.</li>
+<li><strong>DECISION:</strong> fold into the O3
+dead-<code>api.Server</code> consolidation (§11.4.124
+investigate-before-remove) — carry the correct status-handling into the
+live path or remove with the router.</li>
+<li><strong>Test coverage:</strong> covered by the O3 consolidation
+tests; regression.</li>
+<li><strong>STATUS (2026-07-15):</strong> TRACKED (G02 Fable review
+residual). Deferred to O3 (§11.4.101).</li>
+</ul>
+<h3
+id="g38-11.4.208-request-history-auto-capture-hook-not-yet-wired-ledger-is-reconstruction-only">G38
+— §11.4.208 request-history auto-capture hook not yet wired (ledger is
+reconstruction-only)</h3>
+<ul>
+<li><strong>Category:</strong> task / infra (§11.4.208(D); R24)</li>
+<li><strong>Severity:</strong> low</li>
+<li><strong>Evidence:</strong> <code>requests/history.md</code>
+(§11.4.208 operator-request ledger) created this session but populated
+by RECONSTRUCTION (§11.4.208(B)); no <code>UserPromptSubmit</code>-class
+hook appends a row at accept-time.</li>
+<li><strong>Impact:</strong> future operator prompts are not
+auto-captured → relies on manual/reconstruction append (the exact loss
+risk R24 targets).</li>
+<li><strong>DECISION:</strong> wire a
+<code>UserPromptSubmit</code>-class hook (or equivalent) that appends a
+newest-first row per new prompt with deterministic Track/alias
+derivation (§11.4.182) + honest <code>?</code>/UNKNOWN; project-local,
+decoupled (§11.4.28/§11.4.177).</li>
+<li><strong>Test coverage:</strong> hook test (a simulated prompt
+appends exactly one correctly-shaped row), paired mutation (hook
+stripped → gate FAILs), regression.</li>
+<li><strong>STATUS (2026-07-16):</strong>
+<code>Completed (→ Fixed.md)</code> — <code>0438d7e</code>.
+UserPromptSubmit hook wired (<code>.claude/settings.json</code> +
+<code>scripts/append_request_history.sh</code>, selftest 7/7) — same
+commit cited for <code>G41</code>; supersedes the 2026-07-15
+FILED/Wiring-PENDING note. Residual: UNKNOWN: the captured rows’
+Model+effort field cannot be observed from the
+<code>UserPromptSubmit</code> event alone — tracked as a known
+limitation, not re-opened as a separate item.</li>
+</ul>
+<h2
+id="constitutional-compliance-violations-r23-audit-2026-07-15-g39g49">Constitutional-compliance
+violations (R23 audit, 2026-07-15) — G39–G49</h2>
+<p><strong>Source:</strong>
+<code>research/constitution_compliance_audit.md</code> (independent R23
+audit — 230 anchors enumerated: <strong>47 COMPLIANT · 34 VIOLATION · 26
+PENDING-AT-COMPLETION · 108 N-A · 15 UNCONFIRMED</strong>). Full
+per-anchor evidence lives in that doc; this register tracks the
+actionable violations. Audit-internal ids reconciled to
+<strong>G39+</strong> (audit’s <code>G50</code> “no request-history doc”
+is <strong>SUPERSEDED</strong> — <code>requests/history.md</code>
+created this session; its remaining auto-capture-hook facet =
+<strong>G38</strong>).</p>
+<p><strong>§11.4.201 gate-methodology note (NOT project
+violations):</strong> the 10
+<code>CM-COVENANT-114-NNN-PROPAGATION</code> gate “failures” are FALSE
+POSITIVES — <code>helix_skills</code> is a thin consumer using the
+sanctioned <code>@import constitution/CLAUDE.md</code> pointer form
+(§11.4.35), which recursively inherits every anchor, but the gates
+<code>grep</code> for literal anchor copies; the gates also default
+their scan root to <code>..</code> and swept 1167 unrelated
+sibling-project hits until scoped with <code>CONSUMER_ROOT</code>. These
+are §11.4.201 guard-asserts-real-condition issues in the gate SCRIPTS
+(constitution-submodule scope), not project non-compliance.
+<code>CM-CONTINUUM-RESUME-ENGINE-PRESENT</code> FAIL is likewise an
+engine-internal decoupling issue out of this project’s scope.
+<code>CM-REPORTING-DIRECTIVES</code> PASS (real run).</p>
+<h3 id="g39-rootful-container-runtime-default-in-makefile">G39 — Rootful
+container runtime default in Makefile</h3>
+<ul>
+<li><strong>Type:</strong> Bug. <strong>Severity:</strong> HIGH.
+<strong>Status:</strong> <code>Completed (→ Fixed.md)</code> —
+<code>b597623</code>.</li>
+<li><strong>Evidence:</strong> <code>project/Makefile:36</code>
+<code>CONTAINER_RUNTIME ?= docker</code> (rootful default) — MUST
+default rootless (podman).</li>
+<li><strong>Constitution references:</strong> §11.4.161, §11.4.76,
+§11.4.173.</li>
+</ul>
+<h3 id="g40-no-sqlite-workable_items.db-single-source-of-truth">G40 — No
+SQLite workable_items.db single-source-of-truth</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> HIGH.
+<strong>Status:</strong> FILED; adoption plan FINALIZED
+(<code>research/g40_adoption_plan_FINAL.md</code>); design doc at
+<code>research/g40_workable_items_db_adoption_design.md</code>; Phase 1
+READY (awaiting G47 operator decision or proceed-on-default).
+Recommended path: Option (a) — literal Gxx/Rxx as atm_id, zero schema
+change.</li>
+<li><strong>Evidence:</strong> 49 findings (G01–G49) tracked in this
+markdown register instead. The constitution’s own Go workable-items
+engine (<code>constitution/scripts/workable-items/</code>) exists,
+builds cleanly, and is unused → adoption-only. Engine schema version
+<code>'6'</code> (<code>schema_embed.sql</code>);
+<code>add --id &lt;id&gt;</code> accepts arbitrary TEXT for
+<code>atm_id</code> (no format CHECK). Coupled: G45 (closed-vocabulary
+not applied) resolved by Phase 1 import; G47 (id scheme tension)
+resolved by Option (a) recommendation (operator decision PENDING).</li>
+<li><strong>Constitution references:</strong> §11.4.93, §11.4.95,
+§11.4.74, §11.4.28, §11.4.108, §11.4.6.</li>
+</ul>
+<h3 id="g41-zero-hooks-wired-in-settings.local.json">G41 — Zero hooks
+wired in settings.local.json</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> HIGH.
+<strong>Status:</strong> <code>Completed (→ Fixed.md)</code> —
+<code>0438d7e</code>.</li>
+<li><strong>Evidence:</strong> <code>.claude/settings.local.json</code>
+wires ZERO hooks — the <code>guard-forbidden-commands.sh</code>
+PreToolUse guard (+ §11.4.182/§11.4.191 guards) not installed.</li>
+<li><strong>Constitution references:</strong> §11.4.109.</li>
+</ul>
+<h3 id="g42-insufficient-test-coverage">G42 — Insufficient test
+coverage</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> HIGH.
+<strong>Status:</strong> FILED; PENDING (phased with impl).</li>
+<li><strong>Evidence:</strong> only ~10 unit-ish tests; no
+stress/chaos/e2e/security-suite/Challenges/HelixQA coverage yet (expands
+G04). Lands per-package as the Go spine proceeds.</li>
+<li><strong>Constitution references:</strong> §11.4.27, §11.4.52,
+§11.4.85, §11.4.169.</li>
+</ul>
+<h3 id="g43-no-htmlpdf-doc-exports-docs-chain-unwired">G43 — No HTML/PDF
+doc exports; Docs Chain unwired</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> HIGH.
+<strong>Status:</strong> FILED; wire Docs Chain + export pipeline
+PENDING (R18/R10).</li>
+<li><strong>Evidence:</strong> zero <code>.html</code>/<code>.pdf</code>
+exports of any tracked doc; Docs Chain declared in
+<code>helix-deps.yaml</code> but never invoked.</li>
+<li><strong>Constitution references:</strong> §11.4.12, §11.4.65,
+§11.4.106.</li>
+</ul>
+<h3 id="g44-missing-revision-headers-on-most-docs">G44 — Missing
+revision headers on most docs</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> FILED; backfill PENDING.</li>
+<li><strong>Evidence:</strong> only <code>CONTINUATION.md</code> +
+<code>requests/history.md</code> carry the revision header;
+<code>REQUIREMENTS.md</code>/<code>IMPLEMENTATION_PLAN.md</code>/<code>SPEC.md</code>/this
+register/all research docs lack it.</li>
+<li><strong>Constitution references:</strong> §11.4.44.</li>
+</ul>
+<h3 id="g45-statustypereopens-closed-vocabulary-not-enforced">G45 —
+Status/type/reopens closed-vocabulary not enforced</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> FILED; RESOLVED by G40 adoption plan Phase 1
+(closed-vocabulary enforced at import time via
+<code>workable-items validate</code>). Closes when G40 Phase 1
+lands.</li>
+<li><strong>Evidence:</strong> status/type/reopens closed-vocabulary not
+applied to the G0x findings; G40 adoption plan’s Phase 1 import applies
+the closed set mechanically.</li>
+<li><strong>Constitution references:</strong> §11.4.15, §11.4.16,
+§11.4.34.</li>
+</ul>
+<h3 id="g46-shell-scripts-lack-companion-docs">G46 — Shell scripts lack
+companion docs</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> LOW.
+<strong>Status:</strong> <code>Completed (→ Fixed.md)</code> —
+<code>97ce030</code>.</li>
+<li><strong>Evidence:</strong> shell scripts under
+<code>project/scripts/</code> lack the companion
+<code>docs/scripts/&lt;name&gt;.md</code>.</li>
+<li><strong>Constitution references:</strong> §11.4.18.</li>
+</ul>
+<h3 id="g47-gxx-id-scheme-vs-atm-nnn-naming">G47 — Gxx id scheme vs
+ATM-NNN naming</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> FILED; operator-decision PENDING.</li>
+<li><strong>Evidence:</strong> project uses G0x/R0x/P0x ids
+cross-referenced across 20+ docs, not ATM-NNN; a destructive rename is
+riskier than (a) documenting G0x as an approved alias OR (b) minting
+parallel ATM-NNN without renaming.</li>
+<li><strong>Constitution references:</strong> §11.4.54.</li>
+</ul>
+<h3 id="g48-readme-lacks-tracked-items-doc-link-section">G48 — README
+lacks Tracked-Items doc-link section</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> LOW.
+<strong>Status:</strong> <code>Completed (→ Fixed.md)</code> —
+<code>74a88d1</code>.</li>
+<li><strong>Evidence:</strong> README lacks the
+<code>Tracked-Items</code> doc-link section.</li>
+<li><strong>Constitution references:</strong> §11.4.57.</li>
+</ul>
+<h3 id="g49-no-qwen.mdgemini.md-mirrors">G49 — No QWEN.md/GEMINI.md
+mirrors</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> LOW.
+<strong>Status:</strong> <code>Completed (→ Fixed.md)</code> —
+<code>4b5e78a</code>.</li>
+<li><strong>Evidence:</strong> no
+<code>QWEN.md</code>/<code>GEMINI.md</code> mirrors of the project
+CLAUDE.md/AGENTS.md.</li>
+<li><strong>Constitution references:</strong> §11.4.157.</li>
+</ul>
+<p>The <strong>R23 full re-run at project completion</strong> (every
+anchor re-audited to zero real violations, CM-gates + a §11.4.32 project
+sweep wired) is the terminal compliance gate.</p>
+<h2 id="additional-findings-post-r23-audit">Additional findings
+(post-R23 audit)</h2>
+<h3 id="g51-silent-migration-state-desync-from-psql-error-handling">G51
+— Silent migration-state desync from psql error handling</h3>
+<ul>
+<li><strong>Type:</strong> Bug. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> <code>Fixed (→ Fixed.md)</code> —
+<code>0fee489</code>.</li>
+<li><strong>Evidence:</strong> <code>scripts/migrate.sh</code> runs
+<code>psql</code> without <code>-v ON_ERROR_STOP=on</code> and discards
+its stderr (<code>2&gt;/dev/null</code>); <code>psql</code> exits
+<code>0</code> even when an individual SQL statement inside a migration
+errors.</li>
+<li><strong>Constitution references:</strong> §11.4.201.</li>
+</ul>
+<h3 id="g52-health-probe-repoint-architecture.md-doc-drift">G52 —
+Health-probe repoint + ARCHITECTURE.md doc-drift</h3>
+<ul>
+<li><strong>Type:</strong> Bug. <strong>Severity:</strong> LOW.
+<strong>Status:</strong> <code>Fixed (→ Fixed.md)</code> —
+<code>7b9f40a</code>.</li>
+<li><strong>Evidence:</strong> Health-probe repoint
+<code>/api/v1/health</code>→<code>/health</code> (TUI + CLI) +
+<code>ARCHITECTURE.md</code> doc-drift closed inline.</li>
+</ul>
+<h3 id="g53-waitforvectorindexready-catalog-query-correction">G53 —
+WaitForVectorIndexReady catalog-query correction</h3>
+<ul>
+<li><strong>Type:</strong> Bug. <strong>Severity:</strong> LOW.
+<strong>Status:</strong> <code>Fixed (→ Fixed.md)</code> —
+<code>707185a</code>.</li>
+<li><strong>Evidence:</strong> <code>WaitForVectorIndexReady</code>
+catalog-query correction + hardened error handling.</li>
+</ul>
+<h3 id="g54-gofmt-drift-in-internalvalidationpipeline.go">G54 — gofmt
+drift in internal/validation/pipeline.go</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> LOW.
+<strong>Status:</strong> <code>Fixed (→ Fixed.md)</code> — project-wide
+gofmt-clean.</li>
+<li><strong>Evidence:</strong>
+<code>internal/validation/pipeline.go</code> carries pre-existing
+<code>gofmt</code> drift (~lines 66-76). G62’s fix resolved this file’s
+drift.</li>
+</ul>
+<h3 id="g55-phantom-openapidoc-listed-routes-unimplemented">G55 —
+Phantom OpenAPI/doc-listed routes unimplemented</h3>
+<ul>
+<li><strong>Type:</strong> Bug. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued.</li>
+<li><strong>Evidence:</strong> Phantom OpenAPI/doc-listed routes beyond
+the <code>G52</code>-fixed <code>/api/v1/health</code>
+(e.g. <code>/api/v1/graph</code>,
+<code>/skills/:id/{evidence,validate}</code>) are documented/listed but
+unimplemented. Composes with <code>G09</code>.</li>
+</ul>
+<h3 id="g56-docker-compose-deployment-contract-broken">G56 —
+docker-compose deployment contract broken</h3>
+<ul>
+<li><strong>Type:</strong> Bug. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued.</li>
+<li><strong>Evidence:</strong> <code>docker-compose</code> app-profile
+deployment contract is broken: double
+<code>ENTRYPOINT</code>/<code>command</code> argv-stacking defeats
+<code>--config</code>; the worker container re-runs the server binary.
+Composes with <code>G13</code>.</li>
+</ul>
+<h3 id="g57-mcp-acpadapter-stdio-transport-was-unwired">G57 — MCP
+ACPAdapter stdio transport was unwired</h3>
+<ul>
+<li><strong>Type:</strong> Bug. <strong>Severity:</strong> HIGH.
+<strong>Status:</strong> <code>CLOSED (commit 8fa4e27)</code>.</li>
+<li><strong>Evidence:</strong> <code>internal/mcp.ACPAdapter</code> —
+the <code>--mcp acp</code> stdio transport was unwired; fixed by wiring
+the transport in + an idempotent-<code>Stop</code> fix.</li>
+<li><strong>Constitution references:</strong> §11.4.108, §11.4.124.</li>
+</ul>
+<h2 id="adjudication-of-the-8-mandated-open-items">Adjudication of the 8
+mandated open items</h2>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th>#</th>
+<th>Item</th>
+<th>Finding</th>
+<th>One-line decision</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Embedding dimension (768/1536/384)</td>
+<td><strong>G10</strong></td>
+<td>Pin <strong>768</strong> default; template <code>vector(N)</code>
+from config; add startup model-dim==column-dim assertion + OpenAI length
+check; extend providers.</td>
+</tr>
+<tr>
+<td>2</td>
+<td>§11.4.28C single-canonical vs operator
+parent-priority+both-synced</td>
+<td><strong>G14</strong></td>
+<td>Parent copy = the one <em>logical</em> canonical;
+<code>submodules/&lt;name&gt;</code> = read-only mechanical mirror
+pinned by <code>sync_submodules.sh</code>; escalate this framing for
+sign-off before <code>--apply</code>.</td>
+</tr>
+<tr>
+<td>3</td>
+<td>TOON: no Go codec</td>
+<td><strong>G08</strong></td>
+<td>Implement/vendor a spec-conformant TOON codec with golden vectors
+before advertising <code>application/toon</code>; do not claim TOON
+until it exists; revise openapi.yaml in lockstep.</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Zero automated tests vs R8 ~100%</td>
+<td><strong>G04</strong></td>
+<td>Bootstrap <code>go test</code>, then per-package tables + paired
+mutations, security middleware + DAG first; coverage gate in CI.</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Security behavioural proof missing</td>
+<td><strong>G01 + G04</strong></td>
+<td>The CORS/api_key fixes aren’t even wired (G01); wire the hardened
+server, then prove behaviour with security tests + paired
+mutations.</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Aurora/HarmonyOS feasibility</td>
+<td><strong>G15</strong></td>
+<td>Run the Flutter-OHOS + omprussia spike early; risk-flag with the
+exact blocker (§11.4.112), never bluff a build; freeze the backend
+contract first.</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Silent-failure / TODO / stub patterns</td>
+<td><strong>G02, G03, G11, G12, G20</strong></td>
+<td>Cited: <code>treesitter.go:130,160,230,235,240</code>;
+<code>runner.go:317,321,332,347</code>;
+<code>skills_handler.go:552</code>; <code>pipeline.go:431</code>;
+sandbox process-fallback. Fix per each finding.</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Rival docker-compose copies</td>
+<td><strong>G13</strong></td>
+<td>Make <code>project/deploy/</code> the canonical ops home;
+delete/merge the root compose; scripts + systemd unit reference the one
+file.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="resolved-non-findings-verified-for-the-record">Resolved /
+non-findings (verified, for the record)</h2>
+<ul>
+<li><strong>DB-layer dedupe (P0.T1) is done:</strong>
+<code>go.mod</code> shows only <code>pgx v5</code> +
+<code>pgvector-go</code>; the 5 stray ORMs (ent/gorm/bun/go-pg/sqlx) are
+gone.</li>
+<li><strong><code>deploy/.env</code> is NOT a leak:</strong> it is
+untracked and <code>.env</code> is git-ignored
+(<code>.gitignore:21</code>).</li>
+<li><strong><code>config/config.toml</code> uses valid <code>#</code>
+comments</strong> (only the SPEC §8 <em>sample</em> is wrong —
+G19).</li>
+<li><strong>Vector columns and config default agree at 768</strong>
+today (the risk is the absence of an <em>assertion</em>, not a current
+mismatch — G10).</li>
+<li><strong>Parameterised SQL throughout the <code>db</code>
+layer</strong> (pgx <code>$1..$n</code>); the only string-built
+identifiers are table names, guarded by <code>sanitizeTableName</code>
+against a fixed caller set (residual foot-gun noted in G27, not an
+active injection).</li>
+</ul>
+<hr />
+<p><em>Positive-evidence-only. Every “is/does” claim above is pinned to
+a file:line that was read during this audit; the two UNCONFIRMED
+sub-points (MCP <code>ImportFromTOML</code> edge fidelity in G07) are
+labelled as such and require a read of
+<code>internal/skill/import_export.go</code> to close.</em></p>
+<hr />
+<h2 id="session-discovered-planned-items-2026-07-16">Session-discovered
++ planned items (2026-07-16)</h2>
+<blockquote>
+<p>All items in this section: <code>created_by=Claude</code>,
+<code>assigned_to=''</code>,
+external-tracker-push=SKIP(<code>tracker_client_absent</code> — no
+<code>.helix/reporting.yaml</code>-equivalent reporting config exists in
+this project, §11.4.202(4)/§11.4.10).</p>
+</blockquote>
+<h3 id="g58-placeholder-referenced-in-g136-severity-assessment">G58 —
+(Placeholder) Referenced in G136 severity assessment</h3>
+<ul>
+<li><strong>Type:</strong> TBD. <strong>Severity:</strong> MEDIUM
+(proposed per G136). <strong>Status:</strong> UNCONFIRMED.</li>
+<li><strong>Note:</strong> G58 is listed in the Summary counts table as
+MEDIUM but has no individual entry in this register. Referenced
+alongside G55, G56, G60, G61, G64, G66 as “Bugs and gaps in ops-scripts,
+migrations, compose contracts, and search conflict-oracle.” Conductor
+must investigate and file the actual finding.</li>
+</ul>
+<h3 id="new-findings-this-round-g59g68">New findings this round
+(G59–G68)</h3>
+<h3
+id="g59-embedding-ingestion-never-wired-storeskillembedding-is-dead-code">G59
+— Embedding ingestion never wired; StoreSkillEmbedding is dead code</h3>
+<ul>
+<li><strong>Type:</strong> Bug. <strong>Severity:</strong> HIGH.
+<strong>Status:</strong> Fixed (2026-07-17) — <code>Store.Create</code>
+now calls <code>embedWriteThrough</code> (store.go:897-899) which
+invokes <code>db.StoreSkillEmbedding</code> (store.go:1031);
+<code>ClearSkillEmbedding</code> called on all failure/skip branches
+(store.go:1131); stale-vector-on-update handled via clearStaleEmbedding.
+G59’s original evidence (“zero non-test callers”) is stale — the
+write-through path is fully wired with proper degradation posture.</li>
+<li><strong>Evidence:</strong>
+<code>Store.Create</code>/<code>Store.Update</code> never write
+<code>skills.embedding</code>; the DB-layer embed function — confirmed
+as <code>db.StoreSkillEmbedding</code> at
+<code>internal/db/vector.go:180</code> — and <code>EmbedAsync</code>
+have zero non-test callers, so post-<code>G29</code> hybrid search
+degrades to keyword/trigram-only in practice.</li>
+<li><strong>Composes with:</strong> G29, G10, G111.</li>
+</ul>
+<h3
+id="g60-search-conflict-oracle-uses-ranked-search-instead-of-exact-getbyname">G60
+— Search conflict-oracle uses ranked Search instead of exact
+GetByName</h3>
+<ul>
+<li><strong>Type:</strong> Bug. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Fixed (2026-07-17) —
+<code>pipeline.go:555,564</code> uses <code>GetByName</code> (exact
+<code>WHERE name = $1</code>), not <code>Search</code>. The comment at
+line 535-546 documents why: Search’s RRF scoring makes limit=1
+non-deterministic.</li>
+<li><strong>Evidence:</strong>
+<code>internal/validation/pipeline.go</code>’s existence/conflict oracle
+uses ranked <code>Search(name,1)</code> instead of exact
+<code>Store.GetByName</code> — latent until <code>G59</code> AND
+<code>G29</code> fully land.</li>
+<li><strong>Composes with:</strong> G29; sequenced to land WITH or AFTER
+G59.</li>
+</ul>
+<h3 id="g61-two-divergent-health-implementations">G61 — Two divergent
+/health implementations</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued.</li>
+<li><strong>Evidence:</strong> Two divergent <code>/health</code>
+implementations exist — the live inline handler in
+<code>cmd/server/main.go</code> vs the dead
+<code>internal/api.handleHealth</code> — with differing response body
+schemas.</li>
+<li><strong>Composes with:</strong> G01 (O3 sub-scope), G09, G96. The
+conductor must resolve G61/G96/G01-O3 as ONE piece of work (§11.4.186
+anti-divergence).</li>
+</ul>
+<h3 id="g62-20-files-with-gofmt-drift-project-wide">G62 — 20 files with
+gofmt drift project-wide</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> LOW.
+<strong>Status:</strong> Fixed (2026-07-17) — <code>gofmt -w</code>
+applied to all 13 drifted files; <code>gofmt -l</code> returns empty;
+build/vet/test all green post-fix.</li>
+<li><strong>Evidence:</strong> 20 files project-wide carry pre-existing
+<code>gofmt</code> drift. Fix scope is 18 standalone-hygiene files
+(minus <code>embedding.go</code> and <code>pipeline.go</code> tracked
+under G29/G54).</li>
+</ul>
+<h3 id="g63-4th-divergent-route-contract-surface-registry-clitui">G63 —
+4th divergent route-contract surface (registry CLI/TUI)</h3>
+<ul>
+<li><strong>Type:</strong> Bug. <strong>Severity:</strong> HIGH.
+<strong>Status:</strong> Operator-blocked.</li>
+<li><strong>Evidence:</strong> A 4th divergent route-contract surface
+exists: the <code>registry</code> CLI/TUI command group is 100%
+unreachable; the TUI health indicator is permanently disconnected; live
+handlers ignore query parameters.</li>
+<li><strong>Composes with:</strong> G01, G09, G61, G96.</li>
+<li><strong>Operator-Block-Details:</strong> 5 product/ownership
+decisions (D1-D5) must be made before this item is implementable.
+<ul>
+<li><strong>Operator-Block-Details:</strong>
+<ul>
+<li><strong>WHAT:</strong> 5 product/ownership decisions (D1-D5) must be
+made before this item is implementable: D1 — whether the
+<code>registry</code> CLI/TUI command group is kept, rewired, or
+removed; D2 — which of the 4 divergent route-contract surfaces (live
+server / dead <code>internal/api.Server</code> / OpenAPI /
+<code>registry</code> group) becomes canonical; D3 — whether the TUI
+health indicator is reconnected to the live health endpoint or removed;
+D4 — whether live handlers should start honoring the query parameters
+they currently ignore, and which semantics; D5 — how this item’s
+resolution sequences against
+<code>G61</code>/<code>G96</code>/<code>G01</code>-O3 (one merged work
+item vs three).</li>
+<li><strong>WHY (self-resolution exhausted per §11.4.21):</strong> (a)
+no CLI/ADB/SSH/API access gap — the code is fully readable, this is a
+product-scope decision not an access problem; (b) subagent delegation
+cannot substitute for an operator product decision; (c) existing repo
+tooling has no canonical-router config to consult; (d) no
+synthetic/mocked fallback resolves an ownership decision; (e) external
+research (§11.4.8) was performed for the surrounding technical patterns
+but cannot substitute for the operator’s product intent.</li>
+<li><strong>UNBLOCK CONDITION:</strong> operator supplies explicit D1-D5
+decisions (or delegates them to the conductor with an explicit
+scope).</li>
+<li><strong>WHO:</strong> operator (product/architecture owner).</li>
+</ul></li>
+<li><strong>Design reference:</strong>
+<code>scratchpad/new1_route_contract_design.md</code> (agent-local
+scratch path, cited by the source draft). <strong>§11.4.197
+follow-up:</strong> this design doc is NOT yet relocated into the
+project’s <code>research/</code> tree — it must be moved from scratchpad
+into an in-repo <code>research/</code> location (or re-derived if the
+scratchpad copy is unavailable) before the full route-contract decision
+can be finalized and closed; tracked here as an open follow-up, not
+resolved by this edit.</li>
+<li><strong>STATUS:</strong> Operator-blocked. ### G64 — Unconditional
+schema_migrations row delete on down without .down.sql</li>
+</ul></li>
+<li><strong>Type:</strong> Bug. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> <code>Fixed (→ Fixed.md)</code>.</li>
+<li><strong>Evidence:</strong> <code>scripts/migrate.sh:179-183</code>
+(the <code>else</code> branch) deletes the
+<code>schema_migrations</code> row on <code>down</code> even when there
+is no matching <code>.down.sql</code> file, producing a tracked-version
+desync. Composes with landed G51.</li>
+</ul>
+<h3 id="g65-stop.sh-rejects-compose-flag">G65 — stop.sh rejects –compose
+flag</h3>
+<ul>
+<li><strong>Type:</strong> Bug. <strong>Severity:</strong> LOW.
+<strong>Status:</strong> <code>Fixed (→ Fixed.md)</code>.</li>
+<li><strong>Evidence:</strong> <code>scripts/stop.sh</code> only
+supports <code>--quiet</code>/<code>-q</code>/<code>-h</code>;
+<code>--compose</code> hits “unknown arg” (exit 2);
+<code>restore.sh:292</code>’s <code>2&gt;/dev/null||true</code> swallows
+that failure. Composes with landed G13.</li>
+</ul>
+<h3 id="g66-seed-corpus-missing-3-prerequisite-tomls">G66 — Seed corpus
+missing 3 prerequisite TOMLs</h3>
+<ul>
+<li><strong>Type:</strong> Bug. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued.</li>
+<li><strong>Evidence:</strong> Seed corpus is missing 3 prerequisite
+TOMLs; 4 of 8 seed files fail-closed on a clean import. Affects the
+<code>seed/</code> corpus.</li>
+</ul>
+<h3
+id="g67-qa-results-gitignore-vs-curated-qa-evidence-policy-conflict">G67
+— qa-results gitignore vs curated QA evidence policy conflict</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> LOW.
+<strong>Status:</strong> Operator-blocked.</li>
+<li><strong>Evidence:</strong> <code>project/qa-results/</code> is not
+fully gitignored today (only <code>*.log</code> is ignored); a genuine
+policy conflict exists between gitignore-whole-dir (§11.4.30) and
+curate-only-at-release-prep (§11.4.83).</li>
+<li><strong>Operator-Block-Details:</strong> decide the
+<code>project/qa-results/</code> tracking policy.</li>
+<li><strong>Constitution references:</strong> §11.4.30, §11.4.83.
+<ul>
+<li><strong>Operator-Block-Details:</strong>
+<ul>
+<li><strong>WHAT:</strong> decide the <code>project/qa-results/</code>
+tracking policy — either (a) gitignore the whole directory (satisfies
+§11.4.30 hygiene, but risks losing curated QA evidence that §11.4.83
+requires to stay committed), or (b) keep it tracked but
+curate-only-at-release-prep (satisfies §11.4.83, but requires
+disciplined pruning of raw/uncurated output to avoid §11.4.30
+violations), or (c) some hybrid (e.g. gitignore raw subpaths, track only
+a <code>curated/</code> subdirectory).</li>
+<li><strong>WHY (self-resolution exhausted per §11.4.21):</strong> this
+is a direct conflict between two constitutional mandates (§11.4.30 vs
+§11.4.83) applied to the same directory; neither mandate subordinates
+the other, so the choice of resolution shape is a policy decision, not a
+technical one self-resolvable by the agent.</li>
+<li><strong>UNBLOCK CONDITION:</strong> operator picks the policy
+(whole-dir-gitignore / curate-only / hybrid).</li>
+<li><strong>WHO:</strong> operator.</li>
+</ul></li>
+<li><strong>STATUS:</strong> Operator-blocked. ### G68 —
+RemoveDependency coarse delete should be relation-type-aware</li>
+</ul></li>
+<li><strong>Type:</strong> Bug. <strong>Severity:</strong> LOW.
+<strong>Status:</strong> Queued — VERIFY.</li>
+<li><strong>Evidence:</strong> <code>RemoveDependency</code>’s coarse
+delete (removes ALL typed edges for a skill pair) should become
+relation-type-aware. <code>G25</code> fixed a DIFFERENT defect on the
+same function. Conductor MUST re-check
+<code>internal/skill/graph.go</code>’s current
+<code>RemoveDependency</code> body before filing/closing.</li>
+<li><strong>FACT (2026-07-16):</strong> <code>RemoveDependency</code> is
+DEFINED at <code>internal/skill/graph.go:125</code> but is UNWIRED — its
+only caller is its own test. Dead per §11.4.124.</li>
+<li><strong>Composes with:</strong> G25, G07.</li>
+</ul>
+<h3 id="planned-feature-epics-g69g123">Planned feature epics
+(G69–G123)</h3>
+<h3 id="g69-feat-github-skills-source-ingestion-sync">G69 — FEAT: GitHub
+Skills Source Ingestion &amp; Sync</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Status:</strong> Queued.
+<strong>Severity (proposed, carried forward verbatim from the source
+draft’s own stated severity — not independently reassessed
+here):</strong> high (net-new capability, operator-mandated
+2026-07-16).</li>
+<li>Add GitHub-repository skill-source registration + fetch/parse/import
++ non-destructive enhancement-delta application + regular re-sync,
+exposed via CLI + REST + MCP + TUI.</li>
+<li>Full detail pointers: <code>gh_skills_research/CATALOG.md</code>
+(12-repo research corpus), <code>gh_skills_research/DESIGN.md</code>
+(architecture), <code>gh_skills_research/WIRING_PLAN.md</code> (exact
+file:line wiring), <code>gh_skills_research/TRACKED_ITEMS.md</code> (the
+23 sub-items below).</li>
+<li>Depends on <code>G06</code>/<code>G07</code> (DAG correctness, both
+landed <code>186e047</code>/<code>073192f</code>) — confirmed satisfied.
+<code>G80</code> and <code>G86</code> (sub-items touching the
+<code>internal/skill</code> package /
+<code>internal/mcp/server.go</code> respectively) MUST serialize behind
+the in-flight <code>G29</code> lane (§11.4.119 single-resource-owner +
+§11.4.191 work-to-track binding). <code>G123</code> (below) must resolve
+BEFORE <code>G70</code>’s migration (<code>004_skill_sources</code>)
+lands, since <code>G95</code> (the <code>G93</code> umbrella’s own
+schema item) independently claims the SAME migration number.</li>
+</ul>
+<h3
+id="g70-migration-skill_sources-skill_source_mappings-skills.origin">G70
+— Migration: skill_sources + skill_source_mappings + skills.origin</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G69;
+conflicts with G95 pending G123.</li>
+</ul>
+<h3 id="g71-migration-skill_enhancement_proposals">G71 — Migration:
+skill_enhancement_proposals</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G70.</li>
+</ul>
+<h3 id="g72-sourcesyncconfig-env-overrides-config.toml-example">G72 —
+SourceSyncConfig + env overrides + config.toml example</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G69;
+overlaps G94 pending G123.</li>
+</ul>
+<h3 id="g73-new-auditevent-constants-for-skill-source-events">G73 — New
+AuditEvent constants for skill-source events</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> LOW.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G69.</li>
+</ul>
+<h3 id="g74-internalskillsource-package-source-registry-crud">G74 —
+internal/skillsource package: source registry CRUD</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G70;
+overlaps G97 pending G123.</li>
+</ul>
+<h3 id="g75-internalsourcegithub-hand-rolled-rest-fetch-client">G75 —
+internal/source/github: hand-rolled REST fetch client</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G74.</li>
+</ul>
+<h3 id="g76-internalsourcegithub-shallow-clone-fallback">G76 —
+internal/source/github: shallow-clone fallback</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> LOW.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G75.</li>
+</ul>
+<h3 id="g77-internalsourceskillmd-skill.md-parser">G77 —
+internal/source/skillmd: SKILL.md parser</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G69.</li>
+</ul>
+<h3
+id="g78-internalsourcemapper-parsedskill-models.skill-license-gate">G78
+— internal/source/mapper: ParsedSkill → models.Skill + license gate</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G77.</li>
+</ul>
+<h3 id="g79-internalsourcededup-newduplicatevariant-classifier">G79 —
+internal/source/dedup: NEW/DUPLICATE/VARIANT classifier</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G78.</li>
+</ul>
+<h3 id="g80-store.importskillmodel-sibling-to-importfromtoml">G80 —
+Store.ImportSkillModel (sibling to ImportFromTOML)</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G79;
+serializes behind the G29 lane.</li>
+</ul>
+<h3 id="g81-internalsourceenhance-delta-extraction-proposal-store">G81 —
+internal/source/enhance: delta extraction + proposal store</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G71,
+G79.</li>
+</ul>
+<h3 id="g82-internalsourcesync-per-source-scan-orchestrator">G82 —
+internal/source/sync: per-source scan orchestrator</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G75, G76,
+G80, G81.</li>
+</ul>
+<h3 id="g83-worker-wiring-jobtypesourcerescan-sourcerescanworker">G83 —
+Worker wiring: JobTypeSourceRescan + sourceRescanWorker</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G82.</li>
+</ul>
+<h3 id="g84-rest-wiring-cmdserverskillsource_routes.go-buildrouter">G84
+— REST wiring: cmd/server/skillsource_routes.go + buildRouter</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G83.</li>
+</ul>
+<h3 id="g85-cli-wiring-cmdclicommandssource.go">G85 — CLI wiring:
+cmd/cli/commands/source.go</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G84.</li>
+</ul>
+<h3 id="g86-mcp-wiring-internalmcpsource_tools.go">G86 — MCP wiring:
+internal/mcp/source_tools.go</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G84;
+serializes behind the G29 lane.</li>
+</ul>
+<h3 id="g87-tui-wiring-cmdtuisources.go-read-only">G87 — TUI wiring:
+cmd/tui/sources.go (read-only)</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> LOW.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G84.</li>
+</ul>
+<h3 id="g88-e2e-test-real-anthropicsskills-pipeline-run">G88 — e2e test:
+real anthropics/skills pipeline run</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G85, G86,
+G87.</li>
+</ul>
+<h3 id="g89-stress-chaos-test-suite-for-ingestion-pipeline">G89 — Stress
++ chaos test suite for ingestion pipeline</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> LOW.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G88.</li>
+</ul>
+<h3 id="g90-vendor-challenges-helixqa-constitution-submodules">G90 —
+Vendor Challenges + HelixQA constitution submodules</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> LOW.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G69.</li>
+</ul>
+<h3 id="g91-helixqa-challenge-bank-entry-for-skill-source-ingestion">G91
+— HelixQA Challenge bank entry for skill-source ingestion</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> LOW.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G89,
+G90.</li>
+</ul>
+<h3 id="g92-docs-readmeapicli-reference-sync-for-new-surfaces">G92 —
+Docs: README/API/CLI reference sync for new surfaces</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> LOW.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G91.</li>
+</ul>
+<h3 id="g93-feat-unified-multi-source-skill-ingestion-subsystem">G93 —
+FEAT: Unified Multi-Source Skill Ingestion Subsystem</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Status:</strong> Queued.
+<strong>Severity (proposed, carried forward verbatim from the source
+draft’s own stated severity — not independently reassessed
+here):</strong> high (net-new capability, operator-mandated
+2026-07-16).</li>
+<li>Add a pluggable multi-source skill-ingestion subsystem (filesystem
+real-time-watch/web/API/PDF/FTP/SMB/WebDAV) with a 7-stage
+extract→normalize→refine→dedup→create/wire pipeline, exposed via CLI +
+REST + MCP.</li>
+<li>Full detail pointers:
+<code>skill_ingestion_research/CODEBASE_MAP.md</code> (integration-point
+map), <code>skill_ingestion_research/RESEARCH.md</code> (library
+research: <code>fsnotify</code>, <code>goquery</code>,
+<code>go-readability</code>, <code>html-to-markdown</code>,
+<code>ledongthuc/pdf</code>, <code>kin-openapi</code>,
+<code>jlaffaye/ftp</code>, <code>go-smb2</code>, <code>gowebdav</code>),
+<code>skill_ingestion_research/DESIGN.md</code> (architecture, 7 honest
+boundaries), <code>skill_ingestion_research/TRACKED_ITEMS.md</code> (the
+25 non-deferred + 4 deferred sub-items below).</li>
+<li><code>G96</code> (router-duplication fix) — UNCONFIRMED: duplicates
+<code>G01</code>’s O3 sub-scope + <code>G61</code> above — conductor
+resolves as ONE item before any of <code>G94</code>-<code>G122</code>
+that assume “one canonical router” (namely <code>G115</code>) lands.
+<code>G111</code> (CREATE/EXTEND stage) should soft-serialize behind
+<code>G59</code> (embedding-population fix). Honest gaps already stated
+BY the source draft itself (never silently resolved here): no
+production-ready pure-Go NFS client exists (v1 = reuse the filesystem
+<code>Source</code> against an operator-mounted NFS export,
+<code>G105</code>); scanned/image-only PDF OCR has no clean
+permissively-licensed pure-Go path (<code>gen2brain/go-fitz</code> is
+AGPL-3.0 — an explicit operator license decision, not resolved here);
+only the filesystem source gets genuine real-time behaviour in v1 (the
+other four are one-shot bulk + deferred polling,
+<code>G119</code>).</li>
+</ul>
+<h3 id="g94-add-config.ingestionconfig-section">G94 — Add
+config.IngestionConfig section</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G93;
+overlaps G72 pending G123.</li>
+</ul>
+<h3 id="g95-ingestion-schema-migration-004_ingestion.updown.sql">G95 —
+Ingestion schema migration (004_ingestion.up/down.sql)</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G93;
+migration-number collision with G70, see G123.</li>
+</ul>
+<h3
+id="g96-resolve-internalapi.server-vs-cmdservermain.go-router-duplication">G96
+— Resolve internal/api.Server vs cmd/server/main.go router
+duplication</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G93;
+UNCONFIRMED: duplicates G01-O3 + G61, see G123.</li>
+</ul>
+<h3 id="g97-source-interface-itemrefrawitem-types">G97 — Source
+interface + ItemRef/RawItem types</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G93.</li>
+</ul>
+<h3 id="g98-filesystem-source-bulk-one-shot">G98 — Filesystem Source
+(bulk one-shot)</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G97.</li>
+</ul>
+<h3 id="g99-httpwebsite-source-single-url-bounded-crawl">G99 —
+HTTP/website Source (single URL + bounded crawl)</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G97.</li>
+</ul>
+<h3 id="g100-pdf-source-upload-based">G100 — PDF Source
+(upload-based)</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G97.</li>
+</ul>
+<h3 id="g101-openapiapi-schema-source">G101 — OpenAPI/API-schema
+Source</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> LOW.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G97.</li>
+</ul>
+<h3 id="g102-ftp-source">G102 — FTP Source</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> LOW.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G97.</li>
+</ul>
+<h3 id="g103-smb-source">G103 — SMB Source</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> LOW.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G97.</li>
+</ul>
+<h3 id="g104-webdav-source">G104 — WebDAV Source</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> LOW.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G97.</li>
+</ul>
+<h3 id="g105-nfs-honest-gap-documentation-mount-based-workaround">G105 —
+NFS honest-gap documentation + mount-based workaround</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> LOW.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G98.</li>
+</ul>
+<h3 id="g106-html-extractnormalize-stage">G106 — HTML EXTRACT+NORMALIZE
+stage</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G99.</li>
+</ul>
+<h3 id="g107-pdf-extractnormalize-stage">G107 — PDF EXTRACT+NORMALIZE
+stage</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G100.</li>
+</ul>
+<h3 id="g108-openapi-extractnormalize-stage">G108 — OpenAPI
+EXTRACT+NORMALIZE stage</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> LOW.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G101.</li>
+</ul>
+<h3 id="g109-llm-refine-stage-interface-only-provider-agnostic">G109 —
+LLM-REFINE stage (interface-only, provider-agnostic)</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G106,
+G107, G108.</li>
+</ul>
+<h3 id="g110-dedup-stage">G110 — DEDUP stage</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G109.</li>
+</ul>
+<h3 id="g111-createextend-wire-graph-relations-stage">G111 —
+CREATE/EXTEND + WIRE GRAPH RELATIONS stage</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G110;
+soft-serializes behind G59.</li>
+</ul>
+<h3 id="g112-ingestion-job-orchestration-durable">G112 — Ingestion job
+orchestration (durable)</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G111.</li>
+</ul>
+<h3 id="g113-recursive-directory-watcher-fsnotify-debounce">G113 —
+Recursive directory watcher (fsnotify + debounce)</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G98.</li>
+</ul>
+<h3 id="g114-worker.jobtypeingestsource-real-handler">G114 —
+worker.JobTypeIngestSource + real handler</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G112.</li>
+</ul>
+<h3 id="g115-rest-apiv1ingest-endpoints">G115 — REST /api/v1/ingest/*
+endpoints</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G114;
+assumes G96 resolved.</li>
+</ul>
+<h3 id="g116-cli-ingest-command-group">G116 — CLI ingest command
+group</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G115.</li>
+</ul>
+<h3 id="g117-mcp-skill_ingest_source-tool">G117 — MCP
+skill_ingest_source tool</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G115.</li>
+</ul>
+<h3 id="g118-full-anti-bluff-test-suite-helixqa-challenge-bank">G118 —
+Full anti-bluff test-suite + HelixQA Challenge bank</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> LOW.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G116,
+G117.</li>
+</ul>
+<h3 id="g119-periodic-polling-for-ftpsmbwebdavapi-sources-deferred">G119
+— Periodic polling for FTP/SMB/WebDAV/API sources (deferred)</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> LOW.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G102,
+G103, G104, G101.</li>
+</ul>
+<h3 id="g120-deep-research-extend-stage-activation-deferred">G120 —
+Deep-research-extend stage activation (deferred)</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> LOW.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G109.</li>
+</ul>
+<h3 id="g121-tui-ingestion-pane-deferred">G121 — TUI ingestion pane
+(deferred)</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> LOW.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G115.</li>
+</ul>
+<h3
+id="g122-source-removal-skill-stalenessdeletion-policy-deferred">G122 —
+Source-removal → Skill staleness/deletion policy (deferred)</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> LOW.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G118.</li>
+</ul>
+<h3 id="g123-architectural-overlap-reconciliation-g69-vs-g93">G123 —
+Architectural-overlap reconciliation (G69 vs G93)</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued.</li>
+<li><strong>Evidence:</strong> Reconcile the overlapping
+schema/config/registry design between <code>G69</code>
+(GitHub-Skills-Ingestion) and <code>G93</code>
+(Unified-Multi-Source-Skill-Ingestion) before either’s sub-items
+land.</li>
+<li><strong>Evidence (found independently this session — neither
+background research stream could see the other’s output while running in
+parallel):</strong>
+<ol type="1">
+<li><strong>Migration-number collision:</strong> <code>G70</code>’s DDL
+claims <code>migrations/004_skill_sources.up.sql</code> as “next free”;
+<code>G95</code>’s DDL independently claims
+<code>migrations/004_ingestion.up.sql</code> as ALSO “next free”. Both
+cannot be <code>004</code>.</li>
+<li><strong>Duplicate registry abstraction:</strong> <code>G74</code>
+proposes a new <code>internal/skillsource</code> package with
+<code>Store</code> CRUD for a <code>skill_sources</code> table;
+<code>G97</code> proposes a new
+<code>internal/ingest/source.Source</code> interface + its own
+source-registry concept. Per §11.4.186 anti-divergence this MUST be a
+single mechanism with adapter plugins, never duplicated per-source-type
+infrastructure.</li>
+<li><strong>Duplicate config surface:</strong> <code>G72</code>
+(<code>SourceSyncConfig</code>) and <code>G94</code>
+(<code>IngestionConfig</code>) both add a new top-level config section
+covering overlapping concerns (allowlisted roots/hosts, credential
+env-var naming, poll/scan cadence).</li>
+</ol></li>
+<li><strong>FACT (2026-07-16, source-confirmed) — reframes item 1
+above:</strong> NO migration-004 collision currently exists on disk —
+<code>migrations/</code> holds only the
+<code>001</code>/<code>002</code>/<code>003</code> up/down pairs (git
+history for <code>migrations/</code> = 3 commits only); neither
+<code>G70</code> nor <code>G95</code> has actually created a
+<code>004_*</code> file yet, so item 1’s “collision” is a PLANNING-time
+clash between two proposed-but-unimplemented DDL claims, not a present
+file collision. Separately confirmed a latent robustness gap in the
+migration runner itself: <code>discoverMigrationsFS</code>
+(<code>internal/db/migrations.go:200-258</code>) keys files into
+<code>map[int64]string</code> by numeric prefix and would SILENTLY let a
+lexicographically-later same-version file overwrite an earlier one with
+no error, if a real same-number collision were ever introduced — not
+presently triggered, but a genuine gap in the runner’s collision
+handling. This item is therefore reframed from “a migration-004
+collision exists” to “a latent silent-overwrite-on-collision gap in the
+migration runner, plus a planning-time number clash between
+<code>G70</code> and <code>G95</code> that must be resolved before
+either creates its <code>004_*</code> file — no <code>004</code> exists
+yet”.</li>
+<li><strong>Recommended resolution shape (a proposal for the
+conductor/operator to confirm, NOT decided here per §11.4.6):</strong>
+treat <code>G93</code>’s <code>Source</code> interface
+(<code>G97</code>) as the canonical pluggable-adapter abstraction, and
+re-scope <code>G69</code>’s GitHub-specific sub-items
+(<code>G74</code>-<code>G92</code>) to implement ONE concrete
+<code>Source</code> adapter against that interface rather than a
+parallel <code>internal/skillsource</code> registry — collapsing
+<code>G70</code>+<code>G95</code> into a single migration, and
+<code>G72</code>+<code>G94</code> into a single config section.
+<strong>This is a genuine architecture decision, not a mechanical fix —
+do not auto-apply this recommendation without conductor/operator
+sign-off.</strong></li>
+<li><strong>STATUS:</strong> Queued.</li>
+</ul>
+<h3
+id="g124-feat-auto-generated-always-in-sync-skills-tree-documentation-catalog-docsskills">G124
+— FEAT: Auto-generated, always-in-sync Skills-tree documentation catalog
+(<code>docs/skills/</code>)</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Status:</strong> Queued.
+<strong>Created-by:</strong> Operator. <strong>Assigned-to:</strong>
+Operator.</li>
+<li><strong>One-liner:</strong> docs/skills always-in-sync
+structurally-organized Skills-tree catalog auto-generated from the skill
+store, exported (md/html/pdf), and auto-synchronized via Docs Chain +
+hooks + §11.4.86 roster fingerprint.</li>
+<li><strong>What:</strong> maintain <code>docs/skills/</code> as a
+complete, structurally-organized (tree: index → category → per-skill
+detail) catalog of EVERY skill in the System with details + descriptions
+(name, kind, description, dependencies/6 relation types, resources),
+GENERATED from the DB/skill store, exported md+html+pdf (§11.4.65), and
+AUTOMATICALLY kept in sync via §11.4.106 Docs Chain context + §11.4.86
+sha256 roster fingerprint + §11.4.109/§11.4.164 hooks,
+configurable/triggerable via CLI + REST + all clients.</li>
+<li><strong>Acceptance:</strong> catalog present + tree-structured + one
+detail page per skill; regeneration re-armed by any skill
+add/modify/remove (fingerprint drift); md/html/pdf exports in sync; Docs
+Chain context registered; hook wires it out-of-the-box; four-layer
+coverage §11.4.4(b) + self-validated generator §11.4.107(10) + paired
+§1.1 + real-DB e2e §11.4.27; no bluff.</li>
+<li><strong>Composes with:</strong>
+§11.4.12/.44/.60/.65/.86/.106/.109/.164/.171/.197/.202.</li>
+<li><strong>Note:</strong> The G124 design doc is published at
+<code>research/g124_docs_skills_catalog_design.md</code> (this session).
+The scratchpad <code>scratchpad/docs_skills_catalog_research/</code>
+that originally fed it does not exist in the local tree (cleaned up
+after prior sessions); the committed research doc supersedes it.
+Sub-items G125–G135 are decomposed below.</li>
+<li><strong>Source-side advanceable now:</strong> yes (generator design
++ skill-model mapping). <strong>Build/DB-gated:</strong> the live
+regeneration proof needs a running DB with seeded skills.</li>
+<li><strong>STATUS:</strong> Queued.</li>
+</ul>
+<h3 id="g125-build-the-skillscatalog-generator">G125 — Build the
+skillscatalog generator</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G124.</li>
+<li><strong>Description:</strong> Build the <code>skillscatalog</code>
+generator: DB → deterministic Markdown tree + sha256 roster fingerprint
+sidecar (§11.4.86).</li>
+</ul>
+<h3
+id="g126-wire-docs-skills-catalog-generateverify-cli-subcommand">G126 —
+Wire docs skills-catalog generate|verify CLI subcommand</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G125.</li>
+</ul>
+<h3 id="g127-rest-handlers-for-catalog-regenerate-status">G127 — REST
+handlers for catalog regenerate + status</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G125.</li>
+</ul>
+<h3 id="g128-mcp-skill_catalog_status-tool">G128 — MCP
+skill_catalog_status tool</h3>
+<ul>
+<li><strong>Type:</strong> Feature. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G125.</li>
+</ul>
+<h3 id="g129-periodic-reconciliation-worker-job-for-catalog">G129 —
+Periodic reconciliation worker job for catalog</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G125.</li>
+</ul>
+<h3 id="g130-immediate-tick-signal-from-skill-graph-write-paths">G130 —
+Immediate-tick signal from skill-graph write paths</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G125,
+G129.</li>
+</ul>
+<h3 id="g131-guard-skills-catalog-fresh.sh-pretooluse-guard">G131 —
+guard-skills-catalog-fresh.sh PreToolUse guard</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G125,
+G126.</li>
+</ul>
+<h3 id="g132-auto-propagation-of-catalog-guard-hook">G132 —
+Auto-propagation of catalog guard hook</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G131.</li>
+</ul>
+<h3 id="g133-docs-chain-context-for-skills-catalog">G133 — Docs Chain
+context for skills catalog</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Blocked. <strong>Depends on:</strong>
+G125.</li>
+<li><strong>Blocked:</strong> not functionally completable until Docs
+Chain is incorporated (X1/P13.T1 clear).</li>
+</ul>
+<h3 id="g134-anti-bluff-proof-plan-for-catalog-generator">G134 —
+Anti-bluff proof plan for catalog generator</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G125.</li>
+</ul>
+<h3 id="g135-helixqa-challenge-bank-entry-for-catalog">G135 — HelixQA
+Challenge bank entry for catalog</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Severity:</strong> MEDIUM.
+<strong>Status:</strong> Queued. <strong>Depends on:</strong> G125,
+G134.</li>
+</ul>
+<h3
+id="g136-task-retroactive-severity-assessment-for-session-discovered-items-g52g137">G136
+— Task: Retroactive severity assessment for session-discovered items
+G52–G137</h3>
+<ul>
+<li><strong>Type:</strong> Task. <strong>Status:</strong> Queued.</li>
+<li><strong>One-line description (§11.4.171, ≥6 words,
+subject+goal):</strong> Assign evidence-based CRITICAL/HIGH/MEDIUM/LOW
+severity ratings to every session-discovered item <code>G52</code>
+through <code>G124</code> — and equally the <code>G124</code>-umbrella
+sub-items <code>G125</code>–<code>G135</code> plus this item
+<code>G136</code> itself, which inherit the same treatment so that NO
+session-discovered item is left un-assessed — using the same rubric
+already applied to <code>G01</code>-<code>G37</code>, and fold the
+results into the Summary counts table at the top of this file.</li>
+<li><strong>Evidence:</strong> cited by the Summary-counts Note (top of
+this file) and by
+<code>G45</code>/<code>G54</code>/<code>G55</code>/<code>G56</code> and
+every other item marked “severity not independently assessed” — this id
+gives that recurring caveat a single tracked home instead of a bare
+unattributed clause.</li>
+<li><strong>Assessment result:</strong> the per-item severity assessment
+has been published at <code>research/g136_severity_assessment.md</code>
+(this session). That doc is the canonical per-item rationale; the
+Summary counts table at the top of this file has been updated to reflect
+those proposals as the working baseline.</li>
+<li><strong>Depends on:</strong> none blocking — can start at any time;
+individual items’ severities should be finalized as each one’s own
+investigation concludes.</li>
+<li><strong>STATUS:</strong> Queued (preliminary assessment completed
+2026-07-17 — see below).</li>
+</ul>
+<h3 id="preliminary-severity-assessment-table">Preliminary severity
+assessment table</h3>
+<p>Assessed 2026-07-17 per the same rubric as G01–G37. Items are grouped
+by outcome; full per-item rationale lives in
+<code>research/g136_severity_assessment.md</code>. Severities proposed
+here are the WORKING BASELINE — not final — and should be reviewed as
+each item lands or is re-investigated (§11.4.6).</p>
+<h4 id="high-68-items">HIGH (68 items)</h4>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>Items</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>G29, G31, G32, G35, G39–G43, G57, G59, G63, G137</td>
+<td>Un-wired flagship pipelines, latent security holes, constitutional
+violations, or discovered contract-drift that blocks core
+functionality.</td>
+</tr>
+<tr>
+<td>G69–G92 (×24), G93–G122 (×30)</td>
+<td>Operator-mandated net-new feature epics (GitHub-ingestion and
+multi-source ingestion). Falls under §11.4.197 — unbuilt flagship risk
+if left un-resourced.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="medium-35-items">MEDIUM (35 items)</h4>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>Items</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>G55, G56, G58, G60, G61, G64, G66</td>
+<td>Bugs and gaps in ops-scripts, migrations, compose contracts, and
+search conflict-oracle that degrade reliability but are not
+blocking.</td>
+</tr>
+<tr>
+<td>G123</td>
+<td>Architecture-overlap reconciliation — essential before G69/G93
+sub-items land but a coordination task, not a defect.</td>
+</tr>
+<tr>
+<td>G124–G135 (×12)</td>
+<td>Docs catalog feature — net-new capability, not a regression; planned
+with honest gaps already declared.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="low-18-items">LOW (18 items)</h4>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>Items</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>G52, G53</td>
+<td>Both CLOSED; included for historical completeness.</td>
+</tr>
+<tr>
+<td>G54, G62</td>
+<td><code>gofmt</code> drift — cosmetic, not behavioural.</td>
+</tr>
+<tr>
+<td>G65, G67, G68</td>
+<td>Ops-script edge cases, policy decisions, dead-code refinement. All
+deferred or low-impact.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="na-1-item">N/A (1 item)</h4>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>Items</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>G136</td>
+<td>This assessment task itself cannot receive a severity — it would be
+a self-referential rating (§11.4.6).</td>
+</tr>
+</tbody>
+</table>
+<h3 id="summary-table-all-g01g137">Summary table (all G01–G137)</h3>
+<p>See the revised Summary counts at the top of this file.</p>
+<h3
+id="g137-bug-autoexpand-gap-detection-is-inert-against-any-graph-the-store-api-constructs">G137
+— Bug: autoexpand gap-detection is inert against any graph the store API
+constructs</h3>
+<ul>
+<li><strong>Type:</strong> Bug. <strong>Status:</strong> Queued.</li>
+<li><strong>One-line description (§11.4.171, ≥6 words,
+subject+goal):</strong> <code>internal/autoexpand/pipeline.go</code>’s
+<code>DetectGapsForSkill</code>/<code>collectGapsFromTree</code> (and
+the sibling <code>detectGapsForSingleSkill</code>) key gap detection on
+<code>dep.DependsOn == uuid.Nil</code>, a condition that is UNREACHABLE
+for any graph the store API constructs — so <code>Pipeline.Run</code>
+structurally returns <code>SkillsCreated=0</code> against every
+store-constructed graph, and the auto-growth pipeline is
+reachable-but-inert even after G03’s worker-wiring lands.</li>
+<li><strong>Evidence (source-confirmed, §11.4.6; re-verified against the
+current tree, §11.4.199):</strong>
+<code>skill_dependencies.skill_id</code>/<code>depends_on</code> are
+PRIMARY KEY columns (<code>migrations/001_initial.up.sql:25-29</code>:
+<code>PRIMARY KEY (skill_id, depends_on)</code>, both
+<code>REFERENCES skills(id) ON DELETE CASCADE</code>). <strong>Corrected
+mechanism (2026-07-16, Fable-xhigh re-review finding — the ORIGINAL
+wording here was proven wrong and is replaced, not merely
+annotated):</strong> PK membership does make the column implicitly NOT
+NULL, so a literal <code>NULL</code> in <code>depends_on</code> is
+rejected — but a <em>zero</em> UUID
+(<code>00000000-0000-0000-0000-000000000000</code>) is a non-null value,
+and on live pg16 it is rejected by the
+<code>skill_dependencies_depends_on_fkey</code> FK constraint instead,
+NOT by the NOT NULL check; a hand-inserted <code>skills</code> row with
+<code>id = '00000000-...'</code> is itself schema-valid (the INSERT
+succeeds — no CHECK forbids the all-zero UUID), and once such a row
+exists a zero-UUID edge CAN persist. So “PK ⇒ NOT NULL ⇒ Postgres
+refuses any nil/zero <code>depends_on</code>” is FALSE as an
+unconditional schema guarantee, and the original title/description’s
+“any real, schema-valid skill graph” over-scoped the claim (a
+hand-inserted zero-UUID skill row IS schema-valid). The TRUE backstop —
+matching this file’s own Open-questions-ledger entry for “§11.4.197
+follow-ups #4” below (whose own stale citations are corrected in this
+same pass) — is the FK constraint PLUS <code>Store.Create</code>’s
+nil-ID guard (<code>internal/skill/store.go:648-650</code>:
+<code>if skill.ID == uuid.Nil { skill.ID = uuid.New() }</code>),
+together with <code>AddDependency</code>’s both-endpoints-exist
+pre-check (<code>internal/skill/graph.go:22-53</code>),
+<code>ImportFromTOML</code>’s name-resolved-existing-IDs-only inserts
+(<code>internal/skill/import_export.go:112-138</code>), and
+<code>validation.Pipeline.CrossReference</code>’s independent
+<code>uuid.Nil</code> hard-error
+(<code>internal/validation/pipeline.go:551-552</code>): no
+<code>skills</code> row created by any store-API-driven path ever
+carries a nil or hand-picked-zero id, so the FK can never match one, so
+a zero-UUID edge can never persist — for any graph the store API itself
+builds. That scoped claim, not the unconditional one, is what this bug
+rests on. <code>Store.GetByName</code>’s dependency loader
+(<code>internal/skill/store.go:490</code>, mirrored at <code>:615</code>
+for <code>GetTree</code>) does a
+<code>JOIN skills ds ON sd.depends_on = ds.id</code> (an INNER JOIN, the
+SQL default) — every <code>models.SkillDependency.DependsOn</code> a
+caller observes via <code>GetByName</code>/<code>GetTree</code> is
+therefore, by construction, a real, existing skill id for any graph the
+store API built; it can never be <code>uuid.Nil</code> on that path.
+<code>collectGapsFromTree</code>
+(<code>internal/autoexpand/pipeline.go:145-170</code>) and
+<code>detectGapsForSingleSkill</code> (<code>pipeline.go:481-506</code>,
+doc comment at <code>:480</code>) both gate their gap-append on exactly
+<code>dep.DependsOn == uuid.Nil</code> (<code>pipeline.go:157</code> and
+<code>:489</code> respectively — CURRENT-TREE-VERIFIED line numbers;
+both citations were off by +12 lines in the prior revision of this
+entry, <code>:469-494</code>/<code>:477</code>, because this same fix
+round’s F1 inserted ~12 comment lines earlier in the file, between
+<code>DraftSkill</code> and <code>detectGapsForSingleSkill</code> —
+<code>pipeline.go:157</code> itself did not shift) — a condition
+unreachable via either read path (<code>GetTree</code> or
+<code>GetByName</code>) for any graph the store API constructs. This is
+the SAME fact already source-confirmed in this file’s own
+“Open-questions ledger” entry for “§11.4.197 follow-ups #4/#5” (nil-UUID
+FK edges) and independently documented, with the SAME now-corrected
+over-broad phrase, in the header comments of
+<code>internal/autoexpand/pipeline_crossreference_integration_test.go</code>
+and <code>internal/worker/autoexpand_integration_test.go</code> (both
+call it “a real, separate, out-of-scope defect in the gap-DETECTION half
+of this package” / “a real, separate, out-of-scope finding”, and both
+had their “any real, schema-valid skill graph” phrase corrected to “any
+graph the store API constructs” in this same pass) — this item is that
+finding’s first tracked home; no prior Gxx id existed for it.</li>
+<li><strong>Why it matters:</strong> even with G03’s worker-loop wiring
+landed and F1 (this fix round) making <code>DraftSkill</code>
+provider-agnostic, <code>Pipeline.Run</code>’s own top-level gap scan
+can never find a gap to draft against on any graph a running system
+would actually construct — the auto-growth pipeline is wired end-to-end
+but permanently a no-op in production, silently. A feature that always
+reports <code>SkillsCreated=0</code> with no error is a §11.4/§107
+PASS-bluff risk if ever presented as “auto-growth is enabled” without
+this caveat.</li>
+<li><strong>RESOLUTION:</strong> Both (a) and (b) are now implemented
+together: (b) — <code>collectGapsFromTree</code> and
+<code>detectGapsForSingleSkill</code> use name-based
+<code>skillNameExists()</code> checks via the store instead of the
+unreachable <code>uuid.Nil</code> gate; (a) — <code>Run()</code>
+pre-collects registry-level gaps via <code>DetectGaps()</code>
+(name-based <code>GetMissingSkills</code>) and merges them into each
+skill’s gap list at every depth layer, deduplicating by
+<code>MissingDepName</code>. Options (c) (schema reconciliation) and (d)
+(close per §11.4.90/§11.4.112) are documented-but-not-taken
+alternatives.</li>
+<li><strong>Composes with:</strong> <code>G03</code> (this wiring round
+exposed the inertness as a concrete, testable fact rather than a
+theoretical one — see
+<code>pipeline_crossreference_integration_test.go</code> and its no-LLM
+sibling <code>pipeline_crossreference_test.go</code>, both of which had
+to construct their <code>Gap</code> manually instead of driving it
+through <code>Pipeline.Run</code>’s own scan, for exactly this reason;
+the worker package’s <code>autoexpand_integration_test.go</code>
+demonstrates the SAME inertness the OTHER way — it drives
+<code>Pipeline.Run</code>’s own real scan (no manual <code>Gap{}</code>)
+against a seeded, store-API-constructed graph and honestly asserts
+<code>SkillsCreated == 0</code>), <code>G20</code> (auto-expand
+design/drafting — a sibling weakness in the SAME package, distinct
+facet: G20 is about WHAT gets drafted/persisted once a gap is found,
+G137 is about WHETHER a gap is ever found at all), <code>§11.4.6</code>
+(no-guessing — the unreachability is proven from schema + query text,
+not assumed), <code>§11.4.124</code> (this is a design/logic gap, not
+dead code — the functions ARE called by <code>Pipeline.Run</code>, they
+just can never match), <code>§11.4.197</code> (an un-tracked “third
+state” finding — this item is its resolution: the inertness was
+previously flagged only in test-file comments, never a tracked workable
+item).</li>
+<li><strong>Test coverage:</strong> unit (construct a
+<code>models.SkillTreeNode</code>/<code>models.Skill</code> graph
+in-memory proving <code>collectGapsFromTree</code>’s condition is
+unreachable via any value <code>GetTree</code>/<code>GetByName</code>
+can actually produce), integration (real-DB: attempt to persist a
+<code>skill_dependencies</code> row with
+<code>depends_on = uuid.Nil</code> and confirm Postgres rejects it —
+proving the NOT-NULL half; a second case attempting a ZERO UUID against
+an FK with no matching <code>skills</code> row, confirming the
+FK-violation half, distinct from the NOT-NULL half per the corrected
+mechanism above), mutation (a fix that switches detection to a reachable
+model must have a paired §1.1 mutation proving the OLD
+<code>uuid.Nil</code> check, if reintroduced, again returns zero gaps
+against a seeded real-name-mismatch graph). <strong>Challenges:</strong>
+yes (auto-growth-must-actually-detect-a-gap-on-a-real-graph).
+<strong>HelixQA:</strong> yes.</li>
+<li><strong>STATUS:</strong> <code>Fixed (→ Fixed.md)</code> —
+<code>2026-07-17</code>. Fix implements RESOLUTION options (a)+(b):
+<code>collectGapsFromTree</code> and
+<code>detectGapsForSingleSkill</code> now use name-based
+<code>skillNameExists</code> checks against the store instead of the
+unreachable <code>dep.DependsOn == uuid.Nil</code> guard;
+<code>Run()</code> additionally pre-collects registry-level gaps via
+<code>DetectGaps()</code> (name-based <code>GetMissingSkills</code>,
+always reachable) and merges them into each skill’s gap list at every
+depth layer, deduplicating by <code>MissingDepName</code>.
+<code>go build</code>/<code>go vet</code>/<code>gofmt</code> clean;
+full-suite <code>go test -race ./...</code> GREEN (24 pkgs). The
+<em>openness scope</em> of the original bug — that
+<code>Pipeline.Run</code> could never find a gap to draft against — is
+CLOSED. Residual (pre-existing, not re-opened):
+<code>handleValidate</code> and <code>handleCodeAnalysis</code> still
+stubs (G03); <code>runAutoExpandCycle</code> ticker still log-only
+(G03); <code>createMinimalDraft</code> placeholder-persist still active
+(G20). The RESOLUTION section’s text above is updated to note that
+(a)+(b) are now implemented, leaving (c)+(d) as documented-but-not-taken
+alternatives.</li>
+</ul>
+<h3
+id="open-questions-ledger-per-item-resolution-state-11.4.6">Open-questions
+ledger — per-item resolution state (§11.4.6)</h3>
+<ul>
+<li><strong>§11.4.197 follow-ups #4/#5</strong> — RESOLVED (2026-07-16,
+source-confirmed), no new item filed:
+<ul>
+<li><strong>#4 (nil-UUID FK edges):</strong> <strong>FACT:</strong> a
+nil/zero UUID edge CANNOT be silently persisted by any store-API-driven
+path. <code>skill_dependencies.skill_id</code>/<code>depends_on</code>
+are implicitly NOT NULL (PK columns,
+<code>migrations/001_initial.up.sql:26-29</code>, widened
+<code>002_granularity.up.sql:36-38</code>, FK
+<code>REFERENCES skills(id)</code>) — this blocks a literal
+<code>NULL</code>; a <em>zero</em> UUID is blocked separately, by the
+<code>skill_dependencies_depends_on_fkey</code> FK constraint, not the
+NOT NULL check (see <code>G137</code>’s corrected-mechanism note for the
+full distinction — a hand-inserted <code>skills</code> row with a
+zero-UUID id is itself schema-valid, so the FK is the operative
+backstop, not PK-implied NOT NULL alone). <code>AddDependency</code>
+(<code>internal/skill/graph.go:22-53</code>) pre-checks both endpoints;
+<code>ImportFromTOML</code>
+(<code>internal/skill/import_export.go:112-138</code>) only inserts
+name-resolved existing IDs; <code>Store.Create</code>
+(<code>internal/skill/store.go:647-699</code>, dependency-insert loop at
+<code>:687-699</code>) relies on the FK; <code>CrossReference</code>
+(<code>internal/validation/pipeline.go:548-552</code>) hard-errors on
+<code>uuid.Nil</code>; every skill gets <code>uuid.New()</code>
+(<code>store.go:648-650</code>, corrected from this entry’s earlier
+<code>:358-360</code> citation — current-tree-verified, 2026-07-16) so
+no nil-ID skill row exists → the FK is an effective backstop for any
+graph the store API itself builds. Test
+<code>graph_removedep_g25_test.go:136-151</code> proves the FK must be
+DROPPED to even construct a dangling edge.</li>
+<li><strong>#5 (ExportToTOML direction):</strong> <strong>FACT:</strong>
+no mismatch exists. <code>ImportFromTOML</code>
+(<code>import_export.go:22</code>) = TOML→DB (writes);
+<code>ExportToTOML</code> (<code>import_export.go:345</code>) = DB→TOML
+(reads via <code>GetByName</code>). Round-trip stability was fixed by
+<code>G07</code> (<code>import_export.go:367-373</code>), all 6 relation
+types emitted (<code>405-443</code>), proven by tests
+<code>g07_roundtrip_test.go</code> +
+<code>g33_export_empty_dep_name_test.go</code>.</li>
+<li>Both follow-ups are CLOSED by this source-confirmation; citing
+<code>G07</code> (<code>073192f</code>) as the landing commit for #5’s
+round-trip stability.</li>
+</ul></li>
+<li><strong><code>G59</code> name discrepancy</strong> — RESOLVED
+(2026-07-16, source-confirmed): the real symbol is
+<code>db.StoreSkillEmbedding</code>
+(<code>internal/db/vector.go:180</code>); <code>db.StoreEmbedding</code>
+was only ever a doc-comment misnaming at <code>vector.go:179</code>,
+never a second symbol. See the FACT line on <code>G59</code>’s own
+bullet above.</li>
+<li><strong><code>G68</code> verify status</strong> — the “coarse
+delete” facet is STILL genuinely unconfirmed against current source (see
+<code>G68</code>’s own <code>VERIFY</code> flag above); separately, this
+session source-confirmed a DIFFERENT fact —
+<code>RemoveDependency</code> is unwired/dead code (§11.4.124) — which
+does not resolve the coarse-delete question.</li>
+<li><strong><code>G93</code>’s own already-declared honest gaps</strong>
+(no viable pure-Go NFS client; AGPL-licensed OCR path only;
+non-filesystem sources get no real-time push) are carried forward
+verbatim from
+<code>skill_ingestion_research/DESIGN.md</code>/<code>RESEARCH.md</code>
+— not independently re-verified this session, not re-litigated.</li>
+<li><strong><code>G73</code>/<code>G90</code></strong> (Challenges +
+HelixQA submodule vendoring) is flagged in its own source draft as a
+blocking dependency for <code>G91</code> — this plan preserves that
+blocking relationship but does not independently verify whether the two
+submodules are already vendored elsewhere in this project.</li>
+</ul>
+</body>
+</html>

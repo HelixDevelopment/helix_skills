@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc 3.10" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>SPEC</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">SPEC</h1>
+</header>
+<h1 id="spec.md-helixknowledge-skill-graph-system">SPEC.md —
+HelixKnowledge Skill Graph System</h1>
+<h2 id="overview">1. Overview</h2>
+<p>A self-growing Knowledge Skill Graph system for AI CLI agents. Each
+Skill is a versioned unit of knowledge for a specific technology, with
+recursive dependencies forming a DAG. The system auto-detects gaps,
+validates knowledge through multi-layer defense, and learns from real
+codebases.</p>
+<p><strong>Key corrections from research</strong>: - ACP uses JSON-RPC
+over stdio (NOT gRPC) - TOML for config/skill definitions; JSON for API
+wire format - HTTP/2 default for local; HTTP/3 via Caddy for remote -
+3-model jury optimal for validation - 768d embeddings sweet spot;
+support pluggable providers</p>
+<hr />
+<h2 id="technology-stack">2. Technology Stack</h2>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Choice</th>
+<th>Version</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Language</td>
+<td>Go</td>
+<td>1.22+</td>
+</tr>
+<tr>
+<td>API Framework</td>
+<td>Gin</td>
+<td>v1.11.0+</td>
+</tr>
+<tr>
+<td>HTTP/3</td>
+<td>quic-go + Caddy (proxy)</td>
+<td>Latest</td>
+</tr>
+<tr>
+<td>Compression</td>
+<td>andybalholm/brotli</td>
+<td>Latest</td>
+</tr>
+<tr>
+<td>Config Format</td>
+<td>TOML (BurntSushi/toml)</td>
+<td>v1.6.0</td>
+</tr>
+<tr>
+<td>API Format</td>
+<td>JSON primary, TOML optional</td>
+<td>-</td>
+</tr>
+<tr>
+<td>Database</td>
+<td>PostgreSQL</td>
+<td>16+</td>
+</tr>
+<tr>
+<td>Vector Ext</td>
+<td>pgvector</td>
+<td>0.8.0+</td>
+</tr>
+<tr>
+<td>Embedding</td>
+<td>OpenAI text-embedding-3-small (default), pluggable</td>
+<td>-</td>
+</tr>
+<tr>
+<td>Code Parsing</td>
+<td>tree-sitter (official Go bindings)</td>
+<td>Latest</td>
+</tr>
+<tr>
+<td>MCP Server</td>
+<td>mcp-go (mark3labs)</td>
+<td>v0.56.0+</td>
+</tr>
+<tr>
+<td>CLI Framework</td>
+<td>Cobra</td>
+<td>Latest</td>
+</tr>
+<tr>
+<td>TUI Framework</td>
+<td>Bubble Tea</td>
+<td>Latest</td>
+</tr>
+<tr>
+<td>Deployment</td>
+<td>Docker Compose / Podman Compose</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="project-structure">3. Project Structure</h2>
+<pre><code>skill-system/
+├── cmd/
+│   ├── server/           # REST API + MCP server (main entry: main.go)
+│   ├── worker/           # Background jobs (autoexpand, codeanalysis)
+│   ├── cli/              # Cobra CLI tool
+│   └── tui/              # Bubble Tea TUI
+├── internal/
+│   ├── config/           # TOML config loading, env vars
+│   ├── db/               # PostgreSQL + pgvector client, migrations
+│   ├── models/           # Shared data structures
+│   ├── skill/            # Skill CRUD, dependency graph, recursive queries
+│   ├── registry/         # Central registrar, health monitoring
+│   ├── autoexpand/       # Auto-growth pipeline
+│   ├── codeanalysis/     # tree-sitter integration, pattern extraction
+│   ├── validation/       # Multi-model jury, sandbox, source verification
+│   ├── mcp/              # MCP server (mcp-go), tool definitions
+│   ├── api/              # Gin handlers, middleware, content negotiation
+│   └── worker/           # Background job runner
+├── migrations/           # SQL migration files
+├── scripts/              # Lifecycle bash scripts
+├── config/
+│   └── config.toml       # Default configuration template
+├── docker-compose.yml
+├── Dockerfile
+├── go.mod
+├── go.sum
+└── README.md</code></pre>
+<hr />
+<h2 id="data-models">4. Data Models</h2>
+<h3 id="core-types-internalmodels">4.1 Core Types
+(internal/models/)</h3>
+<div class="sourceCode" id="cb2"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Skill represents a single knowledge unit</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> Skill <span class="kw">struct</span> <span class="op">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    ID          uuid<span class="op">.</span>UUID       <span class="st">`json:&quot;id&quot; db:&quot;id&quot;`</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    Name        <span class="dt">string</span>          <span class="st">`json:&quot;name&quot; db:&quot;name&quot;`</span>           <span class="co">// e.g., &quot;android.aosp.build-system&quot;</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    Version     <span class="dt">string</span>          <span class="st">`json:&quot;version&quot; db:&quot;version&quot;`</span>     <span class="co">// SemVer</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    Title       <span class="dt">string</span>          <span class="st">`json:&quot;title&quot; db:&quot;title&quot;`</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    Description <span class="dt">string</span>          <span class="st">`json:&quot;description&quot; db:&quot;description&quot;`</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    Content     <span class="dt">string</span>          <span class="st">`json:&quot;content&quot; db:&quot;content&quot;`</span>     <span class="co">// Full Markdown</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    Metadata    json<span class="op">.</span>RawMessage <span class="st">`json:&quot;metadata&quot; db:&quot;metadata&quot;`</span>   <span class="co">// tags, domain, complexity</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    Embedding   pgvector<span class="op">.</span>Vector <span class="st">`json:&quot;-&quot; db:&quot;embedding&quot;`</span>         <span class="co">// 768d or 1536d</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    Status      SkillStatus     <span class="st">`json:&quot;status&quot; db:&quot;status&quot;`</span>       <span class="co">// draft | validated | active | deprecated</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    Kind        SkillKind       <span class="st">`json:&quot;kind&quot; db:&quot;kind&quot;`</span>           <span class="co">// NEW (R16) — atomic (default) | composite | umbrella</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    CreatedAt   time<span class="op">.</span>Time       <span class="st">`json:&quot;created_at&quot; db:&quot;created_at&quot;`</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    UpdatedAt   time<span class="op">.</span>Time       <span class="st">`json:&quot;updated_at&quot; db:&quot;updated_at&quot;`</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> SkillStatus <span class="dt">string</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> <span class="op">(</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>    SkillStatusDraft      SkillStatus <span class="op">=</span> <span class="st">&quot;draft&quot;</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    SkillStatusValidated  SkillStatus <span class="op">=</span> <span class="st">&quot;validated&quot;</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>    SkillStatusActive     SkillStatus <span class="op">=</span> <span class="st">&quot;active&quot;</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>    SkillStatusDeprecated SkillStatus <span class="op">=</span> <span class="st">&quot;deprecated&quot;</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a><span class="op">)</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a><span class="co">// DependencyType defines how skills relate</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> DependencyType <span class="dt">string</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> <span class="op">(</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>    DepTypeRequires   DependencyType <span class="op">=</span> <span class="st">&quot;requires&quot;</span>   <span class="co">// existing — hard closure</span></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>    DepTypeExtends    DependencyType <span class="op">=</span> <span class="st">&quot;extends&quot;</span>    <span class="co">// existing — hard closure</span></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>    DepTypeRecommends DependencyType <span class="op">=</span> <span class="st">&quot;recommends&quot;</span> <span class="co">// existing — advisory</span></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>    <span class="co">// R16 granularity/composition additions (research/skill_granularity_and_composition.md §4.1).</span></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>    DepTypeComposes    DependencyType <span class="op">=</span> <span class="st">&quot;composes&quot;</span>       <span class="co">// NEW — hard closure, whole-&gt;part aggregation</span></span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>    DepTypeRelatedTo   DependencyType <span class="op">=</span> <span class="st">&quot;related_to&quot;</span>     <span class="co">// NEW — advisory, symmetric &quot;see also&quot;</span></span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>    DepTypeAlternative DependencyType <span class="op">=</span> <span class="st">&quot;alternative_to&quot;</span> <span class="co">// NEW — advisory, symmetric substitute</span></span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a><span class="op">)</span></span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a><span class="co">// HardClosureTypes is the set the &quot;everything needed for X&quot; resolver walks.</span></span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a><span class="kw">var</span> HardClosureTypes <span class="op">=</span> <span class="op">[]</span>DependencyType<span class="op">{</span>DepTypeRequires<span class="op">,</span> DepTypeComposes<span class="op">,</span> DepTypeExtends<span class="op">}</span></span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a><span class="co">// SkillKind classifies a skill on the aggregation axis (orthogonal to</span></span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a><span class="co">// Metadata.Complexity). See research/skill_granularity_and_composition.md §3.1.</span></span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> SkillKind <span class="dt">string</span></span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> <span class="op">(</span></span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a>    SkillKindAtomic    SkillKind <span class="op">=</span> <span class="st">&quot;atomic&quot;</span>    <span class="co">// indivisible building block (default)</span></span>
+<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a>    SkillKindComposite SkillKind <span class="op">=</span> <span class="st">&quot;composite&quot;</span> <span class="co">// mid-level aggregator</span></span>
+<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a>    SkillKindUmbrella  SkillKind <span class="op">=</span> <span class="st">&quot;umbrella&quot;</span>  <span class="co">// technology/stack root; wizard entry point</span></span>
+<span id="cb2-48"><a href="#cb2-48" aria-hidden="true" tabindex="-1"></a><span class="op">)</span></span>
+<span id="cb2-49"><a href="#cb2-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-50"><a href="#cb2-50" aria-hidden="true" tabindex="-1"></a><span class="co">// SkillDependency represents a directed edge in the skill DAG</span></span>
+<span id="cb2-51"><a href="#cb2-51" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> SkillDependency <span class="kw">struct</span> <span class="op">{</span></span>
+<span id="cb2-52"><a href="#cb2-52" aria-hidden="true" tabindex="-1"></a>    SkillID      uuid<span class="op">.</span>UUID      <span class="st">`json:&quot;skill_id&quot; db:&quot;skill_id&quot;`</span></span>
+<span id="cb2-53"><a href="#cb2-53" aria-hidden="true" tabindex="-1"></a>    DependsOn    uuid<span class="op">.</span>UUID      <span class="st">`json:&quot;depends_on&quot; db:&quot;depends_on&quot;`</span></span>
+<span id="cb2-54"><a href="#cb2-54" aria-hidden="true" tabindex="-1"></a>    RelationType DependencyType <span class="st">`json:&quot;relation_type&quot; db:&quot;relation_type&quot;`</span></span>
+<span id="cb2-55"><a href="#cb2-55" aria-hidden="true" tabindex="-1"></a>    Optional     <span class="dt">bool</span>           <span class="st">`json:&quot;optional&quot; db:&quot;optional&quot;`</span>               <span class="co">// NEW (R16) — default false</span></span>
+<span id="cb2-56"><a href="#cb2-56" aria-hidden="true" tabindex="-1"></a>    SortOrder    <span class="op">*</span><span class="dt">int</span>           <span class="st">`json:&quot;sort_order,omitempty&quot; db:&quot;sort_order&quot;`</span> <span class="co">// NEW (R16) — component ordering; nil = unordered</span></span>
+<span id="cb2-57"><a href="#cb2-57" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-58"><a href="#cb2-58" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-59"><a href="#cb2-59" aria-hidden="true" tabindex="-1"></a><span class="co">// Resource is an external reference (URL to docs, articles, code)</span></span>
+<span id="cb2-60"><a href="#cb2-60" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> Resource <span class="kw">struct</span> <span class="op">{</span></span>
+<span id="cb2-61"><a href="#cb2-61" aria-hidden="true" tabindex="-1"></a>    ID            uuid<span class="op">.</span>UUID  <span class="st">`json:&quot;id&quot; db:&quot;id&quot;`</span></span>
+<span id="cb2-62"><a href="#cb2-62" aria-hidden="true" tabindex="-1"></a>    SkillID       uuid<span class="op">.</span>UUID  <span class="st">`json:&quot;skill_id&quot; db:&quot;skill_id&quot;`</span></span>
+<span id="cb2-63"><a href="#cb2-63" aria-hidden="true" tabindex="-1"></a>    URL           <span class="dt">string</span>     <span class="st">`json:&quot;url&quot; db:&quot;url&quot;`</span></span>
+<span id="cb2-64"><a href="#cb2-64" aria-hidden="true" tabindex="-1"></a>    Title         <span class="dt">string</span>     <span class="st">`json:&quot;title&quot; db:&quot;title&quot;`</span></span>
+<span id="cb2-65"><a href="#cb2-65" aria-hidden="true" tabindex="-1"></a>    ResourceType  <span class="dt">string</span>     <span class="st">`json:&quot;resource_type&quot; db:&quot;resource_type&quot;`</span> <span class="co">// official-doc, article, code, video</span></span>
+<span id="cb2-66"><a href="#cb2-66" aria-hidden="true" tabindex="-1"></a>    FetchedHash   <span class="dt">string</span>     <span class="st">`json:&quot;fetched_hash&quot; db:&quot;fetched_hash&quot;`</span>   <span class="co">// SHA256</span></span>
+<span id="cb2-67"><a href="#cb2-67" aria-hidden="true" tabindex="-1"></a>    ContentCached <span class="dt">string</span>     <span class="st">`json:&quot;content_cached&quot; db:&quot;content_cached&quot;`</span></span>
+<span id="cb2-68"><a href="#cb2-68" aria-hidden="true" tabindex="-1"></a>    LastValidated <span class="op">*</span>time<span class="op">.</span>Time <span class="st">`json:&quot;last_validated&quot; db:&quot;last_validated&quot;`</span></span>
+<span id="cb2-69"><a href="#cb2-69" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-70"><a href="#cb2-70" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-71"><a href="#cb2-71" aria-hidden="true" tabindex="-1"></a><span class="co">// Evidence is a learned experience from a real codebase</span></span>
+<span id="cb2-72"><a href="#cb2-72" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> Evidence <span class="kw">struct</span> <span class="op">{</span></span>
+<span id="cb2-73"><a href="#cb2-73" aria-hidden="true" tabindex="-1"></a>    ID            uuid<span class="op">.</span>UUID      <span class="st">`json:&quot;id&quot; db:&quot;id&quot;`</span></span>
+<span id="cb2-74"><a href="#cb2-74" aria-hidden="true" tabindex="-1"></a>    SkillID       uuid<span class="op">.</span>UUID      <span class="st">`json:&quot;skill_id&quot; db:&quot;skill_id&quot;`</span></span>
+<span id="cb2-75"><a href="#cb2-75" aria-hidden="true" tabindex="-1"></a>    SourceProject <span class="dt">string</span>         <span class="st">`json:&quot;source_project&quot; db:&quot;source_project&quot;`</span></span>
+<span id="cb2-76"><a href="#cb2-76" aria-hidden="true" tabindex="-1"></a>    SourceFile    <span class="dt">string</span>         <span class="st">`json:&quot;source_file&quot; db:&quot;source_file&quot;`</span></span>
+<span id="cb2-77"><a href="#cb2-77" aria-hidden="true" tabindex="-1"></a>    CodeSnippet   <span class="dt">string</span>         <span class="st">`json:&quot;code_snippet&quot; db:&quot;code_snippet&quot;`</span></span>
+<span id="cb2-78"><a href="#cb2-78" aria-hidden="true" tabindex="-1"></a>    Pattern       <span class="dt">string</span>         <span class="st">`json:&quot;pattern&quot; db:&quot;pattern&quot;`</span></span>
+<span id="cb2-79"><a href="#cb2-79" aria-hidden="true" tabindex="-1"></a>    Language      <span class="dt">string</span>         <span class="st">`json:&quot;language&quot; db:&quot;language&quot;`</span></span>
+<span id="cb2-80"><a href="#cb2-80" aria-hidden="true" tabindex="-1"></a>    Validated     <span class="dt">bool</span>           <span class="st">`json:&quot;validated&quot; db:&quot;validated&quot;`</span></span>
+<span id="cb2-81"><a href="#cb2-81" aria-hidden="true" tabindex="-1"></a>    Embedding     pgvector<span class="op">.</span>Vector <span class="st">`json:&quot;-&quot; db:&quot;embedding&quot;`</span></span>
+<span id="cb2-82"><a href="#cb2-82" aria-hidden="true" tabindex="-1"></a>    CreatedAt     time<span class="op">.</span>Time      <span class="st">`json:&quot;created_at&quot; db:&quot;created_at&quot;`</span></span>
+<span id="cb2-83"><a href="#cb2-83" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-84"><a href="#cb2-84" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-85"><a href="#cb2-85" aria-hidden="true" tabindex="-1"></a><span class="co">// SkillRegistry tracks health and completeness</span></span>
+<span id="cb2-86"><a href="#cb2-86" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> SkillRegistryEntry <span class="kw">struct</span> <span class="op">{</span></span>
+<span id="cb2-87"><a href="#cb2-87" aria-hidden="true" tabindex="-1"></a>    SkillID     uuid<span class="op">.</span>UUID <span class="st">`json:&quot;skill_id&quot; db:&quot;skill_id&quot;`</span></span>
+<span id="cb2-88"><a href="#cb2-88" aria-hidden="true" tabindex="-1"></a>    SkillName   <span class="dt">string</span>    <span class="st">`json:&quot;skill_name&quot; db:&quot;skill_name&quot;`</span></span>
+<span id="cb2-89"><a href="#cb2-89" aria-hidden="true" tabindex="-1"></a>    MissingDeps <span class="op">[]</span><span class="dt">string</span>  <span class="st">`json:&quot;missing_deps&quot; db:&quot;missing_deps&quot;`</span></span>
+<span id="cb2-90"><a href="#cb2-90" aria-hidden="true" tabindex="-1"></a>    Stale       <span class="dt">bool</span>      <span class="st">`json:&quot;stale&quot; db:&quot;stale&quot;`</span></span>
+<span id="cb2-91"><a href="#cb2-91" aria-hidden="true" tabindex="-1"></a>    LastReview  <span class="op">*</span>time<span class="op">.</span>Time <span class="st">`json:&quot;last_review&quot; db:&quot;last_review&quot;`</span></span>
+<span id="cb2-92"><a href="#cb2-92" aria-hidden="true" tabindex="-1"></a>    AutoExpand  <span class="dt">bool</span>      <span class="st">`json:&quot;auto_expand&quot; db:&quot;auto_expand&quot;`</span></span>
+<span id="cb2-93"><a href="#cb2-93" aria-hidden="true" tabindex="-1"></a>    Coverage    <span class="dt">float64</span>   <span class="st">`json:&quot;coverage&quot; db:&quot;coverage&quot;`</span> <span class="co">// 0.0-1.0</span></span>
+<span id="cb2-94"><a href="#cb2-94" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-95"><a href="#cb2-95" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-96"><a href="#cb2-96" aria-hidden="true" tabindex="-1"></a><span class="co">// AuditLogEntry tracks all system events</span></span>
+<span id="cb2-97"><a href="#cb2-97" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> AuditLogEntry <span class="kw">struct</span> <span class="op">{</span></span>
+<span id="cb2-98"><a href="#cb2-98" aria-hidden="true" tabindex="-1"></a>    Timestamp time<span class="op">.</span>Time       <span class="st">`json:&quot;ts&quot; db:&quot;ts&quot;`</span></span>
+<span id="cb2-99"><a href="#cb2-99" aria-hidden="true" tabindex="-1"></a>    Event     <span class="dt">string</span>          <span class="st">`json:&quot;event&quot; db:&quot;event&quot;`</span></span>
+<span id="cb2-100"><a href="#cb2-100" aria-hidden="true" tabindex="-1"></a>    SkillID   <span class="op">*</span>uuid<span class="op">.</span>UUID      <span class="st">`json:&quot;skill_id,omitempty&quot; db:&quot;skill_id&quot;`</span></span>
+<span id="cb2-101"><a href="#cb2-101" aria-hidden="true" tabindex="-1"></a>    Details   json<span class="op">.</span>RawMessage <span class="st">`json:&quot;details&quot; db:&quot;details&quot;`</span></span>
+<span id="cb2-102"><a href="#cb2-102" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="toml-skill-format-for-api-importexport-and-human-editing">4.2
+TOML Skill Format (for API import/export and human editing)</h3>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode toml"><code class="sourceCode toml"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">[skill]</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="dt">name</span> <span class="op">=</span> <span class="st">&quot;android.aosp.build-system&quot;</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="dt">version</span> <span class="op">=</span> <span class="st">&quot;0.1.0&quot;</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="dt">title</span> <span class="op">=</span> <span class="st">&quot;AOSP Build System (Soong, Make, Bazel)&quot;</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="dt">description</span> <span class="op">=</span> <span class="st">&quot;Complete reference for Android build, Soong blueprints, Android.bp, etc.&quot;</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="dt">kind</span> <span class="op">=</span> <span class="st">&quot;composite&quot;</span>  <span class="co"># NEW (R16) — atomic (default, may be omitted) | composite | umbrella</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="dt">content</span> <span class="op">=</span> <span class="st">&quot;&quot;&quot;</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="st"># AOSP Build System</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="st">## Overview</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="st">The Android build system uses Soong (Android.bp), Make (Android.mk), and migrating to Bazel.</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="st">## Soong Blueprints</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="st">...full markdown content...</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;&quot;&quot;</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a><span class="kw">[skill.metadata]</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a><span class="dt">tags</span> <span class="op">=</span> <span class="op">[</span><span class="st">&quot;android&quot;</span><span class="op">,</span> <span class="st">&quot;build&quot;</span><span class="op">,</span> <span class="st">&quot;soong&quot;</span><span class="op">,</span> <span class="st">&quot;bazel&quot;</span><span class="op">]</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a><span class="dt">domain</span> <span class="op">=</span> <span class="st">&quot;android&quot;</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a><span class="dt">complexity</span> <span class="op">=</span> <span class="st">&quot;intermediate&quot;</span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a><span class="kw">[skill.dependencies]</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a><span class="dt">requires</span>       <span class="op">=</span> <span class="op">[</span><span class="st">&quot;linux.kernel-modules&quot;</span><span class="op">,</span> <span class="st">&quot;python.basics&quot;</span><span class="op">,</span> <span class="st">&quot;make.basics&quot;</span><span class="op">]</span></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a><span class="dt">extends</span>        <span class="op">=</span> <span class="op">[</span><span class="st">&quot;android.general&quot;</span><span class="op">]</span></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a><span class="dt">recommends</span>     <span class="op">=</span> <span class="op">[</span><span class="st">&quot;bazel.advanced&quot;</span><span class="op">]</span></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a><span class="dt">composes</span>       <span class="op">=</span> <span class="op">[</span><span class="st">&quot;android.build.soong&quot;</span><span class="op">,</span> <span class="st">&quot;android.build.kati&quot;</span><span class="op">]</span>  <span class="co"># NEW (R16) — component leaves this node aggregates</span></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a><span class="dt">related_to</span>     <span class="op">=</span> <span class="op">[]</span>                                             <span class="co"># NEW (R16) — symmetric &quot;see also&quot;</span></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a><span class="dt">alternative_to</span> <span class="op">=</span> <span class="op">[]</span>                                             <span class="co"># NEW (R16) — symmetric substitute</span></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a><span class="co"># depends_on / prerequisite / part_of are also ACCEPTED here and normalized</span></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a><span class="co"># per §4.1 of research/skill_granularity_and_composition.md</span></span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a><span class="co"># OPTIONAL ergonomic authoring form for composite/umbrella skills that need</span></span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a><span class="co"># per-component ordering/optionality. Each entry materializes as one</span></span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a><span class="co"># `composes` edge.</span></span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a><span class="kw">[[skill.components]]</span></span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a><span class="dt">name</span>  <span class="op">=</span> <span class="st">&quot;android.build.soong&quot;</span></span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a><span class="dt">order</span> <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a><span class="dt">optional</span> <span class="op">=</span> <span class="cn">false</span></span>
+<span id="cb3-39"><a href="#cb3-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-40"><a href="#cb3-40" aria-hidden="true" tabindex="-1"></a><span class="kw">[[skill.resources]]</span></span>
+<span id="cb3-41"><a href="#cb3-41" aria-hidden="true" tabindex="-1"></a><span class="dt">url</span> <span class="op">=</span> <span class="st">&quot;https://source.android.com/docs/setup/build/building&quot;</span></span>
+<span id="cb3-42"><a href="#cb3-42" aria-hidden="true" tabindex="-1"></a><span class="dt">title</span> <span class="op">=</span> <span class="st">&quot;Official Android Build Documentation&quot;</span></span>
+<span id="cb3-43"><a href="#cb3-43" aria-hidden="true" tabindex="-1"></a><span class="dt">resource_type</span> <span class="op">=</span> <span class="st">&quot;official-doc&quot;</span></span>
+<span id="cb3-44"><a href="#cb3-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-45"><a href="#cb3-45" aria-hidden="true" tabindex="-1"></a><span class="kw">[[skill.resources]]</span></span>
+<span id="cb3-46"><a href="#cb3-46" aria-hidden="true" tabindex="-1"></a><span class="dt">url</span> <span class="op">=</span> <span class="st">&quot;https://android.googlesource.com/platform/build/soong/+/refs/heads/main/README.md&quot;</span></span>
+<span id="cb3-47"><a href="#cb3-47" aria-hidden="true" tabindex="-1"></a><span class="dt">title</span> <span class="op">=</span> <span class="st">&quot;Soong README&quot;</span></span>
+<span id="cb3-48"><a href="#cb3-48" aria-hidden="true" tabindex="-1"></a><span class="dt">resource_type</span> <span class="op">=</span> <span class="st">&quot;code&quot;</span></span></code></pre></div>
+<hr />
+<h2
+id="database-schema-migrations001_initial.up.sql-migrations002_granularity.up.sql">5.
+Database Schema (migrations/001_initial.up.sql +
+migrations/002_granularity.up.sql)</h2>
+<p>Current (post-002_granularity) cumulative shape — see
+<code>research/p1t1_granularity_schema_migration.md</code> §1 for the
+additive <code>ALTER</code> migration that took 001’s schema to this
+shape, and <code>research/skill_granularity_and_composition.md</code>
+§5.3 for the model it implements.</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode sql"><code class="sourceCode sql"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- Enable required extensions</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> EXTENSION <span class="cf">IF</span> <span class="kw">NOT</span> <span class="kw">EXISTS</span> vector;</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> EXTENSION <span class="cf">IF</span> <span class="kw">NOT</span> <span class="kw">EXISTS</span> <span class="ot">&quot;uuid-ossp&quot;</span>;</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="co">-- Skills table</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> skills (</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">id</span>            UUID <span class="kw">PRIMARY</span> <span class="kw">KEY</span> <span class="kw">DEFAULT</span> gen_random_uuid(),</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    name          TEXT <span class="kw">NOT</span> <span class="kw">NULL</span> <span class="kw">UNIQUE</span>,</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    version       TEXT <span class="kw">NOT</span> <span class="kw">NULL</span> <span class="kw">DEFAULT</span> <span class="st">&#39;0.1.0&#39;</span>,</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    title         TEXT <span class="kw">NOT</span> <span class="kw">NULL</span>,</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    description   TEXT,</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    content       TEXT <span class="kw">NOT</span> <span class="kw">NULL</span>,</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    metadata      JSONB <span class="kw">NOT</span> <span class="kw">NULL</span> <span class="kw">DEFAULT</span> <span class="st">&#39;{}&#39;</span>,</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    embedding     vector(<span class="dv">768</span>),  <span class="co">-- 768d default (sweet spot per research)</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    created_at    TIMESTAMPTZ <span class="kw">DEFAULT</span> NOW(),</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    updated_at    TIMESTAMPTZ <span class="kw">DEFAULT</span> NOW(),</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    status        TEXT <span class="kw">DEFAULT</span> <span class="st">&#39;draft&#39;</span> <span class="kw">CHECK</span> (status <span class="kw">IN</span> (<span class="st">&#39;draft&#39;</span>, <span class="st">&#39;validated&#39;</span>, <span class="st">&#39;active&#39;</span>, <span class="st">&#39;deprecated&#39;</span>)),</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    kind          TEXT <span class="kw">NOT</span> <span class="kw">NULL</span> <span class="kw">DEFAULT</span> <span class="st">&#39;atomic&#39;</span> <span class="kw">CHECK</span> (kind <span class="kw">IN</span> (<span class="st">&#39;atomic&#39;</span>, <span class="st">&#39;composite&#39;</span>, <span class="st">&#39;umbrella&#39;</span>))  <span class="co">-- NEW (R16, 002_granularity)</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>);</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">INDEX</span> idx_skills_name <span class="kw">ON</span> skills(name);</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">INDEX</span> idx_skills_status <span class="kw">ON</span> skills(status);</span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">INDEX</span> idx_skills_metadata <span class="kw">ON</span> skills <span class="kw">USING</span> GIN(metadata);</span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">INDEX</span> idx_skills_kind <span class="kw">ON</span> skills(kind);  <span class="co">-- NEW (R16, 002_granularity)</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a><span class="co">-- Skill dependencies (DAG edges)</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> skill_dependencies (</span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>    skill_id      UUID <span class="kw">REFERENCES</span> skills(<span class="kw">id</span>) <span class="kw">ON</span> <span class="kw">DELETE</span> <span class="kw">CASCADE</span>,</span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>    depends_on    UUID <span class="kw">REFERENCES</span> skills(<span class="kw">id</span>) <span class="kw">ON</span> <span class="kw">DELETE</span> <span class="kw">CASCADE</span>,</span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>    relation_type TEXT <span class="kw">NOT</span> <span class="kw">NULL</span> <span class="kw">DEFAULT</span> <span class="st">&#39;requires&#39;</span> <span class="kw">CHECK</span> (relation_type <span class="kw">IN</span> (</span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;requires&#39;</span>, <span class="st">&#39;extends&#39;</span>, <span class="st">&#39;recommends&#39;</span>,        <span class="co">-- existing (001)</span></span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;composes&#39;</span>, <span class="st">&#39;related_to&#39;</span>, <span class="st">&#39;alternative_to&#39;</span>  <span class="co">-- NEW (R16, 002_granularity)</span></span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>    )),</span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>    optional      <span class="dt">BOOLEAN</span> <span class="kw">NOT</span> <span class="kw">NULL</span> <span class="kw">DEFAULT</span> <span class="kw">FALSE</span>,    <span class="co">-- NEW (R16, 002_granularity)</span></span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>    sort_order    <span class="dt">INT</span>,                                <span class="co">-- NEW (R16, 002_granularity) — nullable; NULL = unordered</span></span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a>    <span class="kw">PRIMARY</span> <span class="kw">KEY</span> (skill_id, depends_on, relation_type)  <span class="co">-- widened (R16, 002_granularity) from (skill_id, depends_on)</span></span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a>);</span>
+<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">INDEX</span> idx_deps_skill <span class="kw">ON</span> skill_dependencies(skill_id);</span>
+<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">INDEX</span> idx_deps_depends_on <span class="kw">ON</span> skill_dependencies(depends_on);</span>
+<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a><span class="co">-- Resources</span></span>
+<span id="cb4-41"><a href="#cb4-41" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> resources (</span>
+<span id="cb4-42"><a href="#cb4-42" aria-hidden="true" tabindex="-1"></a>    <span class="kw">id</span>             UUID <span class="kw">PRIMARY</span> <span class="kw">KEY</span> <span class="kw">DEFAULT</span> gen_random_uuid(),</span>
+<span id="cb4-43"><a href="#cb4-43" aria-hidden="true" tabindex="-1"></a>    skill_id       UUID <span class="kw">REFERENCES</span> skills(<span class="kw">id</span>) <span class="kw">ON</span> <span class="kw">DELETE</span> <span class="kw">CASCADE</span>,</span>
+<span id="cb4-44"><a href="#cb4-44" aria-hidden="true" tabindex="-1"></a>    url            TEXT <span class="kw">NOT</span> <span class="kw">NULL</span>,</span>
+<span id="cb4-45"><a href="#cb4-45" aria-hidden="true" tabindex="-1"></a>    title          TEXT,</span>
+<span id="cb4-46"><a href="#cb4-46" aria-hidden="true" tabindex="-1"></a>    resource_type  TEXT <span class="kw">DEFAULT</span> <span class="st">&#39;article&#39;</span> <span class="kw">CHECK</span> (resource_type <span class="kw">IN</span> (<span class="st">&#39;official-doc&#39;</span>, <span class="st">&#39;article&#39;</span>, <span class="st">&#39;code&#39;</span>, <span class="st">&#39;video&#39;</span>, <span class="st">&#39;tutorial&#39;</span>)),</span>
+<span id="cb4-47"><a href="#cb4-47" aria-hidden="true" tabindex="-1"></a>    fetched_hash   TEXT,</span>
+<span id="cb4-48"><a href="#cb4-48" aria-hidden="true" tabindex="-1"></a>    content_cached TEXT,</span>
+<span id="cb4-49"><a href="#cb4-49" aria-hidden="true" tabindex="-1"></a>    last_validated TIMESTAMPTZ,</span>
+<span id="cb4-50"><a href="#cb4-50" aria-hidden="true" tabindex="-1"></a>    created_at     TIMESTAMPTZ <span class="kw">DEFAULT</span> NOW()</span>
+<span id="cb4-51"><a href="#cb4-51" aria-hidden="true" tabindex="-1"></a>);</span>
+<span id="cb4-52"><a href="#cb4-52" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">INDEX</span> idx_resources_skill <span class="kw">ON</span> resources(skill_id);</span>
+<span id="cb4-53"><a href="#cb4-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-54"><a href="#cb4-54" aria-hidden="true" tabindex="-1"></a><span class="co">-- Evidence (learned from codebases)</span></span>
+<span id="cb4-55"><a href="#cb4-55" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> evidences (</span>
+<span id="cb4-56"><a href="#cb4-56" aria-hidden="true" tabindex="-1"></a>    <span class="kw">id</span>             UUID <span class="kw">PRIMARY</span> <span class="kw">KEY</span> <span class="kw">DEFAULT</span> gen_random_uuid(),</span>
+<span id="cb4-57"><a href="#cb4-57" aria-hidden="true" tabindex="-1"></a>    skill_id       UUID <span class="kw">REFERENCES</span> skills(<span class="kw">id</span>) <span class="kw">ON</span> <span class="kw">DELETE</span> <span class="kw">CASCADE</span>,</span>
+<span id="cb4-58"><a href="#cb4-58" aria-hidden="true" tabindex="-1"></a>    source_project TEXT <span class="kw">NOT</span> <span class="kw">NULL</span>,</span>
+<span id="cb4-59"><a href="#cb4-59" aria-hidden="true" tabindex="-1"></a>    source_file    TEXT,</span>
+<span id="cb4-60"><a href="#cb4-60" aria-hidden="true" tabindex="-1"></a>    code_snippet   TEXT,</span>
+<span id="cb4-61"><a href="#cb4-61" aria-hidden="true" tabindex="-1"></a>    pattern        TEXT,</span>
+<span id="cb4-62"><a href="#cb4-62" aria-hidden="true" tabindex="-1"></a>    language       TEXT,</span>
+<span id="cb4-63"><a href="#cb4-63" aria-hidden="true" tabindex="-1"></a>    validated      <span class="dt">BOOLEAN</span> <span class="kw">DEFAULT</span> <span class="kw">FALSE</span>,</span>
+<span id="cb4-64"><a href="#cb4-64" aria-hidden="true" tabindex="-1"></a>    embedding      vector(<span class="dv">768</span>),</span>
+<span id="cb4-65"><a href="#cb4-65" aria-hidden="true" tabindex="-1"></a>    created_at     TIMESTAMPTZ <span class="kw">DEFAULT</span> NOW()</span>
+<span id="cb4-66"><a href="#cb4-66" aria-hidden="true" tabindex="-1"></a>);</span>
+<span id="cb4-67"><a href="#cb4-67" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">INDEX</span> idx_evidences_skill <span class="kw">ON</span> evidences(skill_id);</span>
+<span id="cb4-68"><a href="#cb4-68" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">INDEX</span> idx_evidences_project <span class="kw">ON</span> evidences(source_project);</span>
+<span id="cb4-69"><a href="#cb4-69" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-70"><a href="#cb4-70" aria-hidden="true" tabindex="-1"></a><span class="co">-- Skill registry (health tracking)</span></span>
+<span id="cb4-71"><a href="#cb4-71" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> skill_registry (</span>
+<span id="cb4-72"><a href="#cb4-72" aria-hidden="true" tabindex="-1"></a>    skill_id     UUID <span class="kw">PRIMARY</span> <span class="kw">KEY</span> <span class="kw">REFERENCES</span> skills(<span class="kw">id</span>),</span>
+<span id="cb4-73"><a href="#cb4-73" aria-hidden="true" tabindex="-1"></a>    skill_name   TEXT <span class="kw">NOT</span> <span class="kw">NULL</span>,</span>
+<span id="cb4-74"><a href="#cb4-74" aria-hidden="true" tabindex="-1"></a>    missing_deps TEXT[] <span class="kw">DEFAULT</span> <span class="st">&#39;{}&#39;</span>,</span>
+<span id="cb4-75"><a href="#cb4-75" aria-hidden="true" tabindex="-1"></a>    stale        <span class="dt">BOOLEAN</span> <span class="kw">DEFAULT</span> <span class="kw">FALSE</span>,</span>
+<span id="cb4-76"><a href="#cb4-76" aria-hidden="true" tabindex="-1"></a>    last_review  TIMESTAMPTZ,</span>
+<span id="cb4-77"><a href="#cb4-77" aria-hidden="true" tabindex="-1"></a>    auto_expand  <span class="dt">BOOLEAN</span> <span class="kw">DEFAULT</span> <span class="kw">TRUE</span>,</span>
+<span id="cb4-78"><a href="#cb4-78" aria-hidden="true" tabindex="-1"></a>    coverage     <span class="dt">FLOAT</span> <span class="kw">DEFAULT</span> <span class="fl">0.0</span></span>
+<span id="cb4-79"><a href="#cb4-79" aria-hidden="true" tabindex="-1"></a>);</span>
+<span id="cb4-80"><a href="#cb4-80" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">INDEX</span> idx_registry_stale <span class="kw">ON</span> skill_registry(stale);</span>
+<span id="cb4-81"><a href="#cb4-81" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-82"><a href="#cb4-82" aria-hidden="true" tabindex="-1"></a><span class="co">-- Audit log</span></span>
+<span id="cb4-83"><a href="#cb4-83" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> audit_log (</span>
+<span id="cb4-84"><a href="#cb4-84" aria-hidden="true" tabindex="-1"></a>    ts        TIMESTAMPTZ <span class="kw">DEFAULT</span> NOW(),</span>
+<span id="cb4-85"><a href="#cb4-85" aria-hidden="true" tabindex="-1"></a>    event     TEXT <span class="kw">NOT</span> <span class="kw">NULL</span>,</span>
+<span id="cb4-86"><a href="#cb4-86" aria-hidden="true" tabindex="-1"></a>    skill_id  UUID <span class="kw">REFERENCES</span> skills(<span class="kw">id</span>),</span>
+<span id="cb4-87"><a href="#cb4-87" aria-hidden="true" tabindex="-1"></a>    details   JSONB <span class="kw">DEFAULT</span> <span class="st">&#39;{}&#39;</span></span>
+<span id="cb4-88"><a href="#cb4-88" aria-hidden="true" tabindex="-1"></a>);</span>
+<span id="cb4-89"><a href="#cb4-89" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">INDEX</span> idx_audit_ts <span class="kw">ON</span> audit_log(ts);</span>
+<span id="cb4-90"><a href="#cb4-90" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">INDEX</span> idx_audit_event <span class="kw">ON</span> audit_log(event);</span>
+<span id="cb4-91"><a href="#cb4-91" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-92"><a href="#cb4-92" aria-hidden="true" tabindex="-1"></a><span class="co">-- HNSW index for skill embeddings (pgvector)</span></span>
+<span id="cb4-93"><a href="#cb4-93" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">INDEX</span> idx_skills_embedding <span class="kw">ON</span> skills <span class="kw">USING</span> hnsw(embedding vector_cosine_ops)</span>
+<span id="cb4-94"><a href="#cb4-94" aria-hidden="true" tabindex="-1"></a>    <span class="kw">WITH</span> (m <span class="op">=</span> <span class="dv">32</span>, ef_construction <span class="op">=</span> <span class="dv">128</span>);</span>
+<span id="cb4-95"><a href="#cb4-95" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-96"><a href="#cb4-96" aria-hidden="true" tabindex="-1"></a><span class="co">-- HNSW index for evidence embeddings</span></span>
+<span id="cb4-97"><a href="#cb4-97" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">INDEX</span> idx_evidences_embedding <span class="kw">ON</span> evidences <span class="kw">USING</span> hnsw(embedding vector_cosine_ops)</span>
+<span id="cb4-98"><a href="#cb4-98" aria-hidden="true" tabindex="-1"></a>    <span class="kw">WITH</span> (m <span class="op">=</span> <span class="dv">16</span>, ef_construction <span class="op">=</span> <span class="dv">64</span>);</span>
+<span id="cb4-99"><a href="#cb4-99" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-100"><a href="#cb4-100" aria-hidden="true" tabindex="-1"></a><span class="co">-- Trigger: update updated_at on skills</span></span>
+<span id="cb4-101"><a href="#cb4-101" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">OR</span> <span class="kw">REPLACE</span> <span class="kw">FUNCTION</span> update_updated_at_column()</span>
+<span id="cb4-102"><a href="#cb4-102" aria-hidden="true" tabindex="-1"></a>RETURNS <span class="kw">TRIGGER</span> <span class="kw">AS</span> $$</span>
+<span id="cb4-103"><a href="#cb4-103" aria-hidden="true" tabindex="-1"></a><span class="cf">BEGIN</span></span>
+<span id="cb4-104"><a href="#cb4-104" aria-hidden="true" tabindex="-1"></a>    <span class="kw">NEW</span>.updated_at <span class="op">=</span> NOW();</span>
+<span id="cb4-105"><a href="#cb4-105" aria-hidden="true" tabindex="-1"></a>    <span class="kw">RETURN</span> <span class="kw">NEW</span>;</span>
+<span id="cb4-106"><a href="#cb4-106" aria-hidden="true" tabindex="-1"></a><span class="cf">END</span>;</span>
+<span id="cb4-107"><a href="#cb4-107" aria-hidden="true" tabindex="-1"></a>$$ language <span class="st">&#39;plpgsql&#39;</span>;</span>
+<span id="cb4-108"><a href="#cb4-108" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-109"><a href="#cb4-109" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TRIGGER</span> update_skills_updated_at <span class="kw">BEFORE</span> <span class="kw">UPDATE</span> <span class="kw">ON</span> skills</span>
+<span id="cb4-110"><a href="#cb4-110" aria-hidden="true" tabindex="-1"></a>    <span class="cf">FOR</span> <span class="kw">EACH</span> <span class="kw">ROW</span> <span class="kw">EXECUTE</span> <span class="kw">FUNCTION</span> update_updated_at_column();</span></code></pre></div>
+<hr />
+<h2 id="api-specification">6. API Specification</h2>
+<p>All endpoints under <code>/api/v1</code>. Auth via
+<code>X-API-Key</code> header.</p>
+<h3 id="skills">6.1 Skills</h3>
+<ul>
+<li><code>GET /skills</code> — List skills (query: <code>status</code>,
+<code>domain</code>, <code>tag</code>, <code>search</code>,
+<code>limit</code>, <code>offset</code>)</li>
+<li><code>GET /skills/:name</code> — Get skill by name (query:
+<code>recursive=true</code> for full tree)</li>
+<li><code>POST /skills</code> — Create skill (body: Skill JSON or
+TOML)</li>
+<li><code>PUT /skills/:name</code> — Update skill</li>
+<li><code>DELETE /skills/:name</code> — Delete skill (cascades
+dependencies)</li>
+<li><code>GET /skills/:name/tree</code> — Get dependency tree (query:
+<code>depth</code>, <code>format=json|toml</code>)</li>
+<li><code>POST /skills/import</code> — Bulk import from TOML</li>
+<li><code>GET /skills/:name/export</code> — Export skill + dependencies
+as TOML</li>
+</ul>
+<h3 id="search">6.2 Search</h3>
+<ul>
+<li><code>POST /search</code> — Vector + keyword hybrid search (body:
+<code>{ "query": "...", "limit": 5 }</code>)</li>
+<li><code>POST /search/similar</code> — Find skills similar to given
+content</li>
+</ul>
+<h3 id="registry">6.3 Registry</h3>
+<ul>
+<li><code>GET /registry</code> — Full registry with health status</li>
+<li><code>GET /registry/missing</code> — List all missing
+dependencies</li>
+<li><code>GET /registry/stale</code> — List stale skills</li>
+<li><code>POST /registry/review/:name</code> — Trigger manual
+review</li>
+<li><code>GET /registry/coverage</code> — Coverage report</li>
+</ul>
+<h3 id="auto-expand">6.4 Auto-Expand</h3>
+<ul>
+<li><code>POST /expand/:name</code> — Trigger auto-expansion for a
+skill</li>
+<li><code>GET /expand/status/:id</code> — Check expansion job
+status</li>
+<li><code>POST /expand/gap-report</code> — Generate gap analysis
+report</li>
+</ul>
+<h3 id="learning">6.5 Learning</h3>
+<ul>
+<li><code>POST /learn</code> — Submit project path for analysis (body:
+<code>{ "project_path": "...", "languages": ["java", "kotlin"] }</code>)</li>
+<li><code>GET /learn/status/:id</code> — Check analysis job status</li>
+<li><code>GET /evidences/:skill_name</code> — Get evidence for a
+skill</li>
+</ul>
+<h3 id="system">6.6 System</h3>
+<ul>
+<li><code>GET /health</code> — Health check</li>
+<li><code>GET /metrics</code> — Prometheus metrics</li>
+<li><code>GET /version</code> — Version info</li>
+</ul>
+<h3 id="content-negotiation">6.7 Content Negotiation</h3>
+<ul>
+<li>Default: <code>application/json</code></li>
+<li>TOML support: <code>Accept: application/toml</code> → TOML
+response</li>
+<li>Import accepts both JSON and TOML (auto-detected or via
+Content-Type)</li>
+</ul>
+<hr />
+<h2 id="mcp-server-tools">7. MCP Server Tools</h2>
+<p>The MCP server exposes these tools via stdio transport:</p>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>skill_search</code></td>
+<td>Vector/hybrid search for skills</td>
+</tr>
+<tr>
+<td><code>skill_get</code></td>
+<td>Retrieve full skill by name</td>
+</tr>
+<tr>
+<td><code>skill_tree</code></td>
+<td>Get dependency tree</td>
+</tr>
+<tr>
+<td><code>skill_create</code></td>
+<td>Create a new skill</td>
+</tr>
+<tr>
+<td><code>learn_from_project</code></td>
+<td>Submit a project for analysis</td>
+</tr>
+<tr>
+<td><code>missing_skills</code></td>
+<td>List gaps in the knowledge graph</td>
+</tr>
+<tr>
+<td><code>get_coverage</code></td>
+<td>Get coverage report for a domain</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="configuration-config.toml">8. Configuration (config.toml)</h2>
+<p>```toml [server] host = “0.0.0.0” http_port = 8080 http3_port = 8443
+enable_http3 = false # default HTTP/2, enable HTTP/3 for remote
+enable_brotli = true tls_cert = “” tls_key = “”</p>
+<p>[database] host = “db” port = 5432 database = “skilldb” user =
+“skill” password = “secret” ssl_mode = “disable” max_connections =
+25</p>
+<p>[embedding] provider = “openai” # openai | local | anthropic
+dimensions = 768 model = “text-embedding-3-small” api_key =
+“${OPENAI_API_KEY}” local_endpoint = “” # for local models (ollama,
+etc.)</p>
+<p>[validation] enabled = true sandbox_type = “wasm” # wasm | gvisor |
+docker jury_size = 3 approval_threshold = 2 # min approvals from jury
+auto_approve_evidence = false require_human_review = true</p>
+<p>[autoexpand] enabled = true max_depth = 5 max_new_skills_per_run = 10
+llm_provider = “openai” llm_model = “gpt-4o-mini”</p>
+<p>[codeanalysis] enabled = true languages = [“java”, “kotlin”, “c”,
+“cpp”, “python”, “go”] max_file_size_kb = 500 exclude_patterns =
+[“vendor/”, “node_modules/”, “.git/”, “build/”]</p>
+<p>[mcp] enabled = true transport = “stdio” # stdio | http</p>
+<p>[registry] review_interval_hours = 24 coverage_threshold = 0.8</p>
+<p>[logging] level = “info” # debug | info | warn | error format =
+“json” # json | text</p>
+</body>
+</html>

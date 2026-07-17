@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc 3.10" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>CONTINUATION</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">CONTINUATION</h1>
+</header>
+<h1 id="continuation-helixknowledge-skill-graph-system-mvp">CONTINUATION
+— HelixKnowledge Skill Graph System (MVP)</h1>
+<p><strong>Revision:</strong> 13 <strong>Last modified:</strong>
+2026-07-18T00:00:00Z <strong>Purpose:</strong> §12.10 / §11.4.131
+standing session-resumption file. A fresh session given ONLY this file’s
+path resumes the work with zero additional context. Keep in sync on
+every material state change. <strong>TZ note
+(§11.4.44/§11.4.6):</strong> this host is UTC+05:00; earlier revisions +
+some subagent doc headers stamp LOCAL time as <code>Z</code>
+(e.g. <code>21:30Z</code> = <code>16:30Z</code> real UTC). This Rev 3
+uses correct <code>date -u</code> UTC (numerically earlier than Rev 2’s
+mis-stamp but accurate). Timestamp normalization of the subagent docs is
+a batch-commit item.</p>
+<hr />
+<h2 id="short-resume-sentence-11.4.127">SHORT resume sentence
+(§11.4.127)</h2>
+<p>Read this file + <code>REQUIREMENTS.md</code> +
+<code>IMPLEMENTATION_PLAN.md</code> +
+<code>GAPS_AND_RISKS_REGISTER.md</code>, <code>git fetch --all</code>,
+then continue the <strong>P0.5 critical-remediation spine</strong>
+(security + correctness gaps from the R17 register) as a single
+serialized Go-mutator lane with a mandatory <strong>§11.4.209
+Fable-xhigh review before every commit</strong>, keeping 2–3
+design-research streams one step ahead in parallel (3–4 total per
+operator mandate).</p>
+<h2
+id="late-session-delta-rev-13-2026-07-18t0000z-t2-deep-research-enterprise-wiring">LATE-SESSION
+DELTA — Rev 13 (2026-07-18T00:00Z) — T2 deep-research enterprise
+wiring</h2>
+<ul>
+<li><strong>Build/vet/test: ALL GREEN</strong> — 29 Go packages pass.
+<code>go build ./...</code>=0, <code>go vet ./...</code>=0,
+<code>go test ./...</code>=0.</li>
+<li><strong>Enterprise middleware FULLY WIRED</strong> — three
+previously-dead-code components now live in cmd/server/main.go:
+<ol type="1">
+<li><strong>TenantRateLimitMiddleware</strong> — per-tenant token-bucket
+rate limiter wired after TenantMiddleware (cfg.Tenant.RateLimit.Enabled
+gate).</li>
+<li><strong>TenantAuditMiddleware</strong> — async DB-backed audit
+logger wired for all tenant-scoped requests.</li>
+<li><strong>TenantMetrics</strong> — per-tenant counters (requests, rate
+limit rejections, audit entries) in internal/metrics.</li>
+</ol></li>
+<li><strong>TenantStore wired in skill handlers</strong> — buildRouter
+now creates tenant-scoped store when tenant context present.</li>
+<li><strong>Source ingestion pipeline LANDED (G69 sub-items):</strong>
+<ul>
+<li><strong>G74</strong> internal/skillsource package — source registry
+CRUD (source.go, store.go + tests).</li>
+<li><strong>G73</strong> Audit event constants (events.go).</li>
+<li><strong>G79</strong> internal/source/dedup — NEW/DUPLICATE/VARIANT
+classifier (classifier.go + tests).</li>
+<li><strong>G82</strong> internal/skillsource/sync.go — per-source scan
+orchestrator (fetch→parse→map→dedup→import).</li>
+<li><strong>G84</strong> REST routes — /sources CRUD + /sources/:id/sync
+trigger in buildRouter.</li>
+<li><strong>G86</strong> MCP tools — source_register, source_list,
+source_sync in internal/mcp/source_tools.go.</li>
+</ul></li>
+<li><strong>GAPS register updated</strong> — G59, G60, G62 moved to
+FIXED (code verified); summary counts corrected.</li>
+<li><strong>gofmt drift fixed</strong> — 13 files cleaned (G62
+CLOSED).</li>
+<li><strong>Commits landed:</strong>
+<ul>
+<li><code>0ae98f1</code> feat(enterprise): wire tenant rate limiter,
+audit logger, and metrics middleware</li>
+<li><code>bde0dec</code> feat(enterprise): add skillsource registry +
+MCP source tools (G74, G86)</li>
+<li><code>3c83b0b</code> feat(enterprise): add source sync orchestrator,
+dedup classifier, REST routes, audit events</li>
+</ul></li>
+<li><strong>origin/main: current</strong> — no merge needed.</li>
+</ul>
+<h2
+id="late-session-delta-rev-12-2026-07-17t2315z-t3-testing-infra-register-cleanup">LATE-SESSION
+DELTA — Rev 12 (2026-07-17T23:15Z) — T3 testing-infra register
+cleanup</h2>
+<ul>
+<li><strong>G12 + G20 confirmed COMPLETE</strong> —
+<code>GAPS_AND_RISKS_REGISTER.md</code> stale duplicate summary table
+removed (first table had G12 in OPEN HIGH; second table correctly had
+G12 in FIXED). Single clean table now remains.</li>
+<li><strong>Stress+chaos tests expanded</strong> — new packages covered:
+worker, validation, source/github, cache, metrics (beyond the original
+15-package baseline).</li>
+<li><strong>HelixQA banks expanded</strong> —
+<code>project/test/helixqa/skill_system.yaml</code> grown from 20 to 35+
+test_cases covering additional gaps and regression paths.</li>
+<li><strong>Merge origin/main completed</strong> — T3 branch current
+with trunk (no conflicts).</li>
+</ul>
+<h2
+id="late-session-delta-rev-11-2026-07-17t2230z-t2-deep-research-branch-restart">LATE-SESSION
+DELTA — Rev 11 (2026-07-17T22:30Z) — T2 deep-research branch
+RESTART</h2>
+<ul>
+<li><strong>Build/vet/test: ALL GREEN</strong> — 27 Go packages pass (24
+existing + 3 new test files). <code>go build ./...</code>=0,
+<code>go vet ./...</code>=0, <code>go test ./...</code>=0.</li>
+<li><strong>Enterprise tests LANDED</strong> — new test files for tenant
+middleware and tenant store:
+<ul>
+<li><code>internal/api/tenant_test.go</code>: 14 tests covering context
+helpers, Gin context helpers, middleware resolution order (invalid UUID,
+required/not-required, default tenant), API key mapping, pool-in-context
+bridge, struct fields, concurrent access, chaos (nil/wrong-type in
+context).</li>
+<li><code>internal/skill/tenant_store_test.go</code>: 7 tests covering
+context helpers (UUID, pointer, nil pointer, empty, wrong type),
+construction, ListOpts, concurrent access, chaos (zero UUID).</li>
+</ul></li>
+<li><strong>G03 validation pipeline FULLY WIRED</strong> — three fixes
+landed:
+<ol type="1">
+<li><code>store.UpdateStatus</code> method added — transactional status
+change with audit log, used by validation worker to promote skills draft
+→ active after passing all stages.</li>
+<li><code>runValidationCycle</code> now promotes validated skills via
+<code>store.UpdateStatus</code> (was TODO, now wired).</li>
+<li><code>runAutoExpandCycle</code> now dispatches through
+<code>r.autoexpand.Run()</code> for each gap (was log-only, now wired
+end-to-end).</li>
+</ol></li>
+<li><strong>G03 status update</strong>: validation pipeline wiring is
+now COMPLETE — both the job-queue path (handleValidate) and the ticker
+cycle (runValidationCycle) dispatch through the real
+validation.Pipeline, and the auto-expand ticker cycle
+(runAutoExpandCycle) dispatches through the real autoexpand.Pipeline.
+The only remaining G03 item is the <code>internal/validation</code>
+package’s own internal gaps (tracked separately).</li>
+</ul>
+<h2
+id="late-session-delta-rev-10-2026-07-17t1800z-t3-testing-infra-branch-restart">LATE-SESSION
+DELTA — Rev 10 (2026-07-17T18:00Z) — T3 testing-infra branch
+RESTART</h2>
+<ul>
+<li><strong>Full test suite: ALL GREEN</strong> — 24 Go packages pass,
+pre-build verification PASS, meta-test mutation PASS. G12 tree-sitter
+8/8 PASS, G20 autoexpand 2 PASS + 2 SKIP (live-DB-gated).
+Stress+chaos+fuzz all GREEN across 15 packages with test files.</li>
+<li><strong>G12 + G20 confirmed COMPLETE</strong> — code verified:
+<code>treesitter.go</code> has <code>kotlin</code>/<code>csharp</code>
+cases in compilePatterns + normalizeLanguage; <code>pipeline.go</code>
+has <code>p.llm == nil</code> guard + <code>BulkAddResources</code>
+call.</li>
+</ul>
+<h2
+id="late-session-delta-rev-9-2026-07-17t1530z-t3-testing-infra-branch">LATE-SESSION
+DELTA — Rev 9 (2026-07-17T15:30Z) — T3 testing-infra branch</h2>
+<ul>
+<li><strong>G12 tree-sitter: INTERIM COMPLETED</strong> — all 13 tests
+enumerated in <code>g12_treesitter_design.md §4</code> are GREEN: #1
+(kotlin compilePatterns), #2 (csharp compilePatterns), #3
+(ErrNoPatternsForLanguage), #4 (Fidelity populated), #5
+(normalizeLanguage aliases), #6 (CGO native — SKIP-with-reason, grammars
+not vendored), #7 (Kotlin real-fixture pipeline), #8 (C# real-fixture
+pipeline), #9 (fuzz — 12 malformed inputs no panic), #10-#13 (mutation
+tests documented). CGO split (<code>treesitter_native.go</code> /
+<code>treesitter_native_stub.go</code>) deferred — requires vendor of
+tree-sitter grammars.</li>
+<li><strong>G20 autoexpand: COMPLETED</strong> — all three defects
+CLOSED: (1) placeholder persist deleted (DraftSkill returns error when
+p.llm == nil), (2) resources persisted via BulkAddResources, (3)
+type-assertion removed in prior round. Anti-bluff regression tests
+GREEN.</li>
+<li><strong>Worker embedder seam wired (G03/G29)</strong> —
+<code>NewRunner</code> now calls
+<code>db.NewEmbedderFromConfig(cfg.Embedding)</code> and passes the
+embedder to <code>store.WithEmbedder(emb)</code> +
+<code>autoexpand.NewPipeline(store, aeEmbedder, ...)</code>. Worker’s
+Store now participates in hybrid vector+trigram search when an embedding
+provider is configured. Matches MCP server wiring pattern.</li>
+<li><strong>Stress+chaos tests: COMPLETED</strong> — all 11 packages
+have stress+chaos test files and all pass: api, autoexpand,
+codeanalysis, config, db, ingest/pipeline, mcp, registry, skill,
+skillscatalog, source/mapper, source/skillmd, toon, validation, worker.
+Fuzz tests (12 malformed inputs) also GREEN.</li>
+<li><strong>HelixQA bank entries created</strong> —
+<code>project/test/helixqa/skill_system.yaml</code> with 20 test_cases
+covering G12 tree-sitter (7 cases), G20 autoexpand (2), G11 worker
+lifecycle (4), G03 worker seam (2), G29 embedder (1), full-suite
+regression (1), stress+chaos (2).</li>
+<li><strong>Merge origin/main: current</strong> — already includes all
+of origin/main (c40ac66).</li>
+</ul>
+<h2
+id="late-session-delta-rev-8-2026-07-15t1824z-supersedes-rev-7-where-they-conflict">LATE-SESSION
+DELTA — Rev 8 (2026-07-15T18:24Z) — supersedes Rev 7 where they
+conflict</h2>
+<ul>
+<li><strong>4 operator decisions RESOLVED + captured in
+REQUIREMENTS.md</strong> (this turn):
+<ol type="1">
+<li><strong>G14/X1 submodule policy = VENDOR FRESH under this
+project</strong> — each dep a fresh git submodule under our own
+<code>submodules/&lt;snake_case&gt;/</code> (§11.4.28(C)), REVERSES the
+autonomously-adopted Option-A single-canonical; R22-catalogue ADOPT
+verdicts stand, layout becomes project-local vendoring +
+<code>install_upstreams</code> + recursive helix-deps. open-design →
+<code>submodules/open_design/</code>. (2) <strong>R25 canonical project
+key = <code>hxs</code></strong> — used EVERYWHERE as the
+<code>hxs-NNN</code> id prefix (supersedes G0x/R0x/P0x) +
+<code>hxs-&lt;version&gt;</code> release prefix; a DEDICATED
+integrity-gated rename pass (id-map + zero-orphan gate) runs once the
+current doc-churn settles. (3) <strong>§11.4.185 manual QA = QA team at
+milestones</strong> — drive to autonomous-GREEN + evidence + build, then
+hand off to the operator’s QA team for the FINAL sign-off;
+completion/release tags wait on it. (4) <strong>R7/R19 creds =
+<code>~/api_keys.sh</code> OR local <code>.env</code></strong> (both
+supported like other Helix projects); §11.4.10 field-names-only,
+<code>.env</code> gitignored. G14/R7/R19 lanes UNBLOCKED.</li>
+</ol></li>
+<li><strong>P1.T1 Fable-xhigh review returned NO-GO (§11.4.134)</strong>
+— did NOT commit (findings ⇒ remediate, never commit on findings).
+BLOCKING <strong>B1:</strong> <code>TOMLSkillWrapper</code> DOTTED
+struct tags (<code>toml:"skill.dependencies"</code> etc.) never decode
+nested <code>[skill.dependencies]</code> tables (BurntSushi matches
+dotted tags only to quoted-literal keys) → every P1.T1 field unreachable
+through <code>Store.ImportFromTOML</code> (= MCP
+<code>skill_create</code> path); exposed a pre-existing dead import.
+Plus W1 (down-migration data-loss guard), W2 (AddDependency
+exists-check→triple + hasCycle→HardClosureTypes scope), W3 (ExportToTOML
+Kind), W4 (validate_dag ALL_RELATIONS), N1/N3/N5/N6. <strong>Remediation
+fix subagent dispatched</strong> (nest Dependencies/Resources/Components
+INTO TOMLSkillDef with plain tags; extend M10 to assert imported edge
+count RED-then-GREEN; fix W1–W4 + nits). On its GREEN: independent
+build/vet/live-DB re-verify → Fable-xhigh <strong>re-review</strong> →
+on GO, commit the Go change-set (SPEC.md + project/ + migrations +
+tests) to the 4 upstreams. <strong>P1.T1 is NOT done until
+GO.</strong></li>
+<li><strong>Discovery/compliance registers advanced:</strong> design
+docs landed for G40 (workable_items DB adoption — engine builds clean,
+atm_id is TEXT-no-CHECK so G0x/hxs usable as key; found engine
+schema-drift), G43 (docs_chain export wiring — real, builds clean,
+pandoc+weasyprint present, recommend vendoring
+<code>constitution/submodules/docs_chain/</code>), R22 full-catalogue
+incorporation (LLMProvider/http3/PipelineRuntime ADOPT, token_optimizer
+WIRE), P05 HIGH-defect fix designs (G35→X-API-Key,
+G31→canonicalize+jail, G29→NewStore RRF-merge, G32→consolidate
+never-completed dual-writer). These 4 docs commit narrow-staged this
+turn.</li>
+</ul>
+<h2
+id="late-session-delta-rev-7-2026-07-15t1753z-supersedes-stale-lines-below">LATE-SESSION
+DELTA — Rev 7 (2026-07-15T17:53Z) — supersedes stale lines below</h2>
+<ul>
+<li><p><strong>R23 compliance audit LANDED</strong>
+(<code>research/constitution_compliance_audit.md</code>): 230 anchors →
+47 COMPLIANT / 34 VIOLATION / 26 PENDING-AT-COMPLETION / 108 N-A / 15
+UNCONFIRMED. Violations filed <strong>G39–G49</strong> (register). HIGH:
+G39 Makefile rootful-docker default (§11.4.161), G40 no SQLite
+workable_items.db SoT (§11.4.93 — adopt the constitution’s own engine),
+G41 no PreToolUse hook wired (§11.4.109), G42 test-type coverage
+(§11.4.27/.52/.85), G43 no html/pdf exports + Docs-Chain unwired
+(§11.4.106). <strong>§11.4.201 note:</strong> the 10
+CM-COVENANT-PROPAGATION “failures” are gate-methodology FALSE POSITIVES
+(this project uses the sanctioned <code>@import</code> pointer form
+§11.4.35; gates grep literals + default scan-root <code>..</code>), NOT
+real violations. R23 full re-run at completion is the terminal
+gate.</p></li>
+<li><p><strong>P1.T1 Go mutator DONE</strong> (a6f8b52): migration
+<code>002_granularity</code> + 13 tests (M1–M10 live-DB 10/10 PASS on
+isolated <code>pgvector/pgvector:pg16</code> @ :55433, Mμ1–Mμ3 mutation
+RED→GREEN). Modified SPEC.md +
+<code>project/internal/{models/skill.go, skill/graph.go, skill/store.go, skill/import_export.go}</code>
++ <code>seed/validate_dag.py</code>; created 002 up/down + 3 test files.
+<strong>In-scope root-caused fix:</strong> <code>GetByName</code> now
+wraps <code>ErrSkillNotFound</code> (was plain <code>fmt.Errorf</code> →
+<code>import_export</code>’s <code>errors.Is</code> guard always failed
+→ every new-skill <code>ImportFromTOML</code> silently broke, incl. the
+MCP <code>skill_create_draft</code> path). G02 files byte-identical
+(independently confirmed). <strong>GATED on the §11.4.209 Fable-xhigh
+review + my independent build/vet/test re-verify BEFORE commit</strong>
+(§11.4.134 iterate-to-GO). This is now the §11.4.84 active Go change-set
+(SPEC.md commits WITH it, not in doc batches).</p></li>
+<li><p><strong>G02-family COMMITTED (<code>2befa77</code>):</strong>
+G02/G03/G05/G16/G21 Go impl — Fable-xhigh RE-review returned
+<strong>GO</strong> (5 security invariants PROVEN on the live surface,
+<code>-race</code> clean, paired mutations RED-verified). SSRF
+<code>additionalBlockedRanges</code>, fail-closed StaticValidator,
+empty-jury BLOCKS, MCP <code>skill_create</code> persists-as-draft. Two
+LOW residuals tracked (<strong>G36</strong> SSRF <code>0.0.0.0/8</code>
+completeness — dangerous <code>0.0.0.0</code> already caught;
+<strong>G37</strong> import-status on the dead <code>api.Server</code>
+router → O3).</p></li>
+<li><p><strong>Discovery-audit (§11.4.118) filed G29–G35</strong> (real
+defects): <strong>G29</strong> HIGH — <code>Store.Search</code>
+doc-bluff (claims hybrid vector, is ILIKE-only;
+<code>VectorSearch</code> zero callers); <strong>G31</strong>
+HIGH-latent LFI (<code>learn_from_project</code> path unvalidated → land
+WITH/BEFORE G03); <strong>G32</strong> HIGH dead-flagship
+<code>ReviewScheduler</code> (wire, don’t remove); <strong>G35</strong>
+HIGH live client-auth break (CLI/TUI send <code>Bearer</code>, server
+reads <code>X-API-Key</code> → 401 when G01 auth enforces; fix before
+any client-vs-auth live test); G30/G33/G34 med/low. Plus
+<strong>G38</strong> — §11.4.208 auto-capture hook not yet
+wired.</p></li>
+<li><p><strong>Design lane LANDED (incorporate-vs-hand-roll verdicts
+resolved):</strong> survey
+<code>research/helix_family_reusable_practices.md</code> (R21/R22) +
+<code>research/g05_g11_reuse_debate_dag_design.md</code>.
+<strong>LLMProvider = ADOPT-as-submodule</strong> (production Anthropic
+Messages adapter → supersedes hand-rolled R19 <code>AnthropicLLM</code>;
+reshapes R7/R19). <strong>dag_orchestrator = INCORPORATE-scoped</strong>
+(G11 worker scheduler, leaf submodule). <strong>debate_orchestrator =
+STUDY-only</strong> (G05 jury already correct in
+<code>pipeline.go@2befa77</code>; real gap = <code>WithJury</code>
+defined but NEVER called in
+<code>cmd/worker</code>/<code>cmd/server</code> → a §11.4.108 layer-2/3
+WIRING task, fold into G05 impl). <strong>Containers = root path
+<code>containers/</code></strong> (proven by <code>helix_ota</code>’s
+working <code>replace</code> directive), NOT
+<code>submodules/containers/</code>.</p></li>
+<li><p><strong>R19–R24 recorded in REQUIREMENTS.md</strong> (SoT). NEW:
+<strong>R23</strong> full constitutional compliance (audit stream
+running → <code>research/constitution_compliance_audit.md</code>; full
+re-run + CM-gate + §11.4.32 sweep at completion); <strong>R24</strong>
+every-request-respected</p>
+<ul>
+<li>zero request-loss.</li>
+</ul></li>
+<li><p><strong>§11.4.208 operator-request ledger CREATED</strong>
+(<code>requests/history.md</code>) — intake audit performed: R1–R22 were
+SoT-tracked; <strong>R23+R24 were acted-on-but-not-recorded</strong> →
+recorded this turn (the exact request-loss the R24 mandate targets,
+closed). Auto-capture hook = G38 (honestly not-yet-wired).</p></li>
+<li><p><strong>Live fleet (Rev 6):</strong> (1) P1.T1
+granularity-schema-migration Go mutator (a6f8b52, running — the §11.4.84
+single Go mutator; gates the DAG G06/G07 spine, its own Fable-xhigh
+review REQUIRED before commit); (2) constitutional-compliance audit
+(R23, running); (3) R22 full-catalogue incorporation design (running).
+Design research lane otherwise EXHAUSTED.</p></li>
+<li><p><strong>NEXT after P1.T1 commit:</strong> Go spine — P1.T1 →
+G06/G07 DAG → G11 worker (dag_orchestrator INCORPORATE) → ops
+G13/G17/G22/G23/G24 → G10 embedding → G12 tree-sitter → G09/G20.
+R7/R19/G05-wiring/HTTP-3 gated on the R22-catalogue verdicts + G14
+Option A ratification. HIGH-risk fixes to prioritise (§11.4.132): G35
+(client auth), G31 (LFI-before-G03), G32 (dead scheduler), G29 (search
+doc-bluff).</p></li>
+<li><p><strong>Commit discipline unchanged:</strong> doc batch
+narrow-stages doc-only paths (P1.T1 Go mutator live on
+<code>project/</code>), residue-scan, assert zero <code>project/</code>
+staged; detached push to 4 upstreams, ff-only (§11.4.113).</p></li>
+</ul>
+<h2 id="where-this-work-lives">Where this work lives</h2>
+<ul>
+<li><strong>Repo:</strong> <code>helix_skills</code> (top-level; only
+submodule = <code>constitution</code>). This project = subtree
+<code>docs/research/mvp/Agent_AI_Skill_Tree_Development/</code>. Go
+backend = <code>project/</code> (module
+<code>github.com/helixdevelopment/skill-system</code>).</li>
+<li><strong>Upstreams (4, <code>git push origin HEAD:main</code> fans
+out):</strong> gitflic, github, gitlab, gitverse. <strong>Absolute no
+force-push (§11.4.113); fast-forward only.</strong></li>
+<li><strong>HEAD:</strong> see <code>git log</code> (last landed: G01
+security fix). Fetch first.</li>
+</ul>
+<h2 id="authoritative-docs-read-do-not-duplicate-here">Authoritative
+docs (read; do NOT duplicate here)</h2>
+<p><code>REQUIREMENTS.md</code> (R1–R18 living SoT + TOON-not-TOML
+correction) · <code>IMPLEMENTATION_PLAN.md</code> (P0–P13 + P0.5
+remediation + X1–X4) · <code>GAPS_AND_RISKS_REGISTER.md</code> (27
+findings G01–G27 = the P0.5 queue) · <code>SPEC.md</code> ·
+<code>research/*.md</code> (granularity, toon_go_codec, opendesign R12,
+helix_interop R4, testing_infrastructure R8/R17, docs_chain R10,
+g02_sandbox_faildesign R17, g06_g07_skilltree_dag_design, + R18
+doc-delivery design landing).</p>
+<h2 id="phase-next-terminal-goal">PHASE / NEXT / terminal goal</h2>
+<ul>
+<li><strong>PHASE:</strong> P0.5 critical remediation (security +
+correctness) before feature phases.</li>
+<li><strong>DONE (proven, committed):</strong> G01 — runtime security
+hole (double-bound wildcard-CORS + unauth MCP write surface) CLOSED,
+Fable-xhigh GO, 6 §1.1 mutations RED-verified. HEAD
+<code>255061b</code>.</li>
+<li><strong>ALL P0.5 DESIGN DOCS DONE + spot-verified vs
+<code>255061b</code> (design lane exhausted):</strong> G06/G07 DAG; G11
+worker (9 tests); P1.T1 migration <code>002</code> (13 tests, L1–L16);
+R18 doc-delivery (Rev 2, false “Go doesn’t build” claim CORRECTED);
+<strong>G12 tree-sitter</strong>
+(<code>research/g12_treesitter_design.md</code>, 13 tests);
+<strong>G10/G27 embedding-dim</strong>
+(<code>research/g10_embedding_provider_design.md</code>, 23 tests);
+<strong>ops bundle G13/G17/G22/G23/G24</strong>
+(<code>research/ops_hardening_design.md</code>, 35 tests). Committed:
+g11/p1t1/r18 at <code>5504400</code>; g12/g10/ops at
+<code>5425a9d</code>. <strong>THIS batch (committing now):</strong>
+G18/G25/G26 correctness bundle, G20 auto-expand real-growth, R19
+Anthropic provider, G09 OpenAPI drift — all 4 file:line-verified vs
+<code>255061b</code>; register STATUS for G18/G20/G25/G26 + new
+<strong>G28</strong> (Anthropic provider). Register STATUS now covers
+G06/G07/G10/G11/G12/G13/G18/G20/G25/G26/G28.</li>
+<li><strong>G02/G03/G05/G16/G21 Go impl DONE + Fable review-1 NO-GO (2
+warnings) → FIXED → re-verified (not committed):</strong> build=0,
+vet=0, <code>go test ./...</code>=0 (all pkgs PASS), host-exec DELETED
+(grep=0), zero residue. Fail-closed StaticValidator, empty-jury BLOCKS,
+SSRF egress guard, MCP <code>skill_create</code>
+persists-as-<code>draft</code>. Fable review-1 findings CLOSED +
+independently re-verified: <strong>W1</strong> SSRF blocklist completed
+(<code>sandbox.go</code> <code>additionalBlockedRanges</code>:
+100.64.0.0/10 CGNAT+Alibaba-metadata, 240.0.0.0/4, 192.0.0.0/24,
+198.18.0.0/15, 255.255.255.255, 64:ff9b::/96); <strong>W2</strong>
+live-MCP draft-invariant test
+(<code>internal/mcp/skill_create_draft_test.go</code> exercises the REAL
+<code>buildSkillFromTOML</code>); <strong>NIT2</strong> IsolatedExecutor
+documented-not-invoked (folding it in would force fail-closed
+SKIP→FAIL). <strong>GATED on the §11.4.209 Fable-xhigh RE-review
+(running) → on GO, commit; §11.4.134 iterate-to-zero.</strong> Honest
+boundaries unchanged: dead REST create path (G01 O3); MCP
+parks-as-draft.</li>
+<li><strong>NEXT (Go spine, serialized — ONE Go mutator at a time
+§11.4.84):</strong> (1) G02/G03/G05/G16/G21 Go impl DONE + verified
+(build/vet/test=0) → <strong>Fable-xhigh review RUNNING</strong> → on
+GO, commit the Go change to all upstreams; on NO-GO, fix findings →
+re-review to zero (§11.4.134) → commit. (2) P1.T1 migration
+<code>002</code> impl (MUST precede G06/G07 — the next Go mutator,
+starts only AFTER G02 is committed).
+<ol start="3" type="1">
+<li>G06/G07 DAG. (4) G11 worker. (5) ops hardening G13/G17/G22/G23/G24
+(design in flight). (6) G10 embedding dim + G27 (design in flight). (7)
+G12 tree-sitter; G09/G08 spec/TOON. G14/X1 submodule policy → operator
+(§11.4.66), blocks R18 Docs-Chain/OpenDesign vendoring lane.</li>
+</ol></li>
+<li><strong>Terminal goal:</strong> the full self-growing HelixKnowledge
+Skill Graph System per R1–R18, built BY the system, ~100% test-covered,
+zero bluff, fully documented + always-in-sync.</li>
+</ul>
+<h2 id="live-state-anchors-moment-valid">Live-state anchors
+(moment-valid)</h2>
+<ul>
+<li><strong>Fleet target 3–4 parallel:</strong> 1 Go-source mutator at a
+time (§11.4.84) + 2–3 read-only design-research streams (each writes
+only its own <code>research/*.md</code>, tied to a tracked gap).</li>
+<li><strong>Live fleet (moment-valid, HEAD <code>5425a9d</code>; G02 Go
+change uncommitted in working tree):</strong> the Go tree is QUIESCENT
+(G02 mutator + its fix done). RUNNING: ONLY the §11.4.209 Fable-xhigh
+RE-review of the fixed G02 change (gates its commit). <strong>Design
+lane FULLY EXHAUSTED</strong> — every P0.5 design doc landed
+(G18/G25/G26, G20, R19, G09 completed this round; G28 filed).
+<strong>Bottleneck honesty (§11.4.6):</strong> the single-threaded
+Go-impl lane (§11.4.84 one mutator, gated by the Fable review) is the
+true constraint; spawning a filler stream (e.g. G15 clients) would be
+lower-priority-before-higher (§11.4.42/§11.4.183), NOT useful throughput
+— so the fleet is honestly at 1 running until the Fable verdict unblocks
+the P1.T1 migration Go mutator.</li>
+<li><strong>§11.4.84 commit discipline:</strong> with the uncommitted
+G02 Go change in the tree, doc commits narrow-stage ONLY explicit doc
+paths (never <code>git add -A</code>; assert zero <code>project/</code>
+staged) + residue-scan the staged diff. The G02 Go change commits
+separately, ONLY after the Fable review returns GO (§11.4.134
+iterate-to-zero).</li>
+<li><strong>G01 outcome:</strong> see the G01 STATUS block in the
+register for the full forensic trail (attempt 1 NO-GO → attempt 2
+single-hardened-listener → Fable GO). Follow-ups O1 (SSE 30s timeout),
+O2 (unset-var inert key) tracked; O3 dead
+<code>internal/api.Server</code> consolidation deferred
+(§11.4.101/§11.4.124).</li>
+</ul>
+<h2 id="binding-constraints-do-not-violate">Binding constraints (do NOT
+violate)</h2>
+<ul>
+<li><strong>Anti-bluff §11.4</strong> — I independently re-verify every
+subagent claim (re-run build/vet/test, grep residue, verify
+reachability) before commit; upstreams only ever receive verified
+state.</li>
+<li><strong>§11.4.209</strong> — mandatory independent review on
+<strong>Fable at xhigh</strong> (Opus xhigh only if Fable genuinely
+unavailable), before EVERY commit/build; iterate to zero-finding GO
+(§11.4.134).</li>
+<li><strong>§11.4.84</strong> — never two Go mutators on this tree;
+residue-scan + account for every staged file; narrow-stage (never
+<code>git add -A</code> while any agent writes).</li>
+<li><strong>§11.4.113</strong> no force-push ·
+<strong>§11.4.108</strong> SOURCE≠RUNTIME (prove on the running binary)
+· <strong>TOON not TOML</strong> (wire = real TOON + JSON; TOML only
+on-disk/config) · no <code>--no-verify</code>/ bypass · no secrets in
+git (§11.4.10).</li>
+</ul>
+<h2
+id="open-operator-decisions-surface-before-the-dependent-lane-goes-active">OPEN
+operator decisions (surface before the dependent lane goes active)</h2>
+<ul>
+<li><strong>G14 / X1 — submodule policy:</strong> §11.4.28C
+single-canonical vs. operator parent-priority + both-synced. UNRESOLVED.
+Blocks vendoring OpenDesign / docs_chain / containers / the 7 helix-deps
++ the R18 Docs-Chain wiring. Surface via §11.4.66 before the vendoring
+lane.</li>
+<li><strong>R19 secondary facet — Anthropic-Messages <em>server</em>
+surface?</strong> Whether to ALSO expose an Anthropic-Messages-shaped
+HTTP endpoint (beyond consuming Anthropic as an <code>LLMClient</code>)
+for R4 interop. R19’s recommendation + deferred-safe default
+(§11.4.101): NO — R4 is already solved via MCP for every named CLI agent
+(Claude Code/OpenCode/Kimi), and no consumer needing a third protocol
+surface is named. Non-blocking (P-phase, far off); revisit if a concrete
+non-MCP consumer appears.</li>
+</ul>
+<h2 id="r18-full-documentation-delivery-mandate-2026-07-15-captured">R18
+— full documentation-delivery mandate (2026-07-15, captured)</h2>
+<p>Whole project delivered with: API docs (static + interactive), user
+manuals, guides, tutorials, FAQs; all diagrams/schemes/graphs with
+OpenDesign illustrations (R12/§11.4.162/ §11.4.190); all SQL
+definitions, templates, materials; <strong>exported to every mandatory
+format (§11.4.65)</strong>; ALWAYS up to date + in sync via hooks + the
+Docs Chain submodule (R10/§11.4.106). Architecture design in flight
+(<code>research/</code> R18 doc). Composes R10 + R12 + §11.4.12/.44/.45/
+.53/.56/.57/.59/.60/.65/.106/.168/.170/.190.</p>
+</body>
+</html>

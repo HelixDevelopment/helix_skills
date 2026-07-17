@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc 3.10" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>REQUIREMENTS</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">REQUIREMENTS</h1>
+</header>
+<h1
+id="helixknowledge-skill-graph-system-consolidated-requirements-living-doc">HelixKnowledge
+Skill Graph System — Consolidated Requirements (living doc)</h1>
+<p>Status: <strong>requirements-gathering + research phase → P0.5
+critical remediation.</strong> Foundation (extracted Go backend)
+<strong>compiles clean</strong> (<code>go build ./...</code>=0 at HEAD
+<code>255061b</code>; the original “does not compile” was the pre-P0
+Baseline, resolved by the build-fix commit <code>5532e2b</code> — see
+“Baseline”, now marked SUPERSEDED). This doc is the single source of
+truth as scope evolves; correct it here.</p>
+<h2 id="vision">Vision</h2>
+<p>A <strong>universal</strong>, self-growing Knowledge Skill Graph for
+AI CLI agents. Users request knowledge for arbitrary technologies; the
+system <strong>creates skills dynamically on demand</strong>, maps their
+dependency DAG, validates them (no bluff), stores them (Postgres +
+pgvector), and serves them to AI coding agents.</p>
+<h2
+id="canonical-source-of-truth-original-founding-request-reconciled">Canonical
+source-of-truth (original founding request) — reconciled</h2>
+<p>The operator supplied the ORIGINAL request used to prepare the MVP.
+It is the source of truth. No separate <code>.txt</code> attachment is
+present in the repo — the extracted MVP (SPEC/plan/research/project) IS
+the prepared start point.</p>
+<p>CONFIRMS (already captured above): recursive skill DAG for
+AOSP/Android/Java/ Kotlin/C++ + every dependency tech (R2/R13); central
+registrar + fully-automatic auto-growth/expansion (R2); exhaustive
+reviews, zero false/faulty/bluff (R8/R11); Go core with CLI/TUI/REST (R3
+core); full CLI-agent integration via plugin + MCP + ACP services (R4);
+learn-from-real-codebase experience pipeline (record→triage→
+process→universal knowledge) (R2); deep research incl. CodeGraph
+under-the-hood + memory systems (done); vector DB + Postgres;
+Docker/Podman Compose via <strong>systemctl user-space</strong> +
+<code>scripts/{start,stop,restart,status,install,...}</code>; docs to
+nano-detail w/ diagrams+schemes+graphs, all SQL/template definitions;
+final <strong>zip + tar.gz</strong> packaging retrievable to
+filesystem.</p>
+<p>PINS / CORRECTS (update the plan): - ⚠️ <strong>Wire format = TOON,
+JSON fallback (NOT TOML).</strong> Original: “Toon instead of JSON with
+JSON capability as fallback.” MVP SPEC §2/§6 + the committed
+<code>api/openapi.yaml</code> used JSON+TOML → API serialization must
+become <strong>TOON primary + JSON fallback</strong>; openapi.yaml
+content-negotiation REVISION QUEUED. <code>config.toml</code> stays
+TOML. DEFAULT (override-able): on-disk skill files stay TOML+Markdown
+(human-editable, git-versionable R14). → <strong>TOON is the REAL format
+<code>github.com/toon-format/toon</code></strong> (operator-confirmed
+via a direct repo link; <code>git ls-remote</code> verified reachable —
+default branch <code>main</code>, HEAD a19a117). The blueprint TXT’s
+“interpret Toon as TOML” is <strong>SUPERSEDED</strong> — we
+implement/vendor a <strong>Go TOON codec</strong> and serve
+<code>application/toon</code> (primary) + <code>application/json</code>
+(fallback). Queued: TOON serialization layer + openapi.yaml revision. -
+Transport: <strong>Quic/HTTP3 + Brotli</strong> (aligns; supersedes MVP
+HTTP2-default). - <strong>ACP</strong> (Agent Client Protocol) confirmed
+alongside MCP + plugins. - <strong>Endless, deeply-recursive</strong>
+skill branching: every technology appearing in any dependency chain gets
+its own Skill, recursively, without bound. - Explicit deliverable: a
+<strong>feasibility + step-by-step methodology + danger-zones</strong>
+document (“Can we do this? Here’s exactly how”), backed by deep web
+research. - Skills must be directly usable by Claude Code / OpenCode /
+other CLI agents.</p>
+<h2
+id="requirement-clusters-from-operator-in-order-received">Requirement
+clusters (from operator, in order received)</h2>
+<ul>
+<li><strong>R1 — Standard.</strong> Build+run clean; 4-layer test
+coverage + paired mutations (Constitution §1/§1.1/§11.4); fix flagged
+security defects (CORS reflect+credentials; api_key in query/log);
+dedupe <code>project/</code> vs <code>skill-system/</code> to one
+canonical tree.</li>
+<li><strong>R2 — Universal + dynamic.</strong> Not Android-specific;
+create skills on demand for any technology set. Mentioned tech (Gin,
+quic-go, pgvector, tree-sitter, mcp-go, Bubble Tea, Cobra, brotli, TOML)
+must be <strong>working POCs</strong>, not stubs.</li>
+<li><strong>R3 — Clients.</strong> CLI, TUI, REST API,
+<strong>Web</strong>, <strong>Desktop (Win/macOS/Linux)</strong>,
+<strong>Mobile: Android, iOS, HarmonyOS, Aurora OS
+(auroraos.ru)</strong>. <strong>Maximize shared codebase</strong> across
+all surfaces. (Web/Desktop/Mobile are greenfield.)</li>
+<li><strong>R4 — Agent interop.</strong> Usable from Claude Code
+(toolkit + aliases), OpenCode, Kimi Code, and <strong>HelixTrack /
+HelixAgent / HelixLLM</strong> (<code>../helix_code/</code>).</li>
+<li><strong>R5 — Incorporation analysis.</strong> In-depth research on
+how to integrate all of R4 properly (→ 4 research agents in
+flight).</li>
+<li><strong>R6 — Canonical use case (wizard).</strong> User opens a
+client → <strong>skill-creation wizard</strong> → enters a tech set
+(example: <code>android, android-aosp, java, kotlin, c++, cmake</code>)
+→ submit → backend runs <strong>create → map (DAG) → full
+processing</strong> (generate content, resolve deps, validate via jury,
+embed, store) → progress reported back to the client.</li>
+<li><strong>R7 — Model access.</strong> Obtain quality models via
+<strong>LLMsVerifier</strong>, <strong>HelixLLM</strong>, <strong>Claude
+Toolkit aliases</strong> — pluggable ModelProvider, not hardcoded
+OpenAI. Any required dependency not present in the parent dir must be
+<strong>vendored as a submodule at
+<code>submodules/&lt;snake_case_name&gt;/</code></strong> per
+Constitution naming.</li>
+<li><strong>R8 — Exhaustive testing.</strong> Every unit covered by ALL
+supported test types PLUS <strong>Challenges</strong> and
+<strong>HelixQA test banks/suites</strong>; coverage as close to
+<strong>100%</strong> as possible. (Helix ships <code>helix_qa</code> +
+<code>challenges</code> submodules and a <code>helixqa</code> binary —
+these are real components, not abstractions. Exact rules ← research
+agent 5.)</li>
+<li><strong>R9 — Submodule resolution + sync.</strong> All deps and
+dependency submodules live under
+<code>submodules/&lt;snake_case&gt;/</code>, OR reuse the versions from
+the parent dir/submodules — <strong>parent-dir versions have
+PRIORITY</strong>. BOTH copies must always be in sync with main/master.
+(Exact Constitution rule ← research agent 5.)</li>
+<li><strong>R10 — Docs Chain.</strong> Fully incorporate the
+<strong>Docs Chain</strong> submodule (<code>.docs_chain</code>) per
+Constitution. (Rules ← research agent 5.)</li>
+<li><strong>R11 — Zero bluff, anywhere.</strong> No false results,
+faulty results, or faulty codebase; no bluff of any kind or form.
+Positive-evidence-only everywhere. This governs every gate, test, and
+status report (Constitution §7.1/§11.4/§1.1).</li>
+<li><strong>R12 — OpenDesign for all design.</strong> Every client’s
+design/styling/diagrams/ illustrations MUST use
+<strong>OpenDesign</strong>
+(<code>git@github.com:nexu-io/open-design.git</code>). Deliver all
+Constitution-mandated design artifacts: wireframes, sketches, Figma, and
+exports in PDF, PSD, SVG (+ other Constitution-defined types).
+[Incorporation research: NEXT WAVE.]</li>
+<li><strong>R13 — Validation skill corpus.</strong> The system must
+successfully create + validate this corpus (this IS the end-to-end
+proof): android, android-aosp, rockchip, orange-pi, java, c, c++,
+kotlin, python, postgres, bash, go, gin-gonic, flutter, angular,
+typescript, javascript, major web/mobile/desktop frameworks (all OSes),
+linux, macos, debugging, cmake, make, gcc, bazel, brotli, quic, http3,
+http, protocols, design-patterns, algorithms, security, snyk, sonarqube,
+maven, gradle.</li>
+<li><strong>R14 — Git-versioned + real-time growth.</strong> Every
+created/obtained skill is <strong>Git-versionable</strong> — persisted
+as versioned files so the main repo grows as knowledge expands (TOML per
+SPEC §4.2, committed; kept in sync with the Postgres+pgvector index via
+import/export). <strong>MCP / ACP / plugins</strong> must trigger
+real-time skill creation + deep research, expanding/updating the
+knowledge base and skill graph live, improvements available
+immediately.</li>
+</ul>
+<h3 id="architecture-notes-forced-by-r13r14">Architecture notes forced
+by R13/R14</h3>
+<ul>
+<li>Dual persistence: skills live as <strong>versioned TOML files
+in-repo</strong> (source of truth for git history) AND in
+<strong>Postgres+pgvector</strong> (query/search index); a sync path
+keeps them consistent (SPEC §6 import/export is the seam).</li>
+<li>The MCP server is not just read: it exposes
+<strong>create/expand/learn</strong> tools that kick off (async)
+generation + research jobs and stream progress — the R6 wizard and R14
+real-time growth run through the same job pipeline.</li>
+</ul>
+<h2 id="baseline-captured-evidence-2026-07-15">Baseline (captured
+evidence, 2026-07-15)</h2>
+<ul>
+<li>Go 1.26.4 present. <code>go.mod</code> =
+<code>github.com/helixdevelopment/skill-system</code>, 18 deps, no
+<code>go.sum</code> (never resolved). 53 <code>.go</code> files,
+<strong>0 tests</strong>.</li>
+<li><code>go build ./...</code> → <strong>FAILS</strong>: duplicate
+<code>color*</code> consts (common.go vs skill.go); unused imports
+(<code>strconv</code>, <code>context</code>); undefined
+<code>pgvector.RegisterTypes</code>, <code>stdlib.ConnPool</code>,
+<code>stdlib.GetPool</code>; <code>tls.Config.Allow0RTT</code> unknown
+field.</li>
+<li><code>go mod tidy</code> pulled <strong>five competing ORMs</strong>
+(ent, gorm, uptrace/bun, go-pg, sqlx) alongside pgx — incoherent
+generated skeleton.</li>
+<li>Security: CORS reflect-origin + <code>Allow-Credentials: true</code>
+(HIGH); api_key via query param then logged (MEDIUM). Present in both
+duplicated copies.</li>
+</ul>
+<blockquote>
+<p><strong>SUPERSEDED — this Baseline is the ORIGINAL as-found snapshot,
+not the current state.</strong> The <code>go build ./...</code>
+<strong>FAILS</strong> finding above was resolved by the P0 build-fix
+(commit <code>5532e2b</code>, “Make Go backend build+vet green”) — the
+backend now compiles clean (<code>go build ./...</code>=0; single pgx DB
+layer, the five competing ORMs purged, <code>go.sum</code> committed).
+The CORS + api_key security findings were resolved by the G01
+runtime-security fix (commit <code>1a1a3f3</code>, single hardened
+listener) — see the GAPS_AND_RISKS_REGISTER G01 STATUS block. This block
+is retained as the §11.4.7 regression oracle (the known-bad baseline
+every fix is diffed against); read it as HISTORY, never as the present
+tree.</p>
+</blockquote>
+<h2 id="global-constraints-constitution">Global constraints
+(Constitution)</h2>
+<p>No bluffing / positive-evidence only; every gate paired with a
+mutation; no guessing language; credentials never committed (templates
+only); multi-upstream push; deep understanding + captured evidence
+before implementation; stop-and-fix at root cause on any discovered
+defect.</p>
+<h2
+id="open-architecture-decisions-pending-research-operator-sign-off">Open
+architecture decisions (pending research → operator sign-off)</h2>
+<ol type="1">
+<li><strong>Shared-core tech</strong> for
+CLI/TUI/Web/Desktop/Mobile(incl. Aurora/Harmony) — maximize reuse
+(research agent 3).</li>
+<li><strong>Model-access abstraction</strong> —
+LLMsVerifier/HelixLLM/alias backends (agent 4).</li>
+<li><strong>Agent-interop layer</strong> — one MCP server + CLI +
+aliases vs bespoke plugins (agent 2).</li>
+<li><strong>Helix ecosystem integration</strong> —
+HelixTrack/HelixAgent/HelixLLM surfaces (agent 1).</li>
+<li><strong>Canonical location</strong> for the deduped service tree
+(top-level <code>skill-system/</code> vs under this research
+folder).</li>
+</ol>
+<h2 id="research-findings-confirmed-agents-1-3-of-5-cited">Research
+findings — CONFIRMED (agents 1-3 of 5, cited)</h2>
+<ul>
+<li><strong>Interop is solved by MCP.</strong> Claude Code, OpenCode,
+and Kimi Code all speak MCP natively over stdio. Ship <strong>ONE stdio
+MCP server + a thin CLI + shell aliases</strong> — no bespoke plugins.
+Register once in claude_toolkit’s shared plugins
+(<code>~/.claude-shared/plugins/</code>), add a sibling entry in
+<code>helix_code/opencode.jsonc</code> (already has a
+<code>codegraph</code> MCP entry), and <code>mcpServers</code> for Kimi.
+Optional <code>SKILL.md</code>.</li>
+<li><strong>Models (R7, partial).</strong> HelixAgent
+(<code>:7061</code>) and HelixLLM (<code>:8443</code>) are both
+<strong>OpenAI-compatible</strong> → one provider-agnostic client, swap
+base URL; use <code>/v1/embeddings</code> (768d) +
+<code>/v1/chat/completions</code>;
+<code>llms-verifier</code>/<code>helixqa</code> are PATH binaries.
+HelixAgent/HelixLLM are submodules under
+<code>helix_code/submodules/</code>. (LLMsVerifier specifics +
+ModelProvider abstraction ← agent 4, running.)</li>
+<li><strong>Helix ecosystem.</strong> HelixTrack = Go/Gin REST
+<code>:8080</code> JWT <strong>sibling</strong> repo → integrate via
+REST + register our MCP server in <code>helix_track/.mcp.json</code>.
+Plug-in idiom for owned components: submodule + Makefile
+<code>build</code> + PATH binary + <code>.mcp.json</code> entry +
+<code>internal/&lt;name&gt;/</code> REST adapter.</li>
+<li><strong>Shared-core = contract-first thin clients.</strong> Every
+surface is a thin client over the REST/MCP API; genuine shared logic is
+only ~15-30%. Make <strong>OpenAPI + the MCP schema the single source of
+truth</strong>, codegen clients, enforce with contract tests. Per
+surface: <strong>CLI+TUI = Go</strong> (reuse existing); <strong>GUI
+apps = Flutter</strong> — the ONLY framework covering Android + iOS +
+<strong>HarmonyOS</strong> (Flutter-OHOS) + <strong>Aurora OS</strong>
+(omprussia embedder) + desktop from one codebase; <strong>Web =
+React</strong>. Build order: CLI → Web → Desktop → Android/iOS → TUI →
+HarmonyOS → <strong>Aurora last</strong> (highest risk).</li>
+<li>Still running: agent 4 (model access), agent 5 (Constitution: test
+taxonomy / submodule sync / Docs Chain).</li>
+</ul>
+<h2
+id="draft-staged-plan-to-be-finalized-after-research-foundation-first">Draft
+staged plan (to be finalized after research; foundation-first)</h2>
+<ul>
+<li><strong>S0 Research</strong> (in flight): 4 agents — Helix
+ecosystem, agent interop, shared-core, model access.</li>
+<li><strong>S1 Foundation</strong>: make backend compile &amp; run; pick
+ONE db layer (pgx); remove the 4 stray ORMs; fix security defects;
+dedupe to one tree; <code>go build ./...</code> + <code>go vet</code>
+green; docker-compose up (Postgres+pgvector) smoke test.</li>
+<li><strong>S2 Core correctness + tests</strong>: 4-layer tests
+(unit/integration/e2e/contract)
+<ul>
+<li>paired mutations per Constitution; DAG logic, recursive CTE, search
+proven.</li>
+</ul></li>
+<li><strong>S3 Model + processing</strong>: ModelProvider abstraction;
+wizard pipeline (create→map→validate→embed→store) end-to-end (R6).</li>
+<li><strong>S4 Interop</strong>: MCP server + CLI + aliases; Helix*
+integration (R4).</li>
+<li><strong>S5 Shared core + clients</strong>: shared-core lib →
+CLI/TUI/REST, then Web, Desktop, Mobile (Android/iOS first;
+Harmony/Aurora per research risk).</li>
+<li><strong>S6 Hardening/docs/packaging</strong>: security, ops, docs to
+nano-detail, packaging.</li>
+</ul>
+<p>Each stage lands only with captured build/test evidence; SDD
+dispatches per task.</p>
+<h2 id="addenda-2026-07-15-new-operator-mandates-folded-in">Addenda —
+2026-07-15 (new operator mandates, folded in)</h2>
+<ul>
+<li><strong>TOON correction (serialization):</strong> supersedes
+blueprint “Toon = TOML”. Real format =
+<code>github.com/toon-format/toon</code> (ls-remote OK, branch main,
+HEAD a19a117). API wire = <code>application/toon</code> primary +
+<code>application/json</code> fallback; needs a Go TOON codec.
+openapi.yaml content-negotiation revision QUEUED.</li>
+<li><strong>R15 — systemctl (user scope) + ops scripts:</strong> system
+MUST integrate via <code>systemctl --user</code> with a user-scope unit,
+plus <code>scripts/</code> containing at least start, stop, restart,
+status, install (and uninstall/logs). Docker/Podman Compose
+(pgvector/pgvector:pg16) orchestrated underneath. Matches blueprint
+deploy section; now an explicit hard requirement. <strong>Stream B
+dispatched.</strong></li>
+<li><strong>R16 — skill granularity &amp; composition:</strong> big
+technologies MUST be decomposable into smaller atomic skills wrapped by
+an umbrella/composite skill, with a first-class relationship mechanism
+(typed edges: composes/part_of, depends_on, requires, extends,
+prerequisite, related_to, alternative_to) usable as building blocks for
+whole stacks. Research + data-model design <strong>Stream A
+dispatched</strong>
+(research/skill_granularity_and_composition.md).</li>
+<li><strong>R17 — exhaustive gaps/risks remediation + total test
+coverage:</strong> ALL gaps, weak spots, inconsistencies, danger zones,
+and potential/existing issues MUST be in-depth researched, documented,
+and given a proper tackle-decision; every covered point MUST be heavily
+covered with all supported test types + Challenges + HelixQA test banks
+and fully validated/verified/confirmed as complete success — no false or
+faulty results, no bluff of any kind, anywhere. <strong>Deliverable
+landed:</strong> GAPS_AND_RISKS_REGISTER.md (27 findings G01–G27, 4
+CRITICAL) + research/testing_infrastructure_plan.md (per-gap coverage
+matrix, all 13 test types). P0.5 remediation spine in progress (G01
+CLOSED, Fable-xhigh GO).</li>
+<li><strong>R18 — full documentation delivery, always in sync:</strong>
+the whole project MUST ship with complete documentation — API docs
+(static AND interactive), user manuals, guides, tutorials, FAQs — plus
+ALL diagrams / schemes / graphs with stunning OpenDesign illustrations
+(R12 / §11.4.162 / §11.4.190), and all SQL definitions, templates, and
+other materials. Everything MUST be exported to every mandatory file
+type per constitution (§11.4.65) and be ALWAYS up to date and in sync,
+wired through the required hooks + the Docs Chain submodule (R10 /
+§11.4.106) so nothing ever drifts. Composes R10 + R12 +
+§11.4.12/.44/.45/.53/.56/.57/.59/.60/.65/.106/ .168/.170/.190.
+Architecture design <strong>stream dispatched</strong>
+(research/r18_documentation_delivery_design.md).</li>
+<li><strong>R19 — Anthropic API support (first-class ModelProvider +
+interop):</strong> besides full OpenAPI-contract compatibility (the
+system’s own REST surface, G09), the system MUST support Anthropic’s
+API(s). Primary reading (composes R7 pluggable ModelProvider + R4
+interop): the ModelProvider/<code>LLMClient</code> layer MUST support
+Anthropic’s <strong>Messages API</strong> as a first-class provider —
+usable for the LLM jury (G05) and auto-growth generation (G20) —
+decoupled from any concrete <code>*OpenAILLM</code> (G20 already removes
+that coupling + flags the missing <code>NewLLMClientFromConfig</code>
+factory, the R19 plug-in point). Anthropic offers no first-party
+embeddings API — embeddings stay on the G10 provider set (local /
+OpenAI-compatible / Voyage), documented explicitly, never faked.
+Secondary facet (flagged, design resolves): whether to ALSO expose an
+Anthropic-Messages-compatible surface for R4 Claude-Code/agent interop —
+surface any genuine sub-decision per §11.4.66. Credentials via the
+§11.4.10 single-source (field names only, never values). Design
+<strong>stream dispatched</strong>
+(research/r19_anthropic_api_support_design.md).</li>
+<li><strong>R20 — Containers submodule for ALL containerization
+(operator mandate 2026-07-15):</strong> every containerized workload
+(dev/test infra, build sandboxes, deploy, HelixQA infra boot) MUST go
+through the vasic-digital Containers submodule
+(<code>git@github.com:vasic-digital/containers.git</code>, existence
+verified via gh) — NO ad-hoc docker/podman outside its
+<code>pkg/boot</code>/<code>pkg/compose</code>/<code>pkg/health</code>
+layer (inherits §11.4.76 + rootless §11.4.161). The ops-hardening design
+(G13 compose profiles) MUST route through it; vendoring is gated on the
+G14/X1 submodule-policy decision. Folded into the G14/X1 decision
+package (research/g14_x1_submodule_policy_decision.md).</li>
+<li><strong>R21 — adopt reusable Helix-family practices (operator
+mandate 2026-07-15):</strong> survey the sibling <code>helix_*</code>
+projects under the shared parent projects dir for reusable universal
+architecture / submodules / practices this project MUST follow —
+especially Containers (R20), HelixQA integration (R8/§11.4.27), Docs
+Chain (R10/§11.4.106), and other major sub-systems / sub-modules
+(§11.4.74 catalogue-first extend-don’t-reimplement, §11.4.28
+equal-codebase). Survey <strong>stream dispatched</strong>
+(research/helix_family_reusable_practices.md).</li>
+<li><strong>R22 — catalogue-first incorporation from vasic-digital +
+HelixDevelopment orgs (operator mandate 2026-07-15):</strong>
+INCORPORATE the universal reusable submodules these two orgs already
+provide rather than re-implement (§11.4.74 extend-don’t-reimplement;
+§11.4.28 equal-codebase; §11.4.31 recursive helix-deps). gh-enumerated
+high-value matches: <strong>LLMProvider</strong>
+(<code>vasic-digital/LLMProvider</code> — shared LLM provider interface,
+40+ adapters incl. Anthropic, retry/circuit-breaker/health → supersedes
+the hand-rolled <code>OpenAILLM</code> + planned R19
+<code>AnthropicLLM</code>; reshapes R7/R19), <strong>MCP_Module</strong>
+(<code>vasic-digital/MCP_Module</code> → internal/mcp, R14),
+<strong>http3</strong> (<code>vasic-digital/http3</code> drop-in HTTP/3
+→ replaces direct quic-go), <strong>docs_chain</strong> (R10/R18),
+<strong>HelixQA</strong> (<code>HelixDevelopment/helixqa</code>, R8),
+<strong>containers</strong> (R20), <strong>design_system</strong> +
+<strong>open-design</strong> (R12), <strong>DebateOrchestrator</strong>
+(<code>HelixDevelopment/DebateOrchestrator</code> multi-agent debate →
+the G05 jury), <strong>DagOrchestrator</strong> (G11 worker scheduling),
+<strong>PipelineRuntime</strong> (validation pipeline),
+<strong>token_optimizer</strong> (§11.4.141),
+<strong>VisionEngine</strong>/<strong>Panoptic</strong> (client UI
+visual proof §11.4.170), the <strong>KMP</strong> component suite (R3
+clients). When a needed capability is missing, EXTEND/IMPROVE the
+upstream submodule (never fork-and-diverge); include ALL transitive
+dependency submodules each brings (§11.4.31 recursive). Incorporation
+plan folded into the Helix-family survey + a follow-on full-catalogue
+pass; all incorporation gated on the G14/X1 submodule-policy
+decision.</li>
+<li><strong>R23 — full constitutional compliance, no violations, no
+bluff (operator mandate 2026-07-15):</strong> every rule / mandatory
+constraint / guideline / technology / system derived from the
+constitution submodule MUST be fully followed, respected, and applied
+with NO violation, ignorance, or skipping; ALL of it MUST be processed
+once the project is fully implemented, with no violation of any kind
+confirmed to exist, and no bluff of any form anywhere. Operationalised
+as a standing constitutional-compliance gate: (a) a compliance-ledger
+audit enumerating every BINDING anchor (§11.4.x/§12.x/§1–§10) vs current
+project state → evidence-backed COMPLIANT / VIOLATION /
+PENDING-AT-COMPLETION / N-A
+(<code>research/constitution_compliance_audit.md</code>, <strong>stream
+dispatched</strong>); (b) wire the
+<code>constitution/scripts/gates/</code> CM-gates + a §11.4.32 project
+sweep; (c) a full re-run at project completion so zero violations is
+PROVEN, never assumed (§11.4.6). Composes §11.4.17 / §11.4.32 / §11.4.75
+/ §11.4.201 / §11.4.209 + the whole §11.4 anti-bluff covenant.</li>
+<li><strong>R24 — every operator request always respected + recorded,
+zero request-loss (operator mandate 2026-07-15):</strong> every
+request/prompt the operator issues MUST ALWAYS be respected, taken into
+account, executed, and processed — NO avoiding, ignoring, skipping, or
+any form of loss. Operationalised via the §11.4.208 project-local
+operator-request ledger (<code>requests/history.md</code>,
+<strong>created</strong>): every request recorded newest-first with
+content + accepted-timestamp(TZ) + Track + alias + model+effort +
+processing Disposition, reconciled against this REQUIREMENTS.md SoT so
+an acted-on-but-unrecorded request is caught. <strong>Intake audit
+performed:</strong> R1–R22 were already SoT-tracked; R23 + R24 were
+acted-on-but-not-recorded → recorded this turn. Follow-up
+<strong>G38</strong> tracks wiring the §11.4.208(D) auto-capture hook (a
+<code>UserPromptSubmit</code>-class hook appending a row per new prompt)
+so future intake is captured at accept-time, not reconstructed. Composes
+§11.4.197 (loss-of-requirements FORBIDDEN) + §11.4.208 + §11.4.202 +
+§11.4.6.</li>
+<li><strong>R25 — canonical project key <code>hxs</code>, used
+EVERYWHERE (operator mandate 2026-07-15):</strong> the project name is
+HelixSkill; the canonical project key MUST be
+<strong><code>hxs</code></strong> (lowercase, §11.4.29). It MUST be used
+everywhere — as the ticket/workable-item id prefix
+(<code>hxs-NNN</code>, superseding the G0x/R0x/P0x scheme) AND as the
+§11.4.151 release/version prefix (<code>hxs-&lt;version&gt;</code>). ALL
+occurrences MUST be fully updated and ALL references too, everywhere —
+with ZERO broken references (§11.4.6: a rename is forbidden without
+proving every reference resolved). Executed as a DEDICATED
+integrity-gated pass (deterministic id-map G0x/R0x/P0x → hxs-NNN; a
+post-rename gate asserting zero orphan old-ids + every hxs-NNN
+resolvable + no broken links), run once the current design-doc churn
+settles so the FULL doc set renames atomically. Composes
+§11.4.29/§11.4.54/§11.4.151/§11.4.6/§11.4.124.</li>
+</ul>
+<h2
+id="operator-decisions-resolved-2026-07-15-supersede-the-pending-sign-off-items-above">Operator
+decisions RESOLVED (2026-07-15) — supersede the pending sign-off items
+above</h2>
+<ul>
+<li><p><strong>G14/X1 submodule policy → VENDOR FRESH under this
+project.</strong> Operator chose: each dependency (LLMProvider, http3,
+docs_chain, containers, dag_orchestrator, PipelineRuntime,
+design_system, open-design) is vendored FRESH as a git submodule under
+THIS project’s own <code>submodules/&lt;snake_case_name&gt;/</code>
+(§11.4.28(C) <code>&lt;project_root&gt;/submodules/</code>), independent
+of <code>helix_code</code>. Supersedes the autonomously-adopted
+single-canonical consume-by-reference (Option A). The R22-catalogue
+ADOPT verdicts stand; the LAYOUT becomes project-local fresh vendoring +
+<code>install_upstreams</code> (§11.4.36) + recursive helix-deps
+(§11.4.31). open-design dir → <code>submodules/open_design/</code>
+(§11.4.29 snake_case, our own tree). Vendoring lane UNBLOCKED.</p></li>
+<li><p><strong>§11.4.185 manual QA → QA team at milestones.</strong>
+Drive to autonomous-GREEN + captured evidence + build, then hand off to
+the operator’s QA team for the FINAL manual sign-off; completion/release
+tags wait on that confirmation. The §11.4.126 release-terminal
+precondition for this project.</p></li>
+<li><p><strong>R7/R19 credentials → <code>~/api_keys.sh</code> OR local
+<code>.env</code> (both supported, like other Helix projects).</strong>
+The provider layer loads API tokens from <code>$HOME/api_keys.sh</code>
+and/or a local <code>.env</code> (both MUST be supported). §11.4.10
+single-source: field NAMES only ever in git, values never;
+<code>.env</code> stays gitignored (§11.4.30). Unblocks R7/R19 live
+acceptance.</p></li>
+<li><p><strong>Security:</strong> sync_submodules.sh hardened
+(fail-closed validation; paired attack proof) — committed
+c473d01.</p></li>
+<li><p><strong>Seed corpus:</strong> R13 validation corpus + 8 real seed
+skills committed 0e0bc3b (43 nodes / 56 edges, DAG acyclic,
+independently re-verified).</p></li>
+</ul>
+</body>
+</html>
