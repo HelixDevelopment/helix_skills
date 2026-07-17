@@ -1,7 +1,7 @@
 # CONTINUATION.md — Helix Skills
 
-**Revision:** 9
-**Last modified:** 2026-07-18T08:00:00Z
+**Revision:** 10
+**Last modified:** 2026-07-18T10:00:00Z
 
 ---
 
@@ -62,12 +62,12 @@ development with 95 open findings (2 CRITICAL, 64 HIGH, 25 MEDIUM,
 - **G04** — IN PROGRESS: tests exist (144 files, 27/27 packages GREEN). Coverage boosted: `internal/models` 0%→100%, `internal/skill` 5.5%→8.3%, `internal/api` 41.6%→59.8%. Remaining low-coverage: `internal/registry` (2%), `internal/db` (12%), `cmd/worker` (0%) — all DB-dependent, need integration test infrastructure.
 
 ### Completed — Key HIGH items
-- **G40** — Phase 1 DONE: 90 findings imported into `workable_items.db` (validate OK). Phase 2 (R-items import) and Phase 3 (bidirectional sync) pending.
+- **G40** — Phase 1+2+3 DONE: 115 items (90 G + 25 R) imported into `workable_items.db`. Bidirectional round-trip proven (db-to-md → md-to-db → validate OK). Engine fix: dot separator for non-canonical IDs. Phase 4+5 pending.
 - **G43** — Export pipeline DONE: `scripts/export_docs.sh` generates HTML+PDF for 5 tracked docs. Docs Chain integration pending.
 - **G59** — FIXED: `Store.Create` calls `embedWriteThrough`, `ClearSkillEmbedding` on failure branches.
 
 ### Queued — Key HIGH items
-- **G40** — Phase 2 (R-items import) + Phase 3 (bidirectional md↔db sync)
+- **G40** — Phase 4 (generators read from DB) + Phase 5 (deprecate direct markdown edits)
 - **G42** — Test coverage expansion (phased with impl)
 - **G43** — Docs Chain wiring (§11.4.106)
 - **G63** — Route-contract reconciliation (operator-blocked, D1-D5 decisions)

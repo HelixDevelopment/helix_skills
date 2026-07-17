@@ -489,8 +489,8 @@ PASS (real run).
 - **Constitution references:** §11.4.161, §11.4.76, §11.4.173.
 
 ### G40 — No SQLite workable_items.db single-source-of-truth
-- **Type:** Task. **Severity:** HIGH. **Status:** FILED; adoption plan FINALIZED (`research/g40_adoption_plan_FINAL.md`); design doc at `research/g40_workable_items_db_adoption_design.md`; Phase 1 READY (awaiting G47 operator decision or proceed-on-default). Recommended path: Option (a) — literal Gxx/Rxx as atm_id, zero schema change.
-- **Evidence:** 49 findings (G01–G49) tracked in this markdown register instead. The constitution's own Go workable-items engine (`constitution/scripts/workable-items/`) exists, builds cleanly, and is unused → adoption-only. Engine schema version `'6'` (`schema_embed.sql`); `add --id <id>` accepts arbitrary TEXT for `atm_id` (no format CHECK). Coupled: G45 (closed-vocabulary not applied) resolved by Phase 1 import; G47 (id scheme tension) resolved by Option (a) recommendation (operator decision PENDING).
+- **Type:** Task. **Severity:** HIGH. **Status:** IN PROGRESS — Phase 1+2+3 DONE, Phase 4+5 PENDING.
+- **Evidence:** `docs/workable_items.db` created with 115 items (90 G + 25 R). Phase 1: G01-G49 imported (18 Fixed, 70 Queued, 1 In progress, 1 Operator-blocked). Phase 2: R01-R25 imported (all Queued). Phase 3: bidirectional round-trip proven — `db-to-md` exports 115 items with dot-format headings, `md-to-db` re-imports all 115, `validate` OK. Engine fix: `renderItemBody` uses dot separator for non-canonical IDs (Gxx, Rxx) so parser shape-1 regex matches on re-import. G45 (closed-vocabulary) resolved by import. G47 (id scheme) resolved by Option (a) — literal Gxx/Rxx as atm_id. Phase 4 (generators read from DB) + Phase 5 (deprecate direct markdown edits) pending.
 - **Constitution references:** §11.4.93, §11.4.95, §11.4.74, §11.4.28, §11.4.108, §11.4.6.
 
 ### G41 — Zero hooks wired in settings.local.json
