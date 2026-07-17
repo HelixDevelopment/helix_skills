@@ -444,66 +444,95 @@ not project non-compliance. `CM-CONTINUUM-RESUME-ENGINE-PRESENT` FAIL is likewis
 engine-internal decoupling issue out of this project's scope. `CM-REPORTING-DIRECTIVES`
 PASS (real run).
 
-- **G39 (HIGH, §11.4.161/§11.4.76/§11.4.173):** `project/Makefile:36`
-  `CONTAINER_RUNTIME ?= docker` (rootful default) — MUST default rootless (podman).
-  One-line fix; lands in the ops lane (project/ owned by the P1.T1 mutator now). Test:
-  Makefile-default assertion + paired mutation. **STATUS:** `Completed (→ Fixed.md)` — `b597623`.
-- **G40 (HIGH, §11.4.93/§11.4.95):** no SQLite `workable_items.db` single-source-of-truth;
-  39 findings tracked in this markdown register instead. The constitution's own Go
-  workable-items engine (`constitution/scripts/workable-items/`) exists + is unused →
-  adoption-only. **STATUS:** FILED; adopt-engine PENDING (register is rich +
-  evidence-backed; migration is additive, low-risk).
-- **G41 (HIGH, §11.4.109):** `.claude/settings.local.json` wires ZERO hooks — the
-  `guard-forbidden-commands.sh` PreToolUse guard (+ §11.4.182/§11.4.191 guards) not
-  installed. **STATUS:** `Completed (→ Fixed.md)` — `0438d7e`.
-- **G42 (HIGH, §11.4.27/§11.4.52/§11.4.85/§11.4.169):** only ~10 unit-ish tests; no
-  stress/chaos/e2e/security-suite/Challenges/HelixQA coverage yet (expands G04). Lands
-  per-package as the Go spine proceeds. **STATUS:** FILED; PENDING (phased with impl).
-- **G43 (HIGH, §11.4.12/§11.4.65/§11.4.106):** zero `.html`/`.pdf` exports of any tracked
-  doc; Docs Chain declared in `helix-deps.yaml` but never invoked. **STATUS:** FILED;
-  wire Docs Chain + export pipeline PENDING (R18/R10).
-- **G44 (MED, §11.4.44):** only `CONTINUATION.md` + `requests/history.md` carry the
-  revision header; `REQUIREMENTS.md`/`IMPLEMENTATION_PLAN.md`/`SPEC.md`/this register/all
-  research docs lack it. **STATUS:** FILED; backfill PENDING.
-- **G45 (MED, §11.4.15/§11.4.16/§11.4.34):** status/type/reopens closed-vocabulary not
-  applied to the G0x findings. **STATUS:** FILED (couples with G40 DB adoption).
-- **G46 (LOW, §11.4.18):** shell scripts under `project/scripts/` lack the companion
-  `docs/scripts/<name>.md`. **STATUS:** `Completed (→ Fixed.md)` — `97ce030`.
-- **G47 (MED, §11.4.54 — OPERATOR-DECISION):** project uses G0x/R0x/P0x ids
-  cross-referenced across 20+ docs, not ATM-NNN; a destructive rename is riskier than
-  (a) documenting G0x as an approved alias OR (b) minting parallel ATM-NNN without
-  renaming. Surface via §11.4.66. **STATUS:** FILED; operator-decision PENDING.
-  2026-07-16 session: Gxx-literal adopted as the working default for this round's
-  item filing (conductor decision, §11.4.101); durable closure still awaits explicit
-  operator confirmation this is permanent.
-- **G48 (LOW, §11.4.57):** README lacks the `Tracked-Items` doc-link section. **STATUS:** `Completed (→ Fixed.md)` — `74a88d1`.
-- **G49 (LOW, §11.4.157):** no `QWEN.md`/`GEMINI.md` mirrors of the project
-  CLAUDE.md/AGENTS.md (would themselves be thin `@import` pointers per the consumer
-  model). **STATUS:** `Completed (→ Fixed.md)` — `4b5e78a`.
+### G39 — Rootful container runtime default in Makefile
+- **Type:** Bug. **Severity:** HIGH. **Status:** `Completed (→ Fixed.md)` — `b597623`.
+- **Evidence:** `project/Makefile:36` `CONTAINER_RUNTIME ?= docker` (rootful default) — MUST default rootless (podman).
+- **Constitution references:** §11.4.161, §11.4.76, §11.4.173.
+
+### G40 — No SQLite workable_items.db single-source-of-truth
+- **Type:** Task. **Severity:** HIGH. **Status:** FILED; adopt-engine PENDING.
+- **Evidence:** 39 findings tracked in this markdown register instead. The constitution's own Go workable-items engine (`constitution/scripts/workable-items/`) exists + is unused → adoption-only.
+- **Constitution references:** §11.4.93, §11.4.95.
+
+### G41 — Zero hooks wired in settings.local.json
+- **Type:** Task. **Severity:** HIGH. **Status:** `Completed (→ Fixed.md)` — `0438d7e`.
+- **Evidence:** `.claude/settings.local.json` wires ZERO hooks — the `guard-forbidden-commands.sh` PreToolUse guard (+ §11.4.182/§11.4.191 guards) not installed.
+- **Constitution references:** §11.4.109.
+
+### G42 — Insufficient test coverage
+- **Type:** Task. **Severity:** HIGH. **Status:** FILED; PENDING (phased with impl).
+- **Evidence:** only ~10 unit-ish tests; no stress/chaos/e2e/security-suite/Challenges/HelixQA coverage yet (expands G04). Lands per-package as the Go spine proceeds.
+- **Constitution references:** §11.4.27, §11.4.52, §11.4.85, §11.4.169.
+
+### G43 — No HTML/PDF doc exports; Docs Chain unwired
+- **Type:** Task. **Severity:** HIGH. **Status:** FILED; wire Docs Chain + export pipeline PENDING (R18/R10).
+- **Evidence:** zero `.html`/`.pdf` exports of any tracked doc; Docs Chain declared in `helix-deps.yaml` but never invoked.
+- **Constitution references:** §11.4.12, §11.4.65, §11.4.106.
+
+### G44 — Missing revision headers on most docs
+- **Type:** Task. **Severity:** MEDIUM. **Status:** FILED; backfill PENDING.
+- **Evidence:** only `CONTINUATION.md` + `requests/history.md` carry the revision header; `REQUIREMENTS.md`/`IMPLEMENTATION_PLAN.md`/`SPEC.md`/this register/all research docs lack it.
+- **Constitution references:** §11.4.44.
+
+### G45 — Status/type/reopens closed-vocabulary not enforced
+- **Type:** Task. **Severity:** MEDIUM. **Status:** FILED (couples with G40 DB adoption).
+- **Evidence:** status/type/reopens closed-vocabulary not applied to the G0x findings.
+- **Constitution references:** §11.4.15, §11.4.16, §11.4.34.
+
+### G46 — Shell scripts lack companion docs
+- **Type:** Task. **Severity:** LOW. **Status:** `Completed (→ Fixed.md)` — `97ce030`.
+- **Evidence:** shell scripts under `project/scripts/` lack the companion `docs/scripts/<name>.md`.
+- **Constitution references:** §11.4.18.
+
+### G47 — Gxx id scheme vs ATM-NNN naming
+- **Type:** Task. **Severity:** MEDIUM. **Status:** FILED; operator-decision PENDING.
+- **Evidence:** project uses G0x/R0x/P0x ids cross-referenced across 20+ docs, not ATM-NNN; a destructive rename is riskier than (a) documenting G0x as an approved alias OR (b) minting parallel ATM-NNN without renaming.
+- **Constitution references:** §11.4.54.
+
+### G48 — README lacks Tracked-Items doc-link section
+- **Type:** Task. **Severity:** LOW. **Status:** `Completed (→ Fixed.md)` — `74a88d1`.
+- **Evidence:** README lacks the `Tracked-Items` doc-link section.
+- **Constitution references:** §11.4.57.
+
+### G49 — No QWEN.md/GEMINI.md mirrors
+- **Type:** Task. **Severity:** LOW. **Status:** `Completed (→ Fixed.md)` — `4b5e78a`.
+- **Evidence:** no `QWEN.md`/`GEMINI.md` mirrors of the project CLAUDE.md/AGENTS.md.
+- **Constitution references:** §11.4.157.
 
 The **R23 full re-run at project completion** (every anchor re-audited to zero real
 violations, CM-gates + a §11.4.32 project sweep wired) is the terminal compliance gate.
 
 ## Additional findings (post-R23 audit)
 
-- **G51 (MED, §11.4.201):** `scripts/migrate.sh` runs `psql` without
-  `-v ON_ERROR_STOP=on` and discards its stderr (`2>/dev/null`); `psql` exits
-  `0` even when an individual SQL statement inside a migration errors, so a
-  partially-failed `up` is still logged `"Applied migration ${version}"` and
-  recorded in `schema_migrations`, and a partially-failed `down` still deletes
-  the version's row — a silent migration-state desync. Fix: add
-  `-v ON_ERROR_STOP=on` (up + down) + stop discarding `psql` stderr. Surfaced
-  by the `migrate.md` doc-review lane (post-R23; the doc at
-  `project/docs/scripts/migrate.md` describes this behaviour and cites this id).
-  (Next free id: G50 is SUPERSEDED per register line ~410, so this is G51.)
-  **STATUS:** `Fixed (→ Fixed.md)` — `0fee489`.
+### G51 — Silent migration-state desync from psql error handling
+- **Type:** Bug. **Severity:** MEDIUM. **Status:** `Fixed (→ Fixed.md)` — `0fee489`.
+- **Evidence:** `scripts/migrate.sh` runs `psql` without `-v ON_ERROR_STOP=on` and discards its stderr (`2>/dev/null`); `psql` exits `0` even when an individual SQL statement inside a migration errors.
+- **Constitution references:** §11.4.201.
 
-- **G52 (Bug; first-time filing directly as Fixed — not previously in this register):** Health-probe repoint `/api/v1/health`→`/health` (TUI + CLI) + `ARCHITECTURE.md` doc-drift closed inline. **STATUS:** `Fixed (→ Fixed.md)` — `7b9f40a`.
-- **G53 (Bug; first-time filing directly as Fixed — not previously in this register):** `WaitForVectorIndexReady` catalog-query correction + hardened error handling. **STATUS:** `Fixed (→ Fixed.md)` — `707185a`.
-- **G54 (Task; severity not independently assessed — see Summary counts note near the top of this file):** `internal/validation/pipeline.go` carries pre-existing `gofmt` drift (~lines 66-76), unrelated to any `G36` change; own isolated commit required. Distinct from `G62` (the 18-file standalone `gofmt` hygiene item — originally sampled as the `internal/db` trio, since re-scoped project-wide; see its own bullet below) — sibling hygiene items, not duplicates. **Reconciliation note (2026-07-16, added per `G62`'s rescoping):** this file is also expected to be resolved incidentally when the pending `G29` hybrid-search landing rewrites `internal/validation/pipeline.go`; if `G29` lands first without reintroducing the drift, this item closes as a side effect — otherwise it remains its own isolated-commit fix. **STATUS:** `Fixed (→ Fixed.md)` — project-wide gofmt-clean (0 drift files), confirmed via `gofmt -l .`; G62's fix resolved this file's drift.
-- **G55 (Bug; severity not independently assessed — see Summary counts note near the top of this file):** Phantom OpenAPI/doc-listed routes beyond the `G52`-fixed `/api/v1/health` (e.g. `/api/v1/graph`, `/skills/:id/{evidence,validate}`) are documented/listed but unimplemented — a `G09`-class contract-drift instance. Composes with `G09` (pervasive OpenAPI↔implementation drift, already tracked above). **STATUS:** Queued.
-- **G56 (Bug; severity not independently assessed — see Summary counts note near the top of this file):** `docker-compose` app-profile deployment contract is broken: double `ENTRYPOINT`/`command` argv-stacking defeats `--config`; the worker container re-runs the server binary; compose passes nonexistent `--db-*` flags; `config.toml`'s `host="db"` is a dangling retired service name; `INSTALL.md`'s example keys don't match the real struct. Composes with `G13` (landed, `9b85df2`) — explicitly pre-existing, NOT a `G13` regression. **STATUS:** Queued.
-- **G57 (Bug — un-wired flagship, §11.4.108/§11.4.124; newly minted this session, no prior id existed):** `internal/mcp.ACPAdapter` — the `--mcp acp` stdio transport was unwired; fixed by wiring the transport in + an idempotent-`Stop` fix. The ledger only ever referred to this as "NEW-2" before this session; this is its first-time filing. **STATUS:** `CLOSED (commit 8fa4e27)`.
+### G52 — Health-probe repoint + ARCHITECTURE.md doc-drift
+- **Type:** Bug. **Severity:** LOW. **Status:** `Fixed (→ Fixed.md)` — `7b9f40a`.
+- **Evidence:** Health-probe repoint `/api/v1/health`→`/health` (TUI + CLI) + `ARCHITECTURE.md` doc-drift closed inline.
+
+### G53 — WaitForVectorIndexReady catalog-query correction
+- **Type:** Bug. **Severity:** LOW. **Status:** `Fixed (→ Fixed.md)` — `707185a`.
+- **Evidence:** `WaitForVectorIndexReady` catalog-query correction + hardened error handling.
+
+### G54 — gofmt drift in internal/validation/pipeline.go
+- **Type:** Task. **Severity:** LOW. **Status:** `Fixed (→ Fixed.md)` — project-wide gofmt-clean.
+- **Evidence:** `internal/validation/pipeline.go` carries pre-existing `gofmt` drift (~lines 66-76). G62's fix resolved this file's drift.
+
+### G55 — Phantom OpenAPI/doc-listed routes unimplemented
+- **Type:** Bug. **Severity:** MEDIUM. **Status:** Queued.
+- **Evidence:** Phantom OpenAPI/doc-listed routes beyond the `G52`-fixed `/api/v1/health` (e.g. `/api/v1/graph`, `/skills/:id/{evidence,validate}`) are documented/listed but unimplemented. Composes with `G09`.
+
+### G56 — docker-compose deployment contract broken
+- **Type:** Bug. **Severity:** MEDIUM. **Status:** Queued.
+- **Evidence:** `docker-compose` app-profile deployment contract is broken: double `ENTRYPOINT`/`command` argv-stacking defeats `--config`; the worker container re-runs the server binary. Composes with `G13`.
+
+### G57 — MCP ACPAdapter stdio transport was unwired
+- **Type:** Bug. **Severity:** HIGH. **Status:** `CLOSED (commit 8fa4e27)`.
+- **Evidence:** `internal/mcp.ACPAdapter` — the `--mcp acp` stdio transport was unwired; fixed by wiring the transport in + an idempotent-`Stop` fix.
+- **Constitution references:** §11.4.108, §11.4.124.
 
 ## Adjudication of the 8 mandated open items
 
@@ -542,15 +571,36 @@ that was read during this audit; the two UNCONFIRMED sub-points (MCP
 > `.helix/reporting.yaml`-equivalent reporting config exists in this
 > project, §11.4.202(4)/§11.4.10).
 
+### G58 — (Placeholder) Referenced in G136 severity assessment
+- **Type:** TBD. **Severity:** MEDIUM (proposed per G136). **Status:** UNCONFIRMED.
+- **Note:** G58 is listed in the Summary counts table as MEDIUM but has no individual entry in this register. Referenced alongside G55, G56, G60, G61, G64, G66 as "Bugs and gaps in ops-scripts, migrations, compose contracts, and search conflict-oracle." Conductor must investigate and file the actual finding.
+
 ### New findings this round (G59–G68)
 
-- **G59 (Bug):** `Store.Create`/`Store.Update` never write `skills.embedding`; the DB-layer embed function — confirmed as `db.StoreSkillEmbedding` (see FACT below; `db.StoreEmbedding` was only ever a doc-comment misnaming, never a second symbol) — and `EmbedAsync` have zero non-test callers, so post-`G29` hybrid search degrades to keyword/trigram-only in practice. Composes with `G29` (open, NO-GO) and `G10` (embedding-dimension registry — distinct concern: dimension vs population). `G111` (ingestion CREATE/EXTEND stage, below) should land AFTER this fix, or explicitly document that newly-ingested skills inherit the same NULL-embedding gap until `G59` closes. **This item IS the tracked coverage for "embedding ingestion not yet wired":** `StoreSkillEmbedding` being dead/unwired code means the ingestion-time embedding-write path is absent by construction, so any codebase comment or downstream note citing embedding-ingestion as "tracked separately" refers to this id (`G59`) — no separate item is needed.
-  - **FACT (2026-07-16, source-confirmed):** the real exported symbol is `StoreSkillEmbedding` (package `db`, `func StoreSkillEmbedding(ctx, pool *Pool, skillID uuid.UUID, embedding pgvector.Vector) error`) at `internal/db/vector.go:180`; its doc comment at `vector.go:179` misnames it "StoreEmbedding" (comment bug, not a second symbol). It has ZERO call sites project-wide → dead/unwired (§11.4.124). Sibling `StoreEvidenceEmbedding` (`vector.go:194`) is also unwired.
-  - **STATUS:** Queued.
-- **G60 (Bug):** `internal/validation/pipeline.go`'s existence/conflict oracle uses ranked `Search(name,1)` instead of exact `Store.GetByName` — latent until `G59` (embedding population) lands AND `G29` fully lands, at which point a vector-rank-0 result can outrank an exact-name trigram hit and produce a spurious "not found"/missed-conflict verdict. Composes with `G29`; sequenced to land WITH or AFTER `G59`. **STATUS:** Queued.
-- **G61 (Task):** Two divergent `/health` implementations exist — the live inline handler in `cmd/server/main.go` vs the dead `internal/api.handleHealth` — with differing response body schemas; ties into the still-open `G01`-O3 dead-`api.Server`-consolidation and the `G09` OpenAPI↔implementation-drift finding. `G52` (landed) already fixed the CLIENT-side probe target; this item is the SERVER-side two-implementation problem, still open. Composes with `G01` (O3 sub-scope), `G09`, and `G96` (below — `skill_ingestion_research`'s router-consolidation proposal; UNCONFIRMED: covers the same root cause, pending the conductor reconciliation this bullet's own next sentence flags). **The conductor must resolve `G61`/`G96`/`G01`-O3 as ONE piece of work, not three independent fixes (§11.4.186 anti-divergence) — this merge/split boundary is an open question, not decided here.** **STATUS:** Queued.
-- **G62 (Task):** Re-scoped 2026-07-16 (VERIFIED via a full `gofmt -l` re-run, not the original 3-file sample): **20 files** project-wide carry pre-existing `gofmt` drift — `cmd/cli/commands/{expand,learn,registry}.go`, `cmd/tui/{browse,main,model,registry}.go`, `cmd/worker/main.go`, `internal/api/{expand_handler,http3,learn_handler,registry_handler,search_handler}.go`, `internal/autoexpand/pipeline.go`, `internal/db/{audit,embedding,postgres}.go`, `internal/models/skill.go`, `internal/registry/registry.go`, `internal/validation/pipeline.go` (all confirmed byte-untouched by the G23 review). Of these, `internal/db/embedding.go` and `internal/validation/pipeline.go` are expected to be resolved incidentally when the pending `G29` hybrid-search landing rewrites both files — tracked there (and in `G54` for `pipeline.go`), not duplicated here. **`G62`'s own fix scope is the remaining 18 standalone-hygiene files** (the 20 above minus `embedding.go` and `internal/validation/pipeline.go`): formatting-only fix, own isolated commit, `gofmt -w` + `gofmt -l` empty-after proof + `go build/vet/test -race` unchanged-behaviour proof. Distinct from `G54` (the `pipeline.go` gofmt item above) — sibling, not duplicate. **STATUS:** Queued.
-- **G63 (Bug):** A 4th divergent route-contract surface exists (≠ live server ≠ dead `internal/api.Server` ≠ OpenAPI): the `registry` CLI/TUI command group is 100% unreachable; the TUI health indicator is permanently disconnected; live handlers ignore query parameters. Composes with `G01`, `G09`, `G61`, `G96` — same route-contract problem-space; UNCONFIRMED: whether the operator-blocked decisions here gate how `G61`/`G96` get resolved too (not yet determined).
+### G59 — Embedding ingestion never wired; StoreSkillEmbedding is dead code
+- **Type:** Bug. **Severity:** HIGH. **Status:** Queued.
+- **Evidence:** `Store.Create`/`Store.Update` never write `skills.embedding`; the DB-layer embed function — confirmed as `db.StoreSkillEmbedding` at `internal/db/vector.go:180` — and `EmbedAsync` have zero non-test callers, so post-`G29` hybrid search degrades to keyword/trigram-only in practice.
+- **Composes with:** G29, G10, G111.
+
+### G60 — Search conflict-oracle uses ranked Search instead of exact GetByName
+- **Type:** Bug. **Severity:** MEDIUM. **Status:** Queued.
+- **Evidence:** `internal/validation/pipeline.go`'s existence/conflict oracle uses ranked `Search(name,1)` instead of exact `Store.GetByName` — latent until `G59` AND `G29` fully land.
+- **Composes with:** G29; sequenced to land WITH or AFTER G59.
+
+### G61 — Two divergent /health implementations
+- **Type:** Task. **Severity:** MEDIUM. **Status:** Queued.
+- **Evidence:** Two divergent `/health` implementations exist — the live inline handler in `cmd/server/main.go` vs the dead `internal/api.handleHealth` — with differing response body schemas.
+- **Composes with:** G01 (O3 sub-scope), G09, G96. The conductor must resolve G61/G96/G01-O3 as ONE piece of work (§11.4.186 anti-divergence).
+
+### G62 — 20 files with gofmt drift project-wide
+- **Type:** Task. **Severity:** LOW. **Status:** Queued.
+- **Evidence:** 20 files project-wide carry pre-existing `gofmt` drift. Fix scope is 18 standalone-hygiene files (minus `embedding.go` and `pipeline.go` tracked under G29/G54).
+
+### G63 — 4th divergent route-contract surface (registry CLI/TUI)
+- **Type:** Bug. **Severity:** HIGH. **Status:** Operator-blocked.
+- **Evidence:** A 4th divergent route-contract surface exists: the `registry` CLI/TUI command group is 100% unreachable; the TUI health indicator is permanently disconnected; live handlers ignore query parameters.
+- **Composes with:** G01, G09, G61, G96.
+- **Operator-Block-Details:** 5 product/ownership decisions (D1-D5) must be made before this item is implementable.
   - **Operator-Block-Details:**
     - **WHAT:** 5 product/ownership decisions (D1-D5) must be made before this item is implementable: D1 — whether the `registry` CLI/TUI command group is kept, rewired, or removed; D2 — which of the 4 divergent route-contract surfaces (live server / dead `internal/api.Server` / OpenAPI / `registry` group) becomes canonical; D3 — whether the TUI health indicator is reconnected to the live health endpoint or removed; D4 — whether live handlers should start honoring the query parameters they currently ignore, and which semantics; D5 — how this item's resolution sequences against `G61`/`G96`/`G01`-O3 (one merged work item vs three).
     - **WHY (self-resolution exhausted per §11.4.21):** (a) no CLI/ADB/SSH/API access gap — the code is fully readable, this is a product-scope decision not an access problem; (b) subagent delegation cannot substitute for an operator product decision; (c) existing repo tooling has no canonical-router config to consult; (d) no synthetic/mocked fallback resolves an ownership decision; (e) external research (§11.4.8) was performed for the surrounding technical patterns but cannot substitute for the operator's product intent.
@@ -558,102 +608,210 @@ that was read during this audit; the two UNCONFIRMED sub-points (MCP
     - **WHO:** operator (product/architecture owner).
   - **Design reference:** `scratchpad/new1_route_contract_design.md` (agent-local scratch path, cited by the source draft). **§11.4.197 follow-up:** this design doc is NOT yet relocated into the project's `research/` tree — it must be moved from scratchpad into an in-repo `research/` location (or re-derived if the scratchpad copy is unavailable) before the full route-contract decision can be finalized and closed; tracked here as an open follow-up, not resolved by this edit.
   - **STATUS:** Operator-blocked.
-- **G64 (Bug):** `scripts/migrate.sh:179-183` (the `else` branch) deletes the `schema_migrations` row on `down` even when there is no matching `.down.sql` file, producing a tracked-version desync. Composes with landed `G51` (`0fee489`, same file, different code path — `G51` fixed missing `-v ON_ERROR_STOP=on` + stderr-discard; this is the unconditional-delete-on-down bug, not yet fixed). **STATUS:** `Fixed (→ Fixed.md)` — lines 179-194 now `log_error` + `exit 1` without deleting the `schema_migrations` row; companion doc `project/docs/scripts/migrate.md` confirms "G64 FIXED".
-- **G65 (Bug):** `scripts/stop.sh` only supports `--quiet`/`-q`/`-h`; `--compose` hits "unknown arg" (exit 2); `restore.sh:292`'s `2>/dev/null||true` swallows that failure so the pre-restore stop is silently skipped. Composes with landed `G13` (`9b85df2`, ops-script family `G13` touched). **STATUS:** `Fixed (→ Fixed.md)` — stop.sh lines 66-72 now explicitly accept `--compose` as a documented no-op; companion doc confirms the fix.
-- **G66 (Bug):** Seed corpus is missing 3 prerequisite TOMLs; 4 of 8 seed files fail-closed on a clean import. No Gxx was ever assigned to this finding prior to this session. Affects the `seed/` corpus; independent of the ingestion epics below but touches the same import path they will exercise (`G70`/`G80`-style `Store.Import*` methods) — verify seed-corpus fixes land before `G88`'s real `anthropics/skills` e2e test, to avoid conflating a pre-existing seed-corpus gap with a new-feature regression. **STATUS:** Queued.
-- **G67 (Task):** `project/qa-results/` is not fully gitignored today (only `*.log` is ignored); a genuine policy conflict exists between gitignore-whole-dir (§11.4.30 .gitignore mandate) and curate-only-at-release-prep (§11.4.83 curated QA evidence must stay committed) — a real conflict needing an explicit operator decision, not a mechanical fix. No downstream code dependency; can resolve independently at any time.
+### G64 — Unconditional schema_migrations row delete on down without .down.sql
+- **Type:** Bug. **Severity:** MEDIUM. **Status:** `Fixed (→ Fixed.md)`.
+- **Evidence:** `scripts/migrate.sh:179-183` (the `else` branch) deletes the `schema_migrations` row on `down` even when there is no matching `.down.sql` file, producing a tracked-version desync. Composes with landed G51.
+
+### G65 — stop.sh rejects --compose flag
+- **Type:** Bug. **Severity:** LOW. **Status:** `Fixed (→ Fixed.md)`.
+- **Evidence:** `scripts/stop.sh` only supports `--quiet`/`-q`/`-h`; `--compose` hits "unknown arg" (exit 2); `restore.sh:292`'s `2>/dev/null||true` swallows that failure. Composes with landed G13.
+
+### G66 — Seed corpus missing 3 prerequisite TOMLs
+- **Type:** Bug. **Severity:** MEDIUM. **Status:** Queued.
+- **Evidence:** Seed corpus is missing 3 prerequisite TOMLs; 4 of 8 seed files fail-closed on a clean import. Affects the `seed/` corpus.
+
+### G67 — qa-results gitignore vs curated QA evidence policy conflict
+- **Type:** Task. **Severity:** LOW. **Status:** Operator-blocked.
+- **Evidence:** `project/qa-results/` is not fully gitignored today (only `*.log` is ignored); a genuine policy conflict exists between gitignore-whole-dir (§11.4.30) and curate-only-at-release-prep (§11.4.83).
+- **Operator-Block-Details:** decide the `project/qa-results/` tracking policy.
+- **Constitution references:** §11.4.30, §11.4.83.
   - **Operator-Block-Details:**
     - **WHAT:** decide the `project/qa-results/` tracking policy — either (a) gitignore the whole directory (satisfies §11.4.30 hygiene, but risks losing curated QA evidence that §11.4.83 requires to stay committed), or (b) keep it tracked but curate-only-at-release-prep (satisfies §11.4.83, but requires disciplined pruning of raw/uncurated output to avoid §11.4.30 violations), or (c) some hybrid (e.g. gitignore raw subpaths, track only a `curated/` subdirectory).
     - **WHY (self-resolution exhausted per §11.4.21):** this is a direct conflict between two constitutional mandates (§11.4.30 vs §11.4.83) applied to the same directory; neither mandate subordinates the other, so the choice of resolution shape is a policy decision, not a technical one self-resolvable by the agent.
     - **UNBLOCK CONDITION:** operator picks the policy (whole-dir-gitignore / curate-only / hybrid).
     - **WHO:** operator.
   - **STATUS:** Operator-blocked.
-- **G68 (Bug — Queued, VERIFY flag):** `RemoveDependency`'s coarse delete (removes ALL typed edges for a skill pair) should become relation-type-aware. `G25` (landed `67ce4d6`) fixed a DIFFERENT defect on the same function (audit-log empty-name-on-lookup-error) — this "coarse delete" facet was NOT stated as closed by `G25`'s own write-up, but was also **not independently re-diffed against current `graph.go` in this session** (§11.4.6 — genuinely unconfirmed, not assumed still-open). Conductor MUST re-check `internal/skill/graph.go`'s current `RemoveDependency` body before filing/closing — do not treat as a fresh open bug if it turns out already addressed as a side effect of `G07`'s `073192f` landing.
-  - **FACT (2026-07-16, source-confirmed):** `RemoveDependency` is DEFINED at `internal/skill/graph.go:125` (`func (s *Store) RemoveDependency(ctx, skillID, dependsOn uuid.UUID) error`) but is UNWIRED — its only caller anywhere is its own test `graph_removedep_g25_test.go:153`; there is NO CLI/REST/MCP/worker call site → dead per §11.4.124. It has audit-detail test coverage but no end-to-end handler/CLI driver. This dead/unwired finding is a SEPARATE confirmed fact — it does NOT resolve the "coarse delete" VERIFY question above, which remains genuinely unconfirmed.
-  - **STATUS:** Queued — VERIFY.
+### G68 — RemoveDependency coarse delete should be relation-type-aware
+- **Type:** Bug. **Severity:** LOW. **Status:** Queued — VERIFY.
+- **Evidence:** `RemoveDependency`'s coarse delete (removes ALL typed edges for a skill pair) should become relation-type-aware. `G25` fixed a DIFFERENT defect on the same function. Conductor MUST re-check `internal/skill/graph.go`'s current `RemoveDependency` body before filing/closing.
+- **FACT (2026-07-16):** `RemoveDependency` is DEFINED at `internal/skill/graph.go:125` but is UNWIRED — its only caller is its own test. Dead per §11.4.124.
+- **Composes with:** G25, G07.
 
 ### Planned feature epics (G69–G123)
 
-**G69 — FEAT: GitHub Skills Source Ingestion & Sync**
+### G69 — FEAT: GitHub Skills Source Ingestion & Sync
 
 - **Type:** Feature. **Status:** Queued. **Severity (proposed, carried forward verbatim from the source draft's own stated severity — not independently reassessed here):** high (net-new capability, operator-mandated 2026-07-16).
 - Add GitHub-repository skill-source registration + fetch/parse/import + non-destructive enhancement-delta application + regular re-sync, exposed via CLI + REST + MCP + TUI.
 - Full detail pointers: `gh_skills_research/CATALOG.md` (12-repo research corpus), `gh_skills_research/DESIGN.md` (architecture), `gh_skills_research/WIRING_PLAN.md` (exact file:line wiring), `gh_skills_research/TRACKED_ITEMS.md` (the 23 sub-items below).
 - Depends on `G06`/`G07` (DAG correctness, both landed `186e047`/`073192f`) — confirmed satisfied. `G80` and `G86` (sub-items touching the `internal/skill` package / `internal/mcp/server.go` respectively) MUST serialize behind the in-flight `G29` lane (§11.4.119 single-resource-owner + §11.4.191 work-to-track binding). `G123` (below) must resolve BEFORE `G70`'s migration (`004_skill_sources`) lands, since `G95` (the `G93` umbrella's own schema item) independently claims the SAME migration number.
 
-| Sub-item | Type | Sev. | Title | Depends on |
-|---|---|---|---|
-| G70 | Task | MEDIUM | Migration: `skill_sources` + `skill_source_mappings` + `skills.origin` | G69; conflicts with G95 pending G123 |
-| G71 | Task | MEDIUM | Migration: `skill_enhancement_proposals` | G70 |
-| G72 | Task | MEDIUM | `SourceSyncConfig` + env overrides + `config.toml` example | G69; overlaps G94 pending G123 |
-| G73 | Task | LOW | New `AuditEvent*` constants for skill-source events | G69 |
-| G74 | Feature | MEDIUM | `internal/skillsource` package: source registry CRUD | G70; overlaps G97 pending G123 |
-| G75 | Feature | MEDIUM | `internal/source/github`: hand-rolled REST fetch client | G74 |
-| G76 | Feature | LOW | `internal/source/github`: shallow-clone fallback | G75 |
-| G77 | Feature | MEDIUM | `internal/source/skillmd`: SKILL.md parser | G69 |
-| G78 | Feature | MEDIUM | `internal/source/mapper`: ParsedSkill → `models.Skill` + license gate | G77 |
-| G79 | Feature | MEDIUM | `internal/source/dedup`: NEW/DUPLICATE/VARIANT classifier | G78 |
-| G80 | Feature | MEDIUM | `Store.ImportSkillModel` (sibling to `ImportFromTOML`) | G79; serializes behind the G29 lane |
-| G81 | Feature | MEDIUM | `internal/source/enhance`: delta extraction + proposal store | G71, G79 |
-| G82 | Feature | MEDIUM | `internal/source/sync`: per-source scan orchestrator | G75, G76, G80, G81 |
-| G83 | Task | MEDIUM | Worker wiring: `JobTypeSourceRescan` + `sourceRescanWorker` | G82 |
-| G84 | Feature | MEDIUM | REST wiring: `cmd/server/skillsource_routes.go` + `buildRouter` | G83 |
-| G85 | Feature | MEDIUM | CLI wiring: `cmd/cli/commands/source.go` | G84 |
-| G86 | Feature | MEDIUM | MCP wiring: `internal/mcp/source_tools.go` | G84; serializes behind the G29 lane |
-| G87 | Feature | LOW | TUI wiring: `cmd/tui/sources.go` (read-only, lowest priority) | G84 |
-| G88 | Task | MEDIUM | e2e/full-automation test: real `anthropics/skills` pipeline run | G85, G86, G87 |
-| G89 | Task | LOW | Stress + chaos test suite for the ingestion pipeline | G88 |
-| G90 | Task | LOW | Vendor Challenges + HelixQA constitution submodules (blocking dependency) | G69 |
-| G91 | Task | LOW | HelixQA Challenge bank entry for skill-source ingestion | G89, G90 |
-| G92 | Task | LOW | Docs: README/API/CLI reference sync for the new surfaces | G91 |
+### G70 — Migration: skill_sources + skill_source_mappings + skills.origin
+- **Type:** Task. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G69; conflicts with G95 pending G123.
 
-*All sub-items above (`G70`–`G92`): **Status = Queued**.*
+### G71 — Migration: skill_enhancement_proposals
+- **Type:** Task. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G70.
 
-**G93 — FEAT: Unified Multi-Source Skill Ingestion Subsystem**
+### G72 — SourceSyncConfig + env overrides + config.toml example
+- **Type:** Task. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G69; overlaps G94 pending G123.
+
+### G73 — New AuditEvent constants for skill-source events
+- **Type:** Task. **Severity:** LOW. **Status:** Queued. **Depends on:** G69.
+
+### G74 — internal/skillsource package: source registry CRUD
+- **Type:** Feature. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G70; overlaps G97 pending G123.
+
+### G75 — internal/source/github: hand-rolled REST fetch client
+- **Type:** Feature. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G74.
+
+### G76 — internal/source/github: shallow-clone fallback
+- **Type:** Feature. **Severity:** LOW. **Status:** Queued. **Depends on:** G75.
+
+### G77 — internal/source/skillmd: SKILL.md parser
+- **Type:** Feature. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G69.
+
+### G78 — internal/source/mapper: ParsedSkill → models.Skill + license gate
+- **Type:** Feature. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G77.
+
+### G79 — internal/source/dedup: NEW/DUPLICATE/VARIANT classifier
+- **Type:** Feature. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G78.
+
+### G80 — Store.ImportSkillModel (sibling to ImportFromTOML)
+- **Type:** Feature. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G79; serializes behind the G29 lane.
+
+### G81 — internal/source/enhance: delta extraction + proposal store
+- **Type:** Feature. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G71, G79.
+
+### G82 — internal/source/sync: per-source scan orchestrator
+- **Type:** Feature. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G75, G76, G80, G81.
+
+### G83 — Worker wiring: JobTypeSourceRescan + sourceRescanWorker
+- **Type:** Task. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G82.
+
+### G84 — REST wiring: cmd/server/skillsource_routes.go + buildRouter
+- **Type:** Feature. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G83.
+
+### G85 — CLI wiring: cmd/cli/commands/source.go
+- **Type:** Feature. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G84.
+
+### G86 — MCP wiring: internal/mcp/source_tools.go
+- **Type:** Feature. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G84; serializes behind the G29 lane.
+
+### G87 — TUI wiring: cmd/tui/sources.go (read-only)
+- **Type:** Feature. **Severity:** LOW. **Status:** Queued. **Depends on:** G84.
+
+### G88 — e2e test: real anthropics/skills pipeline run
+- **Type:** Task. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G85, G86, G87.
+
+### G89 — Stress + chaos test suite for ingestion pipeline
+- **Type:** Task. **Severity:** LOW. **Status:** Queued. **Depends on:** G88.
+
+### G90 — Vendor Challenges + HelixQA constitution submodules
+- **Type:** Task. **Severity:** LOW. **Status:** Queued. **Depends on:** G69.
+
+### G91 — HelixQA Challenge bank entry for skill-source ingestion
+- **Type:** Task. **Severity:** LOW. **Status:** Queued. **Depends on:** G89, G90.
+
+### G92 — Docs: README/API/CLI reference sync for new surfaces
+- **Type:** Task. **Severity:** LOW. **Status:** Queued. **Depends on:** G91.
+
+### G93 — FEAT: Unified Multi-Source Skill Ingestion Subsystem
 
 - **Type:** Feature. **Status:** Queued. **Severity (proposed, carried forward verbatim from the source draft's own stated severity — not independently reassessed here):** high (net-new capability, operator-mandated 2026-07-16).
 - Add a pluggable multi-source skill-ingestion subsystem (filesystem real-time-watch/web/API/PDF/FTP/SMB/WebDAV) with a 7-stage extract→normalize→refine→dedup→create/wire pipeline, exposed via CLI + REST + MCP.
 - Full detail pointers: `skill_ingestion_research/CODEBASE_MAP.md` (integration-point map), `skill_ingestion_research/RESEARCH.md` (library research: `fsnotify`, `goquery`, `go-readability`, `html-to-markdown`, `ledongthuc/pdf`, `kin-openapi`, `jlaffaye/ftp`, `go-smb2`, `gowebdav`), `skill_ingestion_research/DESIGN.md` (architecture, 7 honest boundaries), `skill_ingestion_research/TRACKED_ITEMS.md` (the 25 non-deferred + 4 deferred sub-items below).
 - `G96` (router-duplication fix) — UNCONFIRMED: duplicates `G01`'s O3 sub-scope + `G61` above — conductor resolves as ONE item before any of `G94`-`G122` that assume "one canonical router" (namely `G115`) lands. `G111` (CREATE/EXTEND stage) should soft-serialize behind `G59` (embedding-population fix). Honest gaps already stated BY the source draft itself (never silently resolved here): no production-ready pure-Go NFS client exists (v1 = reuse the filesystem `Source` against an operator-mounted NFS export, `G105`); scanned/image-only PDF OCR has no clean permissively-licensed pure-Go path (`gen2brain/go-fitz` is AGPL-3.0 — an explicit operator license decision, not resolved here); only the filesystem source gets genuine real-time behaviour in v1 (the other four are one-shot bulk + deferred polling, `G119`).
 
-| Sub-item | Type | Sev. | Title | Depends on |
-|---|---|---|---|
-| G94 | Task | MEDIUM | Add `config.IngestionConfig` section | G93; overlaps G72 pending G123 |
-| G95 | Task | MEDIUM | Ingestion schema migration (`004_ingestion.up/down.sql`) | G93; migration-number collision with G70, see G123 |
-| G96 | Task | MEDIUM | Resolve `internal/api.Server` vs `cmd/server/main.go` router duplication | G93; UNCONFIRMED: duplicates G01-O3 + G61, see G123 |
-| G97 | Feature | MEDIUM | `Source` interface + `ItemRef`/`RawItem` types | G93 |
-| G98 | Feature | MEDIUM | Filesystem `Source` (bulk one-shot) | G97 |
-| G99 | Feature | MEDIUM | HTTP/website `Source` (single URL + bounded in-house crawl) | G97 |
-| G100 | Feature | MEDIUM | PDF `Source` (upload-based) | G97 |
-| G101 | Feature | LOW | OpenAPI/API-schema `Source` | G97 |
-| G102 | Feature | LOW | FTP `Source` | G97 |
-| G103 | Feature | LOW | SMB `Source` | G97 |
-| G104 | Feature | LOW | WebDAV `Source` | G97 |
-| G105 | Task | LOW | NFS honest-gap documentation + mount-based workaround wiring | G98 |
-| G106 | Feature | MEDIUM | HTML EXTRACT+NORMALIZE stage | G99 |
-| G107 | Feature | MEDIUM | PDF EXTRACT+NORMALIZE stage | G100 |
-| G108 | Feature | LOW | OpenAPI EXTRACT+NORMALIZE stage | G101 |
-| G109 | Feature | MEDIUM | LLM-REFINE stage (interface-only, provider-agnostic) | G106, G107, G108 |
-| G110 | Feature | MEDIUM | DEDUP stage | G109 |
-| G111 | Feature | MEDIUM | CREATE/EXTEND + WIRE GRAPH RELATIONS stage | G110; soft-serializes behind G59 |
-| G112 | Feature | MEDIUM | Ingestion job orchestration (durable) | G111 |
-| G113 | Feature | MEDIUM | Recursive directory watcher (fsnotify + debounce + bounded pool) | G98 |
-| G114 | Task | MEDIUM | `worker.JobTypeIngestSource` + real handler | G112 |
-| G115 | Feature | MEDIUM | REST `/api/v1/ingest/*` endpoints | G114; assumes G96 resolved |
-| G116 | Feature | MEDIUM | CLI `ingest` command group | G115 |
-| G117 | Feature | MEDIUM | MCP `skill_ingest_source` tool | G115 |
-| G118 | Task | LOW | Full anti-bluff test-suite execution + HelixQA Challenge bank wiring | G116, G117 |
-| G119 | Feature | LOW | Periodic polling for FTP/SMB/WebDAV/API sources (deferred) | G102, G103, G104, G101 |
-| G120 | Feature | LOW | Deep-research-extend stage activation (deferred) | G109 |
-| G121 | Feature | LOW | TUI ingestion pane (deferred) | G115 |
-| G122 | Feature | LOW | Source-removal → Skill staleness/deletion policy (deferred) | G118 |
+### G94 — Add config.IngestionConfig section
+- **Type:** Task. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G93; overlaps G72 pending G123.
 
-*All sub-items above (`G94`–`G122`): **Status = Queued**.*
+### G95 — Ingestion schema migration (004_ingestion.up/down.sql)
+- **Type:** Task. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G93; migration-number collision with G70, see G123.
 
-**G123 — Architectural-overlap reconciliation (G69 vs G93)**
+### G96 — Resolve internal/api.Server vs cmd/server/main.go router duplication
+- **Type:** Task. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G93; UNCONFIRMED: duplicates G01-O3 + G61, see G123.
 
-- **Type:** Task. **Status:** Queued.
-- Reconcile the overlapping schema/config/registry design between `G69` (GitHub-Skills-Ingestion) and `G93` (Unified-Multi-Source-Skill-Ingestion) before either's sub-items land.
+### G97 — Source interface + ItemRef/RawItem types
+- **Type:** Feature. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G93.
+
+### G98 — Filesystem Source (bulk one-shot)
+- **Type:** Feature. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G97.
+
+### G99 — HTTP/website Source (single URL + bounded crawl)
+- **Type:** Feature. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G97.
+
+### G100 — PDF Source (upload-based)
+- **Type:** Feature. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G97.
+
+### G101 — OpenAPI/API-schema Source
+- **Type:** Feature. **Severity:** LOW. **Status:** Queued. **Depends on:** G97.
+
+### G102 — FTP Source
+- **Type:** Feature. **Severity:** LOW. **Status:** Queued. **Depends on:** G97.
+
+### G103 — SMB Source
+- **Type:** Feature. **Severity:** LOW. **Status:** Queued. **Depends on:** G97.
+
+### G104 — WebDAV Source
+- **Type:** Feature. **Severity:** LOW. **Status:** Queued. **Depends on:** G97.
+
+### G105 — NFS honest-gap documentation + mount-based workaround
+- **Type:** Task. **Severity:** LOW. **Status:** Queued. **Depends on:** G98.
+
+### G106 — HTML EXTRACT+NORMALIZE stage
+- **Type:** Feature. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G99.
+
+### G107 — PDF EXTRACT+NORMALIZE stage
+- **Type:** Feature. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G100.
+
+### G108 — OpenAPI EXTRACT+NORMALIZE stage
+- **Type:** Feature. **Severity:** LOW. **Status:** Queued. **Depends on:** G101.
+
+### G109 — LLM-REFINE stage (interface-only, provider-agnostic)
+- **Type:** Feature. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G106, G107, G108.
+
+### G110 — DEDUP stage
+- **Type:** Feature. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G109.
+
+### G111 — CREATE/EXTEND + WIRE GRAPH RELATIONS stage
+- **Type:** Feature. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G110; soft-serializes behind G59.
+
+### G112 — Ingestion job orchestration (durable)
+- **Type:** Feature. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G111.
+
+### G113 — Recursive directory watcher (fsnotify + debounce)
+- **Type:** Feature. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G98.
+
+### G114 — worker.JobTypeIngestSource + real handler
+- **Type:** Task. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G112.
+
+### G115 — REST /api/v1/ingest/* endpoints
+- **Type:** Feature. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G114; assumes G96 resolved.
+
+### G116 — CLI ingest command group
+- **Type:** Feature. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G115.
+
+### G117 — MCP skill_ingest_source tool
+- **Type:** Feature. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G115.
+
+### G118 — Full anti-bluff test-suite + HelixQA Challenge bank
+- **Type:** Task. **Severity:** LOW. **Status:** Queued. **Depends on:** G116, G117.
+
+### G119 — Periodic polling for FTP/SMB/WebDAV/API sources (deferred)
+- **Type:** Feature. **Severity:** LOW. **Status:** Queued. **Depends on:** G102, G103, G104, G101.
+
+### G120 — Deep-research-extend stage activation (deferred)
+- **Type:** Feature. **Severity:** LOW. **Status:** Queued. **Depends on:** G109.
+
+### G121 — TUI ingestion pane (deferred)
+- **Type:** Feature. **Severity:** LOW. **Status:** Queued. **Depends on:** G115.
+
+### G122 — Source-removal → Skill staleness/deletion policy (deferred)
+- **Type:** Feature. **Severity:** LOW. **Status:** Queued. **Depends on:** G118.
+
+### G123 — Architectural-overlap reconciliation (G69 vs G93)
+- **Type:** Task. **Severity:** MEDIUM. **Status:** Queued.
+- **Evidence:** Reconcile the overlapping schema/config/registry design between `G69` (GitHub-Skills-Ingestion) and `G93` (Unified-Multi-Source-Skill-Ingestion) before either's sub-items land.
 - **Evidence (found independently this session — neither background research stream could see the other's output while running in parallel):**
   1. **Migration-number collision:** `G70`'s DDL claims `migrations/004_skill_sources.up.sql` as "next free"; `G95`'s DDL independently claims `migrations/004_ingestion.up.sql` as ALSO "next free". Both cannot be `004`.
   2. **Duplicate registry abstraction:** `G74` proposes a new `internal/skillsource` package with `Store` CRUD for a `skill_sources` table; `G97` proposes a new `internal/ingest/source.Source` interface + its own source-registry concept. Per §11.4.186 anti-divergence this MUST be a single mechanism with adapter plugins, never duplicated per-source-type infrastructure.
@@ -662,7 +820,7 @@ that was read during this audit; the two UNCONFIRMED sub-points (MCP
 - **Recommended resolution shape (a proposal for the conductor/operator to confirm, NOT decided here per §11.4.6):** treat `G93`'s `Source` interface (`G97`) as the canonical pluggable-adapter abstraction, and re-scope `G69`'s GitHub-specific sub-items (`G74`-`G92`) to implement ONE concrete `Source` adapter against that interface rather than a parallel `internal/skillsource` registry — collapsing `G70`+`G95` into a single migration, and `G72`+`G94` into a single config section. **This is a genuine architecture decision, not a mechanical fix — do not auto-apply this recommendation without conductor/operator sign-off.**
 - **STATUS:** Queued.
 
-**G124 — FEAT: Auto-generated, always-in-sync Skills-tree documentation catalog (`docs/skills/`)**
+### G124 — FEAT: Auto-generated, always-in-sync Skills-tree documentation catalog (`docs/skills/`)
 
 - **Type:** Feature. **Status:** Queued. **Created-by:** Operator. **Assigned-to:** Operator.
 - **One-liner:** docs/skills always-in-sync structurally-organized Skills-tree catalog auto-generated from the skill store, exported (md/html/pdf), and auto-synchronized via Docs Chain + hooks + §11.4.86 roster fingerprint.
@@ -673,21 +831,40 @@ that was read during this audit; the two UNCONFIRMED sub-points (MCP
 - **Source-side advanceable now:** yes (generator design + skill-model mapping). **Build/DB-gated:** the live regeneration proof needs a running DB with seeded skills.
 - **STATUS:** Queued.
 
-| Sub-item | Type | Sev. | Description (§11.4.171, subject+goal) | Depends on | Source-side now, or build/DB-gated? |
-|---|---|---|---|---|---|---|
-| G125 | Task | MED | Build the `skillscatalog` generator: DB → deterministic Markdown tree + sha256 roster fingerprint sidecar (§11.4.86), reusing existing `Store` read methods, with the `EmbedFullContent` config toggle | G124 | Source-side now — needs only the existing Postgres test-DB infra, no Docs Chain |
-| G126 | Task | MED | Wire a `skill-system docs skills-catalog generate\|verify` CLI subcommand onto the existing root command, matching Docs Chain's own `verify` exit-code contract | G125 | Source-side now |
-| G127 | Feature | MED | Add `POST /api/v1/skills/catalog/regenerate` + `GET /api/v1/skills/catalog/status` REST handlers under `internal/api`, alongside the existing `skills_handler.go` surface | G125 | Source-side now (runtime reachability inherits the pre-existing G01 unwired-router status, not newly introduced) |
-| G128 | Feature | MED | Add a read-only `skill_catalog_status` MCP tool alongside `skill_search`/`skill_get`/`skill_tree`/`skill_create`; defer the write-capable `skill_catalog_regenerate` tool until G01's write-tool auth consolidation lands | G125 | Source-side now (the deferred write-tool is explicitly out of this item's scope) |
-| G129 | Task | MED | Add a periodic (default 60s) reconciliation worker job under `internal/worker` calling `skillscatalog.Verify`, and on drift `skillscatalog.Generate` — the out-of-the-box no-operator-action mechanism | G125 | Source-side now |
-| G130 | Task | MED | Wire an immediate-tick signal from every skill-graph write path (`Store.Create`/`CreateFromTOML`/`ImportFromTOML`, `AddDependency`/`RemoveDependency`, and the create/update/delete REST+MCP handlers) into G129's worker queue so a write converges the catalog on the next tick | G125, G129 | Source-side now |
-| G131 | Task | MED | Author `guard-skills-catalog-fresh.sh`, a §11.4.109/§11.4.201-compliant PreToolUse/pre-commit guard asserting the real fingerprint-drift condition, blocking a commit touching skill-model/seed/migration paths while the catalog is stale | G125, G126 | Source-side now |
-| G132 | Task | MED | Register G131's guard hook through the existing §11.4.164 `post_update_hook.sh` auto-propagation seam so a fresh clone/session gets it installed automatically | G131 | Source-side now |
-| G133 | Task | MED | Author `.docs_chain/contexts/skills_catalog.yaml` wiring the generated Markdown tree through Docs Chain's pandoc-html/weasyprint-pdf derive edges, mirroring the already-designed sibling contexts | G125; shared prerequisite tracked as R10/P13.T1/G43/X1, not re-scoped here | **Blocked** — draftable source-side now, but not functionally completable/verifiable until Docs Chain is incorporated (X1/P13.T1 clear) |
-| G134 | Task | MED | Implement the full DESIGN.md §6 anti-bluff proof plan: golden-good fixture, golden-bad fixtures (dangling edge, empty-name check per the G33 lesson), a paired §1.1 mutation, a 3x/10x determinism re-run, and a real-DB end-to-end test | G125 | Source-side now |
-| G135 | Task | MED | Add a HelixQA Challenge bank entry exercising create-skill-then-find-it-in-catalog end-to-end, and update `README.md`'s §11.4.57 Tracked-Items doc-link section to reference `docs/skills/README.md` | G125, G134 | Source-side now |
+### G125 — Build the skillscatalog generator
+- **Type:** Task. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G124.
+- **Description:** Build the `skillscatalog` generator: DB → deterministic Markdown tree + sha256 roster fingerprint sidecar (§11.4.86).
 
-*All sub-items above (`G125`–`G135`): **Status = Queued**.*
+### G126 — Wire docs skills-catalog generate|verify CLI subcommand
+- **Type:** Task. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G125.
+
+### G127 — REST handlers for catalog regenerate + status
+- **Type:** Feature. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G125.
+
+### G128 — MCP skill_catalog_status tool
+- **Type:** Feature. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G125.
+
+### G129 — Periodic reconciliation worker job for catalog
+- **Type:** Task. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G125.
+
+### G130 — Immediate-tick signal from skill-graph write paths
+- **Type:** Task. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G125, G129.
+
+### G131 — guard-skills-catalog-fresh.sh PreToolUse guard
+- **Type:** Task. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G125, G126.
+
+### G132 — Auto-propagation of catalog guard hook
+- **Type:** Task. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G131.
+
+### G133 — Docs Chain context for skills catalog
+- **Type:** Task. **Severity:** MEDIUM. **Status:** Blocked. **Depends on:** G125.
+- **Blocked:** not functionally completable until Docs Chain is incorporated (X1/P13.T1 clear).
+
+### G134 — Anti-bluff proof plan for catalog generator
+- **Type:** Task. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G125.
+
+### G135 — HelixQA Challenge bank entry for catalog
+- **Type:** Task. **Severity:** MEDIUM. **Status:** Queued. **Depends on:** G125, G134.
 
 ### G136 — Task: Retroactive severity assessment for session-discovered items G52–G137
 
