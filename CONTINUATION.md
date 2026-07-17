@@ -1,7 +1,7 @@
 # CONTINUATION.md — Helix Skills
 
-**Revision:** 2
-**Last modified:** 2026-07-17T22:15:00Z
+**Revision:** 3
+**Last modified:** 2026-07-17T23:45:00Z
 
 ---
 
@@ -9,14 +9,14 @@
 
 Documentation sync + catalog maintenance. The MVP skill-graph system
 (`docs/research/mvp/Agent_AI_Skill_Tree_Development/`) is in active
-development with 96 open findings (3 CRITICAL, 63 HIGH, 25 MEDIUM,
+development with 96 open findings (3 CRITICAL, 64 HIGH, 25 MEDIUM,
 4 LOW) across 136 tracked items in the GAPS_AND_RISKS_REGISTER.md.
 
 ---
 
 ## §2 — Session State
 
-- **HEAD:** `93636fc` (perf: fix critical N+1 query in GetTree + bound recursive CTE depth)
+- **HEAD:** `ed31e4a` (Merge remote-tracking branch 'origin/feature/catalog-docs')
 - **Branch:** `main`
 - **Constitution submodule:** present at `constitution/`
 - **Skills installed:** 7 active (action-prefix-system, media-validator,
@@ -29,9 +29,11 @@ development with 96 open findings (3 CRITICAL, 63 HIGH, 25 MEDIUM,
 ## §3 — Active Work
 
 ### Just completed (this session)
-- MERGE: `feature/deep-research` merged into main (845c750) — CodeGraph
-  integration, batch embedding, connection pool, metrics, enterprise
-  migration, wireframes (24 files, +7339 lines research/reference code)
+- MERGE: `feature/catalog-docs` merged into main (ed31e4a) — test catalog
+  generation from real corpus (34 records across 4 types)
+- MERGE: `feature/deep-research` merged into main (1ad3cce) — enterprise
+  scalability: tenant middleware, tenant-aware store, batch embed worker
+  (11 files, +2626 lines)
 - PERF: N+1 query fix in GetTree + recursive CTE depth bound (93636fc)
 - CONSTITUTION: §11.4.213 FEATURE action files committed + pushed to all
   6 upstreams; parent pointer updated (fd89306)
@@ -42,6 +44,7 @@ development with 96 open findings (3 CRITICAL, 63 HIGH, 25 MEDIUM,
 - AUDIT: register summary counts verified correct (3+64+25+4+39+1=136)
 - AUDIT: all 39 FIXED items have matching per-item STATUS annotations
 - AUDIT: G58 remains placeholder (TBD, UNCONFIRMED) — needs real finding
+- DOC-SYNC: CONTINUATION.md revision bumped to Rev 3
 
 ### Queued — CRITICAL (G01, G03, G04)
 - **G01** — Dead `internal/api.Server` consolidation (runtime security hole
