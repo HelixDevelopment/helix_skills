@@ -111,7 +111,7 @@ func NewTreeSitterParser() (*TreeSitterParser, error) {
 	// Try to initialize native parsers (CGO path)
 	// If CGO is disabled or tree-sitter is not installed,
 	// these will silently fail and we'll use regex fallbacks.
-	for _, lang := range []string{"go", "python", "java", "javascript", "c", "cpp", "rust"} {
+	for _, lang := range []string{"go", "python", "java", "javascript", "c", "cpp", "rust", "csharp", "kotlin"} {
 		if err := p.initNativeParser(lang); err != nil {
 			// Create regex fallback for this language
 			p.fallbackParsers[lang] = newRegexParser(lang)
@@ -123,35 +123,39 @@ func NewTreeSitterParser() (*TreeSitterParser, error) {
 	return p, nil
 }
 
-// initNativeParser attempts to initialize a native tree-sitter parser.
-// This function requires CGO and the tree-sitter Go bindings.
-// If either is unavailable, it returns an error and the caller uses
-// the regex fallback.
-func (p *TreeSitterParser) initNativeParser(language string) error {
-	// This is a placeholder for the actual tree-sitter initialization.
-	// In a CGO-enabled build with tree-sitter installed, this would:
-	//
-	//   #include <tree_sitter/api.h>
-	//   extern const TSLanguage *tree_sitter_go();
-	//   // ... etc for each language
-	//
-	// And the Go code would use cgo to call into the tree-sitter C library.
+// ---------------------------------------------------------------------------
+// Native parser function pointers
+//
+// These are package-level function variables with default stub implementations
+// that return errors/false. When CGO is available, treesitter_native.go's
+// init() replaces them with real tree-sitter implementations.
+// ---------------------------------------------------------------------------
 
-	// Since we cannot rely on CGO being available, we always return an error
-	// and use the regex fallback. In a production build with CGO enabled,
-	// uncomment the language-specific initialization below.
-
-	// Example for go (when CGO is available):
-	// parser := C.ts_parser_new()
-	// lang := C.tree_sitter_go()
-	// if parser == nil || lang == nil {
-	//     return fmt.Errorf("failed to create parser for %s", language)
-	// }
-	// C.ts_parser_set_language(parser, lang)
-	// p.nativeParsers[language] = parser
-	// return nil
-
+var doInitNativeParser = func(_ *TreeSitterParser, language string) error {
 	return fmt.Errorf("native parser not available for %s (CGO may be disabled)", language)
+}
+
+var doParseNative = func(_ *TreeSitterParser, _ []byte, language string) (*Tree, error) {
+	return nil, fmt.Errorf("native parser not implemented for %s", language)
+}
+
+var doExtractImportsNative = func(_ *TreeSitterParser, _ *Tree) ([]Import, error) {
+	return nil, fmt.Errorf("native import extraction not implemented")
+}
+
+var doExtractFunctionsNative = func(_ *TreeSitterParser, _ *Tree) ([]Function, error) {
+	return nil, fmt.Errorf("native function extraction not implemented")
+}
+
+var doExtractClassesNative = func(_ *TreeSitterParser, _ *Tree) ([]Class, error) {
+	return nil, fmt.Errorf("native class extraction not implemented")
+}
+
+// initNativeParser attempts to initialize a native tree-sitter parser.
+// Delegates to doInitNativeParser which is overridden by treesitter_native.go
+// when CGO is available.
+func (p *TreeSitterParser) initNativeParser(language string) error {
+	return doInitNativeParser(p, language)
 }
 
 // ---------------------------------------------------------------------------
@@ -179,10 +183,10 @@ func (p *TreeSitterParser) Parse(content []byte, language string) (*Tree, error)
 }
 
 // parseNative uses the tree-sitter C library (CGO required).
+// Delegates to doParseNative which is overridden by treesitter_native.go
+// when CGO is available.
 func (p *TreeSitterParser) parseNative(content []byte, language string) (*Tree, error) {
-	// This would call into the tree-sitter C library via CGO.
-	// Placeholder implementation - always returns error to trigger fallback.
-	return nil, fmt.Errorf("native parser not implemented")
+	return doParseNative(p, content, language)
 }
 
 // parseFallback uses regex-based heuristics to extract code structure.
@@ -259,18 +263,15 @@ func (p *TreeSitterParser) ExtractClasses(tree *Tree) ([]Class, error) {
 // ---------------------------------------------------------------------------
 
 func (p *TreeSitterParser) extractImportsNative(tree *Tree) ([]Import, error) {
-	// Placeholder for native tree-sitter import extraction
-	return nil, fmt.Errorf("native import extraction not implemented")
+	return doExtractImportsNative(p, tree)
 }
 
 func (p *TreeSitterParser) extractFunctionsNative(tree *Tree) ([]Function, error) {
-	// Placeholder for native tree-sitter function extraction
-	return nil, fmt.Errorf("native function extraction not implemented")
+	return doExtractFunctionsNative(p, tree)
 }
 
 func (p *TreeSitterParser) extractClassesNative(tree *Tree) ([]Class, error) {
-	// Placeholder for native tree-sitter class extraction
-	return nil, fmt.Errorf("native class extraction not implemented")
+	return doExtractClassesNative(p, tree)
 }
 
 // ---------------------------------------------------------------------------

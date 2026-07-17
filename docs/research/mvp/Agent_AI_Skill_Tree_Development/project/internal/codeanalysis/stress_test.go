@@ -69,24 +69,52 @@ func TestStress_ConcurrentParsing(t *testing.T) {
 				t.Errorf("goroutine %d: Parse(csharp) returned nil tree", idx)
 				return
 			}
-			if tree.Fidelity != FidelityRegexFallback {
-				t.Errorf("goroutine %d: Parse(csharp) Fidelity = %q, want %q",
-					idx, tree.Fidelity, FidelityRegexFallback)
-			}
-			if tree.Parsed == nil {
-				t.Errorf("goroutine %d: Parse(csharp) Parsed is nil", idx)
-				return
-			}
-			if len(tree.Parsed.Imports) != 2 {
-				t.Errorf("goroutine %d: csharp imports = %d, want 2",
-					idx, len(tree.Parsed.Imports))
-			}
-			if len(tree.Parsed.Functions) == 0 {
-				t.Errorf("goroutine %d: csharp functions = 0, expected at least Greet", idx)
-			}
-			if len(tree.Parsed.Classes) != 2 {
-				t.Errorf("goroutine %d: csharp classes = %d, want 2",
-					idx, len(tree.Parsed.Classes))
+
+			if cgoAvailable {
+				// Native path: use extraction API
+				if tree.Fidelity != FidelityNative {
+					t.Errorf("goroutine %d: Parse(csharp) Fidelity = %q, want %q",
+						idx, tree.Fidelity, FidelityNative)
+				}
+				if tree.Root == nil {
+					t.Errorf("goroutine %d: Parse(csharp) Root is nil", idx)
+					return
+				}
+				imports, _ := parser.ExtractImports(tree, "csharp")
+				if len(imports) < 2 {
+					t.Errorf("goroutine %d: csharp imports = %d, want >=2",
+						idx, len(imports))
+				}
+				funcs, _ := parser.ExtractFunctions(tree)
+				if len(funcs) == 0 {
+					t.Errorf("goroutine %d: csharp functions = 0, expected at least Greet", idx)
+				}
+				classes, _ := parser.ExtractClasses(tree)
+				if len(classes) < 2 {
+					t.Errorf("goroutine %d: csharp classes = %d, want >=2",
+						idx, len(classes))
+				}
+			} else {
+				// Regex fallback path
+				if tree.Fidelity != FidelityRegexFallback {
+					t.Errorf("goroutine %d: Parse(csharp) Fidelity = %q, want %q",
+						idx, tree.Fidelity, FidelityRegexFallback)
+				}
+				if tree.Parsed == nil {
+					t.Errorf("goroutine %d: Parse(csharp) Parsed is nil", idx)
+					return
+				}
+				if len(tree.Parsed.Imports) != 2 {
+					t.Errorf("goroutine %d: csharp imports = %d, want 2",
+						idx, len(tree.Parsed.Imports))
+				}
+				if len(tree.Parsed.Functions) == 0 {
+					t.Errorf("goroutine %d: csharp functions = 0, expected at least Greet", idx)
+				}
+				if len(tree.Parsed.Classes) != 2 {
+					t.Errorf("goroutine %d: csharp classes = %d, want 2",
+						idx, len(tree.Parsed.Classes))
+				}
 			}
 		}(i)
 	}

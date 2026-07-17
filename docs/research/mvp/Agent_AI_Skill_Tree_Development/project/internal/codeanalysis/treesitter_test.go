@@ -257,19 +257,24 @@ func TestParse_FidelityIsSet(t *testing.T) {
 		t.Fatalf("NewTreeSitterParser: %v", err)
 	}
 
-	// All languages with compiled patterns should set Fidelity to
-	// FidelityRegexFallback (native=cgo path not available in non-CGO build).
+	// When CGO is available, languages with native grammars return FidelityNative;
+	// otherwise all return FidelityRegexFallback.
+	nativeLangs := map[string]bool{
+		"go": true, "python": true, "java": true,
+		"javascript": true, "c": true, "cpp": true,
+		"rust": true, "csharp": true,
+	}
+
 	langs := []struct {
-		name    string
-		source  string
-		fid     Fidelity
+		name   string
+		source string
 	}{
-		{"go", "package main\nfunc main() {}", FidelityRegexFallback},
-		{"python", "def hello(): pass", FidelityRegexFallback},
-		{"java", "class Hello {}", FidelityRegexFallback},
-		{"javascript", "function hello() {}", FidelityRegexFallback},
-		{"kotlin", "fun hello() {}", FidelityRegexFallback},
-		{"csharp", "class Hello {}", FidelityRegexFallback},
+		{"go", "package main\nfunc main() {}"},
+		{"python", "def hello(): pass"},
+		{"java", "class Hello {}"},
+		{"javascript", "function hello() {}"},
+		{"kotlin", "fun hello() {}"},
+		{"csharp", "class Hello {}"},
 	}
 
 	for _, tt := range langs {
@@ -277,8 +282,15 @@ func TestParse_FidelityIsSet(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Parse(%s): unexpected error: %v", tt.name, err)
 		}
-		if tree.Fidelity != tt.fid {
-			t.Errorf("Parse(%s).Fidelity = %q, want %q (test #4 RED — fidelity must not be blank)", tt.name, tree.Fidelity, tt.fid)
+
+		// Determine expected fidelity
+		expectedFid := FidelityRegexFallback
+		if cgoAvailable && nativeLangs[tt.name] {
+			expectedFid = FidelityNative
+		}
+
+		if tree.Fidelity != expectedFid {
+			t.Errorf("Parse(%s).Fidelity = %q, want %q (test #4 RED — fidelity must not be blank)", tt.name, tree.Fidelity, expectedFid)
 		}
 	}
 }
@@ -364,18 +376,52 @@ func TestExtract_CSharp_RealFixture_GroundTruth(t *testing.T) {
 		t.Fatalf("Parse(csharp) via pipeline: %v", err)
 	}
 
-	if tree.Fidelity != FidelityRegexFallback {
-		t.Errorf("Fidelity: want %q, got %q", FidelityRegexFallback, tree.Fidelity)
+	// When CGO is available, csharp uses the native parser.
+	expectedFid := FidelityRegexFallback
+	if cgoAvailable {
+		expectedFid = FidelityNative
+	}
+	if tree.Fidelity != expectedFid {
+		t.Errorf("Fidelity: want %q, got %q", expectedFid, tree.Fidelity)
 	}
 
-	if len(tree.Parsed.Imports) != 2 {
-		t.Errorf("imports: want 2, got %d", len(tree.Parsed.Imports))
-	}
-	if len(tree.Parsed.Functions) == 0 {
-		t.Errorf("csharp functions: expected at least Greet, got none")
-	}
-	if len(tree.Parsed.Classes) != 2 {
-		t.Errorf("classes: want 2, got %d", len(tree.Parsed.Classes))
+	if tree.Fidelity == FidelityRegexFallback {
+		// Regex path: check Parsed field
+		if len(tree.Parsed.Imports) != 2 {
+			t.Errorf("imports: want 2, got %d", len(tree.Parsed.Imports))
+		}
+		if len(tree.Parsed.Functions) == 0 {
+			t.Errorf("csharp functions: expected at least Greet, got none")
+		}
+		if len(tree.Parsed.Classes) != 2 {
+			t.Errorf("classes: want 2, got %d", len(tree.Parsed.Classes))
+		}
+	} else {
+		// Native path: use ExtractImports/ExtractFunctions/ExtractClasses
+		if tree.Root == nil {
+			t.Fatal("native path: expected non-nil Root")
+		}
+		imports, err := parser.ExtractImports(tree, "csharp")
+		if err != nil {
+			t.Fatalf("ExtractImports: %v", err)
+		}
+		if len(imports) < 2 {
+			t.Errorf("imports: want >=2, got %d", len(imports))
+		}
+		funcs, err := parser.ExtractFunctions(tree)
+		if err != nil {
+			t.Fatalf("ExtractFunctions: %v", err)
+		}
+		if len(funcs) == 0 {
+			t.Errorf("csharp functions: expected at least Greet, got none")
+		}
+		classes, err := parser.ExtractClasses(tree)
+		if err != nil {
+			t.Fatalf("ExtractClasses: %v", err)
+		}
+		if len(classes) < 2 {
+			t.Errorf("classes: want >=2, got %d", len(classes))
+		}
 	}
 }
 
@@ -432,14 +478,10 @@ func TestFuzz_MalformedSource_NoPanic(t *testing.T) {
 // hand-verified ground truth. In non-CGO builds (the common case) it is
 // skipped with a clear reason.
 func TestNativePath_ParsesGoFile(t *testing.T) {
-	if !cgoEnabled() {
+	if !cgoAvailable {
 		t.Skip("CGO not available in this build; native tree-sitter path cannot be exercised (test #6 SKIP-with-reason)")
 	}
 
-	// CGO build — the stub placeholder in treesitter.go still returns an
-	// error even with CGO enabled until the real tree-sitter grammars are
-	// vendored (G12 §2.2). This test documents that gap and will flip from
-	// expected-error to expected-success once the grammars land.
 	parser, err := NewTreeSitterParser()
 	if err != nil {
 		t.Fatalf("NewTreeSitterParser: %v", err)
@@ -452,30 +494,36 @@ func main() { println("hello") }`)
 
 	tree, err := parser.Parse(source, "go")
 	if err != nil {
-		// With CGO enabled but no vendored grammars, this still returns an
-		// error via the placeholder stub. Accept that as SKIP-with-reason.
-		t.Skipf("Native parser not yet wired for CGO build (grammars not vendored): %v", err)
+		t.Fatalf("Parse(go) native: %v", err)
 	}
 
-	// Once grammars are vendored, the assertion below must hold:
 	if tree.Fidelity != FidelityNative {
 		t.Errorf("CGO build: expected FidelityNative, got %q", tree.Fidelity)
 	}
-}
 
-// cgoEnabled is a compile-time check. When the build has CGO_ENABLED=1 AND
-// a working C toolchain, the `cgo` build tag is active. This function is
-// the runtime signal: true only when the real tree-sitter path was compiled
-// in (build tag `cgo` present in treesitter_native.go, absent from
-// treesitter_native_stub.go).
-//
-// For now, before the G12 §2.1/§2.2 CGO files are created, this always
-// returns false. Students of the design: when you create
-// treesitter_native.go (//go:build cgo) and treesitter_native_stub.go
-// (//go:build !cgo), replace the body below with a function that
-// distinguishes them — e.g. a package-level var set by init() in each file.
-func cgoEnabled() bool {
-	return false
+	if tree.Root == nil {
+		t.Fatal("CGO build: expected non-nil Root from native parser")
+	}
+
+	// Verify imports were extracted via the extraction API
+	imports, err := parser.ExtractImports(tree, "go")
+	if err != nil {
+		t.Fatalf("ExtractImports: %v", err)
+	}
+	if len(imports) != 1 {
+		t.Errorf("CGO build: expected 1 import, got %d", len(imports))
+	}
+
+	// Verify function was extracted
+	funcs, err := parser.ExtractFunctions(tree)
+	if err != nil {
+		t.Fatalf("ExtractFunctions: %v", err)
+	}
+	if len(funcs) != 1 {
+		t.Errorf("CGO build: expected 1 function, got %d", len(funcs))
+	} else if funcs[0].Name != "main" {
+		t.Errorf("CGO build: expected function 'main', got %q", funcs[0].Name)
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -536,13 +584,17 @@ func TestNewTreeSitterParser_InitialisesKotlinAndCSharp(t *testing.T) {
 		t.Errorf("Fidelity: want %q, got %q", FidelityRegexFallback, tree.Fidelity)
 	}
 
-	// Parse csharp — should succeed via on-the-fly newRegexParser
+	// Parse csharp — should succeed (native when CGO available, regex otherwise)
 	tree, err = parser.Parse([]byte("class Hello {}"), "csharp")
 	if err != nil {
-		t.Fatalf("Parse(csharp) on-the-fly: %v", err)
+		t.Fatalf("Parse(csharp): %v", err)
 	}
-	if tree.Fidelity != FidelityRegexFallback {
-		t.Errorf("Fidelity: want %q, got %q", FidelityRegexFallback, tree.Fidelity)
+	expectedCSharpFid := FidelityRegexFallback
+	if cgoAvailable {
+		expectedCSharpFid = FidelityNative
+	}
+	if tree.Fidelity != expectedCSharpFid {
+		t.Errorf("Fidelity: want %q, got %q", expectedCSharpFid, tree.Fidelity)
 	}
 }
 
