@@ -842,23 +842,29 @@ func (s *Store) Create(ctx context.Context, skill *models.Skill) error {
 		return fmt.Errorf("create skill: %w", err)
 	}
 
-	// Insert dependencies. ON CONFLICT targets the widened
-	// (skill_id, depends_on, relation_type) primary key introduced by
+	// Insert dependencies in a SINGLE round-trip using a multi-row VALUES
+	// clause. ON CONFLICT targets the widened (skill_id, depends_on,
+	// relation_type) primary key introduced by
 	// migrations/002_granularity.up.sql — a pair may now carry more than one
 	// typed edge (e.g. both `requires` and `recommends`), so the old
 	// (skill_id, depends_on) conflict target no longer matches any unique
 	// index (research/p1t1_granularity_schema_migration.md §2 L3).
-	for _, dep := range skill.Dependencies {
-		depSQL := `
-			INSERT INTO skill_dependencies (skill_id, depends_on, relation_type, optional, sort_order)
-			VALUES ($1, $2, $3, $4, $5)
-			ON CONFLICT (skill_id, depends_on, relation_type) DO UPDATE SET
-				optional = EXCLUDED.optional,
-				sort_order = EXCLUDED.sort_order
-		`
-		_, err := s.pool.Exec(ctx, depSQL, returnedID, dep.DependsOn, dep.RelationType, dep.Optional, dep.SortOrder)
-		if err != nil {
-			return fmt.Errorf("create dependency: %w", err)
+	if len(skill.Dependencies) > 0 {
+		args := make([]interface{}, 0, 1+len(skill.Dependencies)*4)
+		args = append(args, returnedID)
+		var buf strings.Builder
+		buf.WriteString(`INSERT INTO skill_dependencies (skill_id, depends_on, relation_type, optional, sort_order) VALUES `)
+		for i, dep := range skill.Dependencies {
+			if i > 0 {
+				buf.WriteByte(',')
+			}
+			base := 1 + i*4
+			fmt.Fprintf(&buf, "($1,$%d,$%d,$%d,$%d)", base+1, base+2, base+3, base+4)
+			args = append(args, dep.DependsOn, string(dep.RelationType), dep.Optional, dep.SortOrder)
+		}
+		buf.WriteString(` ON CONFLICT (skill_id, depends_on, relation_type) DO UPDATE SET optional = EXCLUDED.optional, sort_order = EXCLUDED.sort_order`)
+		if _, err := s.pool.Exec(ctx, buf.String(), args...); err != nil {
+			return fmt.Errorf("create dependencies: %w", err)
 		}
 	}
 
@@ -1173,39 +1179,60 @@ func (s *Store) CreateFromTOML(ctx context.Context, wrapper *models.TOMLSkillWra
 		Kind:        models.SkillKind(wrapper.Skill.Kind).NormalizeOrAtomic(),
 	}
 
-	// Resolve dependencies
-	for _, depName := range wrapper.Skill.Dependencies.Requires {
-		depID, err := s.resolveSkillID(ctx, depName)
+	// Resolve dependencies in a SINGLE batch query instead of N individual
+	// lookups (performance: eliminates N+1 round-trips for dependency
+	// resolution).
+	depNames := append(
+		append(
+			append([]string{}, wrapper.Skill.Dependencies.Requires...),
+			wrapper.Skill.Dependencies.Extends...),
+		wrapper.Skill.Dependencies.Recommends...)
+	if len(depNames) > 0 {
+		depNameToID := make(map[string]uuid.UUID, len(depNames))
+		rows, err := s.pool.Query(ctx, `SELECT id, name FROM skills WHERE name = ANY($1)`, depNames)
 		if err != nil {
-			return nil, fmt.Errorf("resolve dependency %q: %w", depName, err)
+			return nil, fmt.Errorf("batch resolve dependency names: %w", err)
 		}
-		skill.Dependencies = append(skill.Dependencies, models.SkillDependency{
-			SkillID:      skill.ID,
-			DependsOn:    depID,
-			RelationType: models.DepTypeRequires,
-		})
-	}
-	for _, depName := range wrapper.Skill.Dependencies.Extends {
-		depID, err := s.resolveSkillID(ctx, depName)
-		if err != nil {
-			return nil, fmt.Errorf("resolve dependency %q: %w", depName, err)
+		for rows.Next() {
+			var id uuid.UUID
+			var name string
+			if err := rows.Scan(&id, &name); err != nil {
+				rows.Close()
+				return nil, fmt.Errorf("scan resolved dep: %w", err)
+			}
+			depNameToID[name] = id
 		}
-		skill.Dependencies = append(skill.Dependencies, models.SkillDependency{
-			SkillID:      skill.ID,
-			DependsOn:    depID,
-			RelationType: models.DepTypeExtends,
-		})
-	}
-	for _, depName := range wrapper.Skill.Dependencies.Recommends {
-		depID, err := s.resolveSkillID(ctx, depName)
-		if err != nil {
-			return nil, fmt.Errorf("resolve dependency %q: %w", depName, err)
+		rows.Close()
+		if err := rows.Err(); err != nil {
+			return nil, fmt.Errorf("iterate resolved deps: %w", err)
 		}
-		skill.Dependencies = append(skill.Dependencies, models.SkillDependency{
-			SkillID:      skill.ID,
-			DependsOn:    depID,
-			RelationType: models.DepTypeRecommends,
-		})
+		for _, depName := range wrapper.Skill.Dependencies.Requires {
+			depID, ok := depNameToID[depName]
+			if !ok {
+				return nil, fmt.Errorf("resolve dependency %q: skill not found", depName)
+			}
+			skill.Dependencies = append(skill.Dependencies, models.SkillDependency{
+				SkillID: skill.ID, DependsOn: depID, RelationType: models.DepTypeRequires,
+			})
+		}
+		for _, depName := range wrapper.Skill.Dependencies.Extends {
+			depID, ok := depNameToID[depName]
+			if !ok {
+				return nil, fmt.Errorf("resolve dependency %q: skill not found", depName)
+			}
+			skill.Dependencies = append(skill.Dependencies, models.SkillDependency{
+				SkillID: skill.ID, DependsOn: depID, RelationType: models.DepTypeExtends,
+			})
+		}
+		for _, depName := range wrapper.Skill.Dependencies.Recommends {
+			depID, ok := depNameToID[depName]
+			if !ok {
+				return nil, fmt.Errorf("resolve dependency %q: skill not found", depName)
+			}
+			skill.Dependencies = append(skill.Dependencies, models.SkillDependency{
+				SkillID: skill.ID, DependsOn: depID, RelationType: models.DepTypeRecommends,
+			})
+		}
 	}
 
 	// Add resources
@@ -1278,78 +1305,29 @@ func (s *Store) GetMissingSkills(ctx context.Context, domain string) ([]models.S
 }
 
 // GetCoverage returns coverage statistics for a domain.
+// Consolidated into a SINGLE query using conditional aggregation instead of
+// 5 separate COUNT round-trips (performance: eliminates N+1 at the query level).
 func (s *Store) GetCoverage(ctx context.Context, domain string) (map[string]interface{}, error) {
-	// Count total skills
-	var total int
-	totalSQL := "SELECT COUNT(*) FROM skills"
-	var totalArgs []interface{}
-	if domain != "" {
-		totalSQL += " WHERE metadata->>'domain' = $1"
-		totalArgs = append(totalArgs, domain)
-	}
-	if err := s.pool.QueryRow(ctx, totalSQL, totalArgs...).Scan(&total); err != nil {
-		return nil, fmt.Errorf("count skills: %w", err)
-	}
-
-	// Count with dependencies
-	var withDeps int
-	depSQL := `
-		SELECT COUNT(DISTINCT s.id) FROM skills s
-		WHERE EXISTS (SELECT 1 FROM skill_dependencies sd WHERE sd.skill_id = s.id)
-	`
-	var depArgs []interface{}
-	if domain != "" {
-		depSQL += " AND s.metadata->>'domain' = $1"
-		depArgs = append(depArgs, domain)
-	}
-	if err := s.pool.QueryRow(ctx, depSQL, depArgs...).Scan(&withDeps); err != nil {
-		return nil, fmt.Errorf("count with deps: %w", err)
-	}
-
-	// Count with evidence
-	var withEvidence int
-	evSQL := `
-		SELECT COUNT(DISTINCT s.id) FROM skills s
-		WHERE EXISTS (SELECT 1 FROM evidences e WHERE e.skill_id = s.id)
-	`
-	var evArgs []interface{}
-	if domain != "" {
-		evSQL += " AND s.metadata->>'domain' = $1"
-		evArgs = append(evArgs, domain)
-	}
-	if err := s.pool.QueryRow(ctx, evSQL, evArgs...).Scan(&withEvidence); err != nil {
-		return nil, fmt.Errorf("count with evidence: %w", err)
-	}
-
-	// Average coverage from registry
+	var total, withDeps, withEvidence, missingCount int
 	var avgCoverage float64
-	covSQL := `
-		SELECT COALESCE(AVG(sr.coverage), 0.0) FROM skill_registry sr
-		JOIN skills s ON sr.skill_id = s.id
-	`
-	var covArgs []interface{}
-	if domain != "" {
-		covSQL += " WHERE s.metadata->>'domain' = $1"
-		covArgs = append(covArgs, domain)
-	}
-	if err := s.pool.QueryRow(ctx, covSQL, covArgs...).Scan(&avgCoverage); err != nil {
-		return nil, fmt.Errorf("avg coverage: %w", err)
-	}
 
-	// Count missing dependencies
-	var missingCount int
-	missSQL := `
-		SELECT COUNT(*) FROM skill_registry sr
-		JOIN skills s ON sr.skill_id = s.id
-		WHERE array_length(sr.missing_deps, 1) > 0
-	`
-	var missArgs []interface{}
-	if domain != "" {
-		missSQL += " AND s.metadata->>'domain' = $1"
-		missArgs = append(missArgs, domain)
-	}
-	if err := s.pool.QueryRow(ctx, missSQL, missArgs...).Scan(&missingCount); err != nil {
-		return nil, fmt.Errorf("count missing: %w", err)
+	err := s.pool.QueryRow(ctx, `
+		SELECT
+			COUNT(*) AS total,
+			COUNT(*) FILTER (WHERE EXISTS (
+				SELECT 1 FROM skill_dependencies sd WHERE sd.skill_id = s.id
+			)) AS with_deps,
+			COUNT(*) FILTER (WHERE EXISTS (
+				SELECT 1 FROM evidences e WHERE e.skill_id = s.id
+			)) AS with_evidence,
+			COALESCE(AVG(sr.coverage), 0.0) AS avg_coverage,
+			COUNT(*) FILTER (WHERE array_length(sr.missing_deps, 1) > 0) AS missing_count
+		FROM skills s
+		LEFT JOIN skill_registry sr ON sr.skill_id = s.id
+		WHERE ($1 = '' OR s.metadata->>'domain' = $1)
+	`, domain).Scan(&total, &withDeps, &withEvidence, &avgCoverage, &missingCount)
+	if err != nil {
+		return nil, fmt.Errorf("coverage stats: %w", err)
 	}
 
 	coverage := 0.0
