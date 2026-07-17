@@ -1,0 +1,35 @@
+# catalog-engine taxonomy — helix_skills PROJECT INJECTION (§11.4.28).
+# Lightweight taxonomy for a constitution/skills project (no hardware clusters).
+
+clusters:
+  - governance
+  - action_prefix
+  - token_efficiency
+  - testing
+  - hooks
+  - meta-test-mutation
+
+keyword_cluster:
+  constitution: governance
+  inheritance: governance
+  propagation: governance
+  covenant: governance
+  governance: governance
+  action_prefix: action_prefix
+  prefix: action_prefix
+  grammar: action_prefix
+  subsystem: action_prefix
+  token_efficiency: token_efficiency
+  token: token_efficiency
+  cache: token_efficiency
+  testing: testing
+  pre_build: testing
+  meta_test: testing
+  hook: hooks
+  guard: hooks
+  pretooluse: hooks
+  branch_consistency: hooks
+  track_branch: hooks
+  work_track: hooks
+  mutation: meta-test-mutation
+  cm_: meta-test-mutation
