@@ -9,7 +9,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"go.uber.org/zap"
 )
 
 // Build-time variables (injected via ldflags).
@@ -64,58 +63,6 @@ type VersionResponse struct {
 	Platform  string `json:"platform" toml:"platform"`
 }
 
-// handleHealth returns the health status of the API server and its dependencies.
-//
-//	GET /health
-//
-// NOTE (§G24): this is the DEAD *Server health path — it is NOT wired onto
-// the LIVE router (cmd/server/main.go's buildRouter registers /health with
-// its own inline handler via newHealthHandler, body-shape and all). This
-// method also embeds the raw pool.Ping error string (including any
-// connection-detail-bearing pgx/pgxpool text) into checks["database"] below,
-// the same class of leak fixed on the LIVE /health handler for finding 3 of
-// the independent review. Unifying the two implementations (or applying the
-// same redaction here) is intentionally OUT OF SCOPE for this change and is
-// tracked as its own separate register item by the conductor — do not treat
-// this comment as evidence the leak here has been remediated.
-func (s *Server) handleHealth(c *gin.Context) {
-	ctx := c.Request.Context()
-	checks := make(map[string]string)
-
-	// Check database connectivity
-	dbStatus := "ok"
-	if err := s.pool.Ping(ctx); err != nil {
-		dbStatus = "error: " + err.Error()
-		zap.L().Warn("health check: database ping failed", zap.Error(err))
-	}
-	checks["database"] = dbStatus
-
-	// Overall status
-	status := "healthy"
-	if dbStatus != "ok" {
-		status = "degraded"
-	}
-
-	// Update system metrics
-	updateSystemMetrics()
-
-	response := HealthResponse{
-		Status:    status,
-		Timestamp: time.Now().UTC(),
-		Uptime:    time.Since(serverStartTime).Round(time.Second).String(),
-		Checks:    checks,
-		Version:   Version,
-	}
-
-	// Return 503 if degraded
-	if status != "healthy" {
-		NegotiateResponse(c, http.StatusServiceUnavailable, response)
-		return
-	}
-
-	NegotiateResponse(c, http.StatusOK, response)
-}
-
 // MetricsHandler returns a standalone Gin handler that serves the Prometheus
 // exposition, decoupled from *Server. The LIVE cmd/server router (buildRouter)
 // registers /metrics with THIS handler UNDER its fail-closed auth guard (§G24),
@@ -150,20 +97,6 @@ func VersionHandler() gin.HandlerFunc {
 
 		NegotiateResponse(c, http.StatusOK, response)
 	}
-}
-
-// handleMetrics returns the Prometheus metrics endpoint.
-//
-//	GET /metrics
-func (s *Server) handleMetrics() gin.HandlerFunc {
-	return MetricsHandler()
-}
-
-// handleVersion returns the API server version information.
-//
-//	GET /version
-func (s *Server) handleVersion(c *gin.Context) {
-	VersionHandler()(c)
 }
 
 // updateSystemMetrics updates Prometheus gauges for system metrics.
