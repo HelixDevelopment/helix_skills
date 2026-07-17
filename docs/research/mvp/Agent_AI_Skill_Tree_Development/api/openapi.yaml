@@ -16,7 +16,16 @@ info:
 
     ## Authentication
     Every endpoint requires the `X-API-Key` header (see the `ApiKeyAuth`
-    security scheme).
+    security scheme). Exception: `GET /health` is the unauthenticated
+    liveness probe (orchestrator/systemd health check).
+
+    ## Implementation status
+    Operations carry `x-implementation-status` indicating their wiring
+    state in `cmd/server/main.go`'s `buildRouter`:
+    - **live** — wired in `buildRouter`, the ONLY production route surface.
+    - **not-wired** — defined in `internal/api/server.go`'s
+      `RegisterHandlers` but NEVER called by `buildRouter`. These are
+      design-target routes awaiting implementation in the live router.
 
     ## Content negotiation
     This API negotiates **TOON** (Token-Oriented Object Notation,
@@ -60,6 +69,7 @@ paths:
     get:
       operationId: listSkills
       summary: List skills
+      x-implementation-status: live
       description: List skills with optional filters and pagination.
       tags: [Skills]
       parameters:
@@ -118,6 +128,7 @@ paths:
     post:
       operationId: createSkill
       summary: Create skill
+      x-implementation-status: not-wired
       description: |
         Create a new skill. Accepts a request body in TOON (`application/toon`,
         the default) or JSON (`application/json`). The canonical on-disk
@@ -207,6 +218,7 @@ paths:
     get:
       operationId: getSkill
       summary: Get skill by name
+      x-implementation-status: live
       description: Retrieve a single skill. Pass `recursive=true` to embed its full dependency tree.
       tags: [Skills]
       parameters:
@@ -264,6 +276,7 @@ paths:
     put:
       operationId: updateSkill
       summary: Update skill
+      x-implementation-status: not-wired
       description: Full update (replace) of an existing skill's editable fields.
       tags: [Skills]
       requestBody:
@@ -323,9 +336,40 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+    patch:
+      operationId: patchSkill
+      summary: Partially update skill
+      x-implementation-status: live
+      description: |
+        Partial update of an existing skill's editable fields. Unlike PUT,
+        only the provided fields are updated; omitted fields retain their
+        current values. Wired in `buildRouter` alongside PUT on the same
+        handler (`handleUpdateSkill`).
+      tags: [Skills]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SkillUpdateRequest'
+      responses:
+        '200':
+          description: Updated skill.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Skill'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
     delete:
       operationId: deleteSkill
       summary: Delete skill
+      x-implementation-status: not-wired
       description: Delete a skill. Cascades to its `skill_dependencies`, `resources` and `evidences` rows.
       tags: [Skills]
       responses:
@@ -336,10 +380,55 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /skills/search:
+    get:
+      operationId: searchSkillsViaGet
+      summary: Search skills (GET with query parameter)
+      x-implementation-status: live
+      description: |
+        Keyword search over skills via GET query parameter. This is the LIVE
+        route wired in `buildRouter` (inline closure). The spec also defines
+        `POST /search` for the richer hybrid vector+keyword search from
+        `RegisterHandlers`, which is not yet wired.
+      tags: [Search]
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Search query text.
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          description: Max results.
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Search results.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Skill'
+                  query:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   /skills/{name}/tree:
     get:
       operationId: getSkillTree
       summary: Get dependency tree
+      x-implementation-status: live
       description: Recursively resolve the dependency DAG rooted at the named skill.
       tags: [Skills]
       parameters:
@@ -403,6 +492,7 @@ paths:
     post:
       operationId: importSkills
       summary: Bulk import skill definitions
+      x-implementation-status: not-wired
       description: |
         Bulk import one or more skill definitions. Accepts skill definitions
         in TOON (`application/toon`, the default) or JSON (`application/json`)
@@ -462,6 +552,7 @@ paths:
     get:
       operationId: exportSkill
       summary: Export a skill
+      x-implementation-status: not-wired
       description: Export a skill together with its dependencies and resources. The export representation is TOON (`application/toon`, the default) or JSON (`application/json`).
       tags: [Skills]
       parameters:
@@ -486,6 +577,12 @@ paths:
     post:
       operationId: searchSkills
       summary: Hybrid vector + keyword search
+      x-implementation-status: not-wired
+      description: |
+        Hybrid vector + keyword search. NOT wired in `buildRouter`; the live
+        search route is `GET /skills/search?q=` (simpler keyword-only).
+        This POST endpoint with full vector+keyword body is defined in
+        `RegisterHandlers` (`handleSearch`) but never mounted in production.
       tags: [Search]
       requestBody:
         required: true
@@ -532,6 +629,7 @@ paths:
     post:
       operationId: searchSimilarSkills
       summary: Find skills similar to given content
+      x-implementation-status: not-wired
       tags: [Search]
       requestBody:
         required: true
@@ -566,6 +664,7 @@ paths:
     get:
       operationId: getRegistry
       summary: Full registry with health status
+      x-implementation-status: not-wired
       tags: [Registry]
       parameters:
         - $ref: '#/components/parameters/LimitParam'
@@ -605,6 +704,11 @@ paths:
     get:
       operationId: getMissingDependencies
       summary: List all missing dependencies
+      x-implementation-status: not-wired
+      description: |
+        NOT wired in `buildRouter`. The live missing-deps route is
+        `GET /missing?domain=` (at `/api/v1/missing`), which is a flat
+        endpoint without the `/registry/` prefix.
       tags: [Registry]
       responses:
         '200':
@@ -629,6 +733,7 @@ paths:
     get:
       operationId: getStaleSkills
       summary: List stale skills
+      x-implementation-status: not-wired
       tags: [Registry]
       responses:
         '200':
@@ -647,6 +752,7 @@ paths:
     post:
       operationId: triggerRegistryReview
       summary: Trigger manual review of a skill
+      x-implementation-status: not-wired
       tags: [Registry]
       parameters:
         - $ref: '#/components/parameters/SkillNamePath'
@@ -683,6 +789,12 @@ paths:
     get:
       operationId: getCoverageReport
       summary: Coverage report
+      x-implementation-status: not-wired
+      description: |
+        NOT wired in `buildRouter` at this path. The live coverage route is
+        `GET /coverage?domain=` (at `/api/v1/coverage`), which delegates to
+        `registry.GetCoverageReport`. This `/registry/coverage` path is
+        defined in `RegisterHandlers` but never mounted.
       tags: [Registry]
       parameters:
         - $ref: '#/components/parameters/DomainFilter'
@@ -710,10 +822,64 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+  /coverage:
+    get:
+      operationId: getCoverageReportLive
+      summary: Coverage report (live route)
+      x-implementation-status: live
+      description: |
+        Domain-scoped coverage report. This is the LIVE route wired in
+        `buildRouter` at `/api/v1/coverage`, delegating to
+        `registry.GetCoverageReport`. The spec's `/registry/coverage` is the
+        `RegisterHandlers` version (not yet wired).
+      tags: [Registry]
+      parameters:
+        - $ref: '#/components/parameters/DomainFilter'
+      responses:
+        '200':
+          description: Coverage aggregated overall and per domain.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CoverageReport'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /missing:
+    get:
+      operationId: getMissingSkillsLive
+      summary: Missing skills report (live route)
+      x-implementation-status: live
+      description: |
+        Skills missing from the graph. This is the LIVE route wired in
+        `buildRouter` at `/api/v1/missing`, delegating to
+        `store.GetMissingSkills`. The spec's `/registry/missing` is the
+        `RegisterHandlers` version (not yet wired).
+      tags: [Registry]
+      parameters:
+        - $ref: '#/components/parameters/DomainFilter'
+      responses:
+        '200':
+          description: Missing skills.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  missing_skills:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Skill'
+                  count:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   /expand/{name}:
     post:
       operationId: triggerExpansion
       summary: Trigger auto-expansion for a skill
+      x-implementation-status: not-wired
       description: Enqueues the auto-growth pipeline (`internal/autoexpand`) for the named skill.
       tags: [Auto-Expand]
       parameters:
@@ -765,6 +931,7 @@ paths:
     get:
       operationId: getExpansionStatus
       summary: Check expansion job status
+      x-implementation-status: not-wired
       tags: [Auto-Expand]
       parameters:
         - $ref: '#/components/parameters/JobIdPath'
@@ -797,6 +964,7 @@ paths:
     post:
       operationId: generateGapReport
       summary: Generate gap analysis report
+      x-implementation-status: not-wired
       tags: [Auto-Expand]
       requestBody:
         required: false
@@ -837,6 +1005,7 @@ paths:
     post:
       operationId: submitProjectForLearning
       summary: Submit project path for analysis
+      x-implementation-status: not-wired
       description: Enqueues tree-sitter based code analysis (`internal/codeanalysis`) over the given project path.
       tags: [Learning]
       requestBody:
@@ -886,6 +1055,7 @@ paths:
     get:
       operationId: getLearnStatus
       summary: Check analysis job status
+      x-implementation-status: not-wired
       tags: [Learning]
       parameters:
         - $ref: '#/components/parameters/JobIdPath'
@@ -917,6 +1087,7 @@ paths:
     get:
       operationId: getEvidenceForSkill
       summary: Get evidence for a skill
+      x-implementation-status: not-wired
       tags: [Learning]
       parameters:
         - name: skill_name
@@ -959,6 +1130,7 @@ paths:
     get:
       operationId: getHealth
       summary: Health check
+      x-implementation-status: live
       tags: [System]
       # §G24: /health is the UNAUTHENTICATED liveness probe — an orchestrator /
       # systemd health check MUST reach it without an API key. This per-operation
@@ -1005,6 +1177,7 @@ paths:
     get:
       operationId: getMetrics
       summary: Prometheus metrics
+      x-implementation-status: live
       tags: [System]
       # §G24 finding 4: the example below MUST name a metric the live exposition
       # actually emits. internal/api/system_handler.go registers three real
@@ -1031,6 +1204,7 @@ paths:
     get:
       operationId: getVersion
       summary: Version info
+      x-implementation-status: live
       tags: [System]
       responses:
         '200':
