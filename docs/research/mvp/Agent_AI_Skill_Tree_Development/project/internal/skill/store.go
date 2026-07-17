@@ -1451,6 +1451,57 @@ func (s *Store) VectorSearch(ctx context.Context, embedding []float32, limit int
 	return results, nil
 }
 
+// UpdateStatus changes the status of a skill by ID. Returns ErrSkillNotFound
+// when the skill does not exist. The updated_at timestamp is refreshed
+// automatically. An audit log entry is recorded for the status change.
+//
+// §G03 Validation pipeline promotion: used by the validation worker cycle to
+// promote skills from draft → validated → active after passing all stages.
+func (s *Store) UpdateStatus(ctx context.Context, skillID uuid.UUID, newStatus models.SkillStatus) error {
+	return s.pool.WithTx(ctx, func(tx pgx.Tx) error {
+		// Fetch current status for the audit log.
+		var oldStatus models.SkillStatus
+		err := tx.QueryRow(ctx,
+			`SELECT status FROM skills WHERE id = $1 FOR UPDATE`,
+			skillID,
+		).Scan(&oldStatus)
+		if err != nil {
+			if err == pgx.ErrNoRows {
+				return fmt.Errorf("%w: %s", ErrSkillNotFound, skillID)
+			}
+			return fmt.Errorf("fetch current status: %w", err)
+		}
+
+		// Update status + timestamp.
+		tag, err := tx.Exec(ctx,
+			`UPDATE skills SET status = $1, updated_at = NOW() WHERE id = $2`,
+			newStatus, skillID,
+		)
+		if err != nil {
+			return fmt.Errorf("update status: %w", err)
+		}
+		if tag.RowsAffected() == 0 {
+			return fmt.Errorf("%w: %s", ErrSkillNotFound, skillID)
+		}
+
+		// Audit log.
+		if err := s.logAudit(ctx, tx, "status_change", &skillID, map[string]interface{}{
+			"old_status": string(oldStatus),
+			"new_status": string(newStatus),
+		}); err != nil {
+			return fmt.Errorf("audit log: %w", err)
+		}
+
+		s.logger.Info("skill status updated",
+			zap.String("skill_id", skillID.String()),
+			zap.String("old_status", string(oldStatus)),
+			zap.String("new_status", string(newStatus)),
+		)
+
+		return nil
+	})
+}
+
 // ListSkills returns all skills with optional filtering.
 func (s *Store) ListSkills(ctx context.Context, status models.SkillStatus, limit, offset int) ([]models.Skill, error) {
 	sql := `

@@ -845,6 +845,11 @@ func (r *Runner) runAutoExpandCycle(ctx context.Context) {
 		zap.Int("max_per_run", r.cfg.AutoExpand.MaxNewSkillsPerRun),
 	)
 
+	if r.autoexpand == nil {
+		r.logger.Warn("auto-expand: pipeline not configured, skipping cycle")
+		return
+	}
+
 	processed := 0
 	for _, entry := range entries {
 		if processed >= r.cfg.AutoExpand.MaxNewSkillsPerRun {
@@ -864,6 +869,27 @@ func (r *Runner) runAutoExpandCycle(ctx context.Context) {
 		r.logger.Info("auto-expand: processing skill",
 			zap.String("skill", entry.SkillName),
 			zap.Strings("missing_deps", entry.MissingDeps),
+		)
+
+		maxDepth := r.cfg.AutoExpand.MaxDepth
+		if maxDepth <= 0 {
+			maxDepth = 3
+		}
+
+		result, err := r.autoexpand.Run(ctx, entry.SkillName, maxDepth)
+		if err != nil {
+			r.logger.Error("auto-expand: expansion failed",
+				zap.String("skill", entry.SkillName),
+				zap.Error(err),
+			)
+			continue
+		}
+
+		r.logger.Info("auto-expand: expansion completed",
+			zap.String("skill", entry.SkillName),
+			zap.Int("skills_created", result.SkillsCreated),
+			zap.Int("skills_updated", result.SkillsUpdated),
+			zap.Strings("errors", result.Errors),
 		)
 
 		processed++
@@ -913,10 +939,17 @@ func (r *Runner) runValidationCycle(ctx context.Context) {
 				zap.String("skill", sk.Name),
 				zap.Int("jury_approvals", vResult.ApprovedBy),
 			)
-			// TODO: Promote skill to validated/active status.
-			// This requires a store.UpdateStatus method, which does not yet
-			// exist on *skill.Store. Current scope (G03) wires the validation
-			// call; the promotion step is tracked as a follow-up.
+			// Promote skill to active status after passing all validation stages.
+			if err := r.store.UpdateStatus(ctx, sk.ID, models.SkillStatusActive); err != nil {
+				r.logger.Error("validation: failed to promote skill",
+					zap.String("skill", sk.Name),
+					zap.Error(err),
+				)
+			} else {
+				r.logger.Info("validation: skill promoted to active",
+					zap.String("skill", sk.Name),
+				)
+			}
 		} else {
 			r.logger.Warn("validation: skill failed validation",
 				zap.String("skill", sk.Name),

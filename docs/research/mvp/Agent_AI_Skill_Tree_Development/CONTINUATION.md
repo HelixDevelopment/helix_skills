@@ -1,7 +1,7 @@
 # CONTINUATION — HelixKnowledge Skill Graph System (MVP)
 
-**Revision:** 10
-**Last modified:** 2026-07-17T18:00:00Z
+**Revision:** 11
+**Last modified:** 2026-07-17T22:30:00Z
 **Purpose:** §12.10 / §11.4.131 standing session-resumption file. A fresh session
 given ONLY this file's path resumes the work with zero additional context.
 Keep in sync on every material state change.
@@ -19,6 +19,18 @@ Read this file + `REQUIREMENTS.md` + `IMPLEMENTATION_PLAN.md` + `GAPS_AND_RISKS_
 correctness gaps from the R17 register) as a single serialized Go-mutator lane with a
 mandatory **§11.4.209 Fable-xhigh review before every commit**, keeping 2–3
 design-research streams one step ahead in parallel (3–4 total per operator mandate).
+
+## LATE-SESSION DELTA — Rev 11 (2026-07-17T22:30Z) — T2 deep-research branch RESTART
+
+- **Build/vet/test: ALL GREEN** — 27 Go packages pass (24 existing + 3 new test files). `go build ./...`=0, `go vet ./...`=0, `go test ./...`=0.
+- **Enterprise tests LANDED** — new test files for tenant middleware and tenant store:
+  - `internal/api/tenant_test.go`: 14 tests covering context helpers, Gin context helpers, middleware resolution order (invalid UUID, required/not-required, default tenant), API key mapping, pool-in-context bridge, struct fields, concurrent access, chaos (nil/wrong-type in context).
+  - `internal/skill/tenant_store_test.go`: 7 tests covering context helpers (UUID, pointer, nil pointer, empty, wrong type), construction, ListOpts, concurrent access, chaos (zero UUID).
+- **G03 validation pipeline FULLY WIRED** — three fixes landed:
+  1. `store.UpdateStatus` method added — transactional status change with audit log, used by validation worker to promote skills draft → active after passing all stages.
+  2. `runValidationCycle` now promotes validated skills via `store.UpdateStatus` (was TODO, now wired).
+  3. `runAutoExpandCycle` now dispatches through `r.autoexpand.Run()` for each gap (was log-only, now wired end-to-end).
+- **G03 status update**: validation pipeline wiring is now COMPLETE — both the job-queue path (handleValidate) and the ticker cycle (runValidationCycle) dispatch through the real validation.Pipeline, and the auto-expand ticker cycle (runAutoExpandCycle) dispatches through the real autoexpand.Pipeline. The only remaining G03 item is the `internal/validation` package's own internal gaps (tracked separately).
 
 ## LATE-SESSION DELTA — Rev 10 (2026-07-17T18:00Z) — T3 testing-infra branch RESTART
 
