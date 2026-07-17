@@ -1985,21 +1985,19 @@ default rootless (podman).</li>
 SQLite workable_items.db single-source-of-truth</h3>
 <ul>
 <li><strong>Type:</strong> Task. <strong>Severity:</strong> HIGH.
-<strong>Status:</strong> FILED; adoption plan FINALIZED
-(<code>research/g40_adoption_plan_FINAL.md</code>); design doc at
-<code>research/g40_workable_items_db_adoption_design.md</code>; Phase 1
-READY (awaiting G47 operator decision or proceed-on-default).
-Recommended path: Option (a) — literal Gxx/Rxx as atm_id, zero schema
-change.</li>
-<li><strong>Evidence:</strong> 49 findings (G01–G49) tracked in this
-markdown register instead. The constitution’s own Go workable-items
-engine (<code>constitution/scripts/workable-items/</code>) exists,
-builds cleanly, and is unused → adoption-only. Engine schema version
-<code>'6'</code> (<code>schema_embed.sql</code>);
-<code>add --id &lt;id&gt;</code> accepts arbitrary TEXT for
-<code>atm_id</code> (no format CHECK). Coupled: G45 (closed-vocabulary
-not applied) resolved by Phase 1 import; G47 (id scheme tension)
-resolved by Option (a) recommendation (operator decision PENDING).</li>
+<strong>Status:</strong> IN PROGRESS — Phase 1+2+3 DONE, Phase 4+5
+PENDING.</li>
+<li><strong>Evidence:</strong> <code>docs/workable_items.db</code>
+created with 115 items (90 G + 25 R). Phase 1: G01-G49 imported (18
+Fixed, 70 Queued, 1 In progress, 1 Operator-blocked). Phase 2: R01-R25
+imported (all Queued). Phase 3: bidirectional round-trip proven —
+<code>db-to-md</code> exports 115 items with dot-format headings,
+<code>md-to-db</code> re-imports all 115, <code>validate</code> OK.
+Engine fix: <code>renderItemBody</code> uses dot separator for
+non-canonical IDs (Gxx, Rxx) so parser shape-1 regex matches on
+re-import. G45 (closed-vocabulary) resolved by import. G47 (id scheme)
+resolved by Option (a) — literal Gxx/Rxx as atm_id. Phase 4 (generators
+read from DB) + Phase 5 (deprecate direct markdown edits) pending.</li>
 <li><strong>Constitution references:</strong> §11.4.93, §11.4.95,
 §11.4.74, §11.4.28, §11.4.108, §11.4.6.</li>
 </ul>
@@ -2029,11 +2027,13 @@ G04). Lands per-package as the Go spine proceeds.</li>
 doc exports; Docs Chain unwired</h3>
 <ul>
 <li><strong>Type:</strong> Task. <strong>Severity:</strong> HIGH.
-<strong>Status:</strong> FILED; wire Docs Chain + export pipeline
-PENDING (R18/R10).</li>
-<li><strong>Evidence:</strong> zero <code>.html</code>/<code>.pdf</code>
-exports of any tracked doc; Docs Chain declared in
-<code>helix-deps.yaml</code> but never invoked.</li>
+<strong>Status:</strong> IN PROGRESS — export pipeline LANDED
+(2026-07-18); Docs Chain wiring PENDING.</li>
+<li><strong>Evidence:</strong> <code>scripts/export_docs.sh</code>
+generates HTML+PDF from 5 tracked docs via pandoc+weasyprint →
+<code>docs/exports/</code>. 10 files generated, 0 failures. Docs Chain
+declared in <code>helix-deps.yaml</code> but not yet invoked (separate
+follow-up).</li>
 <li><strong>Constitution references:</strong> §11.4.12, §11.4.65,
 §11.4.106.</li>
 </ul>
