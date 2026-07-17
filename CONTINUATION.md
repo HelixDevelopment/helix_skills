@@ -1,7 +1,7 @@
 # CONTINUATION.md — Helix Skills
 
-**Revision:** 8
-**Last modified:** 2026-07-18T06:30:00Z
+**Revision:** 9
+**Last modified:** 2026-07-18T08:00:00Z
 
 ---
 
@@ -29,11 +29,14 @@ development with 95 open findings (2 CRITICAL, 64 HIGH, 25 MEDIUM,
 ## §3 — Active Work
 
 ### Just completed (this session)
-- PERF: performance audit across entire codebase — SQL indexes, Go O(1) lookups, curl timeouts, event log bounds
-- PERF: 7 new indexes on `items` table (status, type, status_type, logic_group, destination, current_location, created_by, assigned_to)
-- PERF: 6 indexes added in `migrateColumns` for existing DBs
-- PERF: `claim.ClaimByHolder` O(1) reverse-index lookup (was O(n) snapshot scan)
-- PERF: claim events slice capped at 10K entries (prevents memory leak in long-running orchestrators)
+- G40 Phase 1: imported 90 findings into `workable_items.db` SQLite SSoT (18 Fixed, 70 Queued, 1 In progress, 1 Operator-blocked)
+- G43: HTML/PDF export pipeline landed — `scripts/export_docs.sh` generates 10 files (5 docs × HTML+PDF) via pandoc+weasyprint
+- G01 FIXED: removed dead `internal/api.Server` code (-1826 lines), coverage 41.6%→59.8%
+- G04 PROGRESS: 12 new unit tests, `internal/models` 0%→100%, `internal/skill` 5.5%→8.3%
+- PERF: performance audit — SQL indexes, Go O(1) lookups, curl timeouts, event log bounds
+- PERF: 7 new indexes on `items` table + 6 in `migrateColumns`
+- PERF: `claim.ClaimByHolder` O(1) reverse-index lookup (was O(n))
+- PERF: claim events slice capped at 10K entries
 - PERF: `nextID()` filters by prefix instead of scanning all items
 - PERF: all `curl` calls in `live_smoke.sh` have `--connect-timeout`/`--max-time`
 - G01 FIXED: removed dead `internal/api.Server` code — 6 handler files + server struct deleted (-1826 lines)
@@ -58,11 +61,15 @@ development with 95 open findings (2 CRITICAL, 64 HIGH, 25 MEDIUM,
 - **G01** — FIXED: dead `internal/api.Server` code removed (6 handler files + server struct, -1826 lines). Runtime security hole was already closed in prior commit. Coverage 41.6% → 59.8%.
 - **G04** — IN PROGRESS: tests exist (144 files, 27/27 packages GREEN). Coverage boosted: `internal/models` 0%→100%, `internal/skill` 5.5%→8.3%, `internal/api` 41.6%→59.8%. Remaining low-coverage: `internal/registry` (2%), `internal/db` (12%), `cmd/worker` (0%) — all DB-dependent, need integration test infrastructure.
 
+### Completed — Key HIGH items
+- **G40** — Phase 1 DONE: 90 findings imported into `workable_items.db` (validate OK). Phase 2 (R-items import) and Phase 3 (bidirectional sync) pending.
+- **G43** — Export pipeline DONE: `scripts/export_docs.sh` generates HTML+PDF for 5 tracked docs. Docs Chain integration pending.
+- **G59** — FIXED: `Store.Create` calls `embedWriteThrough`, `ClearSkillEmbedding` on failure branches.
+
 ### Queued — Key HIGH items
-- **G40** — SQLite workable_items.db adoption (Phase 1 READY)
+- **G40** — Phase 2 (R-items import) + Phase 3 (bidirectional md↔db sync)
 - **G42** — Test coverage expansion (phased with impl)
-- **G43** — HTML/PDF doc exports + Docs Chain wiring
-- **G59** — Embedding ingestion wiring (StoreSkillEmbedding dead code)
+- **G43** — Docs Chain wiring (§11.4.106)
 - **G63** — Route-contract reconciliation (operator-blocked, D1-D5 decisions)
 - **G69–G92** — GitHub Skills Source Ingestion epic (24 items)
 - **G93–G122** — Unified Multi-Source Skill Ingestion epic (30 items)

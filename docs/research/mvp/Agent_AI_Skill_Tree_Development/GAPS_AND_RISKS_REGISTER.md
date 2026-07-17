@@ -504,8 +504,8 @@ PASS (real run).
 - **Constitution references:** §11.4.27, §11.4.52, §11.4.85, §11.4.169.
 
 ### G43 — No HTML/PDF doc exports; Docs Chain unwired
-- **Type:** Task. **Severity:** HIGH. **Status:** FILED; wire Docs Chain + export pipeline PENDING (R18/R10).
-- **Evidence:** zero `.html`/`.pdf` exports of any tracked doc; Docs Chain declared in `helix-deps.yaml` but never invoked.
+- **Type:** Task. **Severity:** HIGH. **Status:** IN PROGRESS — export pipeline LANDED (2026-07-18); Docs Chain wiring PENDING.
+- **Evidence:** `scripts/export_docs.sh` generates HTML+PDF from 5 tracked docs via pandoc+weasyprint → `docs/exports/`. 10 files generated, 0 failures. Docs Chain declared in `helix-deps.yaml` but not yet invoked (separate follow-up).
 - **Constitution references:** §11.4.12, §11.4.65, §11.4.106.
 
 ### G44 — Missing revision headers on most docs
