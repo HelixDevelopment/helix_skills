@@ -35,3 +35,6 @@ go.work.sum
 
 # Multitrack workspace state (ephemeral, per-host)
 .ws_state/
+
+# Multitrack test results (ephemeral, per-run)
+qa-results/multitrack*/
