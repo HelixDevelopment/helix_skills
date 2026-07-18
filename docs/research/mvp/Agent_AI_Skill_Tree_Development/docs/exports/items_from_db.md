@@ -27,7 +27,7 @@ internal/validation and internal/autoexpand never instantiated. Fixed: both pipe
 
 ## G04. Insufficient test coverage across the codebase
 
-**Status:** In progress
+**Status:** Fixed (→ Fixed.md)
 **Type:** Task
 **Severity:** critical
 **Created-By:** Claude
@@ -72,7 +72,7 @@ R/founding mandate TOON primary + JSON fallback. Fixed: TOON codec implemented.
 
 ## G09. Pervasive OpenAPI-implementation drift; most endpoints unimplemented or differently shaped
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Bug
 **Severity:** high
 **Created-By:** Claude
@@ -117,7 +117,7 @@ P12.T4 requires one canonical compose. Fixed: consolidated to single file.
 
 ## G14. Submodule policy conflict unresolved; all 7 declared deps unvendored
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Task
 **Severity:** high
 **Created-By:** Claude
@@ -126,7 +126,7 @@ Open governance escalation blocks P3/P7/P8/P10/P11/P13 dependency work.
 
 ## G15. Aurora OS / HarmonyOS client feasibility unproven
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Task
 **Severity:** high
 **Created-By:** Claude
@@ -189,7 +189,7 @@ Fixed (2026-07-17): Store.Create calls embedWriteThrough, ClearSkillEmbedding on
 
 ## G63. 4th divergent route-contract surface (registry CLI/TUI)
 
-**Status:** Operator-blocked
+**Status:** Fixed (→ Fixed.md)
 **Type:** Bug
 **Severity:** high
 **Created-By:** Claude
@@ -198,7 +198,7 @@ Operator-blocked on 5 product/ownership decisions (D1-D5).
 
 ## G69. GitHub Skills Source Ingestion epic item G69
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -207,7 +207,7 @@ Part of G69-G92 epic: GitHub Skills Source Ingestion (24 items).
 
 ## G70. GitHub Skills Source Ingestion epic item G70
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -216,7 +216,7 @@ Part of G69-G92 epic: GitHub Skills Source Ingestion (24 items).
 
 ## G71. GitHub Skills Source Ingestion epic item G71
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -225,7 +225,7 @@ Part of G69-G92 epic: GitHub Skills Source Ingestion (24 items).
 
 ## G72. GitHub Skills Source Ingestion epic item G72
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -234,7 +234,7 @@ Part of G69-G92 epic: GitHub Skills Source Ingestion (24 items).
 
 ## G73. GitHub Skills Source Ingestion epic item G73
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -243,7 +243,7 @@ Part of G69-G92 epic: GitHub Skills Source Ingestion (24 items).
 
 ## G74. GitHub Skills Source Ingestion epic item G74
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -252,7 +252,7 @@ Part of G69-G92 epic: GitHub Skills Source Ingestion (24 items).
 
 ## G75. GitHub Skills Source Ingestion epic item G75
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -261,7 +261,7 @@ Part of G69-G92 epic: GitHub Skills Source Ingestion (24 items).
 
 ## G76. GitHub Skills Source Ingestion epic item G76
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -270,7 +270,7 @@ Part of G69-G92 epic: GitHub Skills Source Ingestion (24 items).
 
 ## G77. GitHub Skills Source Ingestion epic item G77
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -279,7 +279,7 @@ Part of G69-G92 epic: GitHub Skills Source Ingestion (24 items).
 
 ## G78. GitHub Skills Source Ingestion epic item G78
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -288,7 +288,7 @@ Part of G69-G92 epic: GitHub Skills Source Ingestion (24 items).
 
 ## G79. GitHub Skills Source Ingestion epic item G79
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -297,7 +297,7 @@ Part of G69-G92 epic: GitHub Skills Source Ingestion (24 items).
 
 ## G80. GitHub Skills Source Ingestion epic item G80
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -306,7 +306,7 @@ Part of G69-G92 epic: GitHub Skills Source Ingestion (24 items).
 
 ## G81. GitHub Skills Source Ingestion epic item G81
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -315,7 +315,7 @@ Part of G69-G92 epic: GitHub Skills Source Ingestion (24 items).
 
 ## G82. GitHub Skills Source Ingestion epic item G82
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -324,7 +324,7 @@ Part of G69-G92 epic: GitHub Skills Source Ingestion (24 items).
 
 ## G83. GitHub Skills Source Ingestion epic item G83
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -333,7 +333,7 @@ Part of G69-G92 epic: GitHub Skills Source Ingestion (24 items).
 
 ## G84. GitHub Skills Source Ingestion epic item G84
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -342,7 +342,7 @@ Part of G69-G92 epic: GitHub Skills Source Ingestion (24 items).
 
 ## G85. GitHub Skills Source Ingestion epic item G85
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -351,7 +351,7 @@ Part of G69-G92 epic: GitHub Skills Source Ingestion (24 items).
 
 ## G86. GitHub Skills Source Ingestion epic item G86
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -360,7 +360,7 @@ Part of G69-G92 epic: GitHub Skills Source Ingestion (24 items).
 
 ## G87. GitHub Skills Source Ingestion epic item G87
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -369,7 +369,7 @@ Part of G69-G92 epic: GitHub Skills Source Ingestion (24 items).
 
 ## G88. GitHub Skills Source Ingestion epic item G88
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -378,7 +378,7 @@ Part of G69-G92 epic: GitHub Skills Source Ingestion (24 items).
 
 ## G89. GitHub Skills Source Ingestion epic item G89
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -387,7 +387,7 @@ Part of G69-G92 epic: GitHub Skills Source Ingestion (24 items).
 
 ## G90. GitHub Skills Source Ingestion epic item G90
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -396,7 +396,7 @@ Part of G69-G92 epic: GitHub Skills Source Ingestion (24 items).
 
 ## G91. GitHub Skills Source Ingestion epic item G91
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -405,7 +405,7 @@ Part of G69-G92 epic: GitHub Skills Source Ingestion (24 items).
 
 ## G92. GitHub Skills Source Ingestion epic item G92
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -414,7 +414,7 @@ Part of G69-G92 epic: GitHub Skills Source Ingestion (24 items).
 
 ## G93. Unified Multi-Source Skill Ingestion epic item G93
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -423,7 +423,7 @@ Part of G93-G122 epic: Unified Multi-Source Skill Ingestion (30 items).
 
 ## G94. Unified Multi-Source Skill Ingestion epic item G94
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -432,7 +432,7 @@ Part of G93-G122 epic: Unified Multi-Source Skill Ingestion (30 items).
 
 ## G95. Unified Multi-Source Skill Ingestion epic item G95
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -441,7 +441,7 @@ Part of G93-G122 epic: Unified Multi-Source Skill Ingestion (30 items).
 
 ## G96. Unified Multi-Source Skill Ingestion epic item G96
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -450,7 +450,7 @@ Part of G93-G122 epic: Unified Multi-Source Skill Ingestion (30 items).
 
 ## G97. Unified Multi-Source Skill Ingestion epic item G97
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -459,7 +459,7 @@ Part of G93-G122 epic: Unified Multi-Source Skill Ingestion (30 items).
 
 ## G98. Unified Multi-Source Skill Ingestion epic item G98
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -468,7 +468,7 @@ Part of G93-G122 epic: Unified Multi-Source Skill Ingestion (30 items).
 
 ## G99. Unified Multi-Source Skill Ingestion epic item G99
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -477,7 +477,7 @@ Part of G93-G122 epic: Unified Multi-Source Skill Ingestion (30 items).
 
 ## G100. Unified Multi-Source Skill Ingestion epic item G100
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -486,7 +486,7 @@ Part of G93-G122 epic: Unified Multi-Source Skill Ingestion (30 items).
 
 ## G101. Unified Multi-Source Skill Ingestion epic item G101
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -495,7 +495,7 @@ Part of G93-G122 epic: Unified Multi-Source Skill Ingestion (30 items).
 
 ## G102. Unified Multi-Source Skill Ingestion epic item G102
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -504,7 +504,7 @@ Part of G93-G122 epic: Unified Multi-Source Skill Ingestion (30 items).
 
 ## G103. Unified Multi-Source Skill Ingestion epic item G103
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -513,7 +513,7 @@ Part of G93-G122 epic: Unified Multi-Source Skill Ingestion (30 items).
 
 ## G104. Unified Multi-Source Skill Ingestion epic item G104
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -522,7 +522,7 @@ Part of G93-G122 epic: Unified Multi-Source Skill Ingestion (30 items).
 
 ## G105. Unified Multi-Source Skill Ingestion epic item G105
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -531,7 +531,7 @@ Part of G93-G122 epic: Unified Multi-Source Skill Ingestion (30 items).
 
 ## G106. Unified Multi-Source Skill Ingestion epic item G106
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -540,7 +540,7 @@ Part of G93-G122 epic: Unified Multi-Source Skill Ingestion (30 items).
 
 ## G107. Unified Multi-Source Skill Ingestion epic item G107
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -549,7 +549,7 @@ Part of G93-G122 epic: Unified Multi-Source Skill Ingestion (30 items).
 
 ## G108. Unified Multi-Source Skill Ingestion epic item G108
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -558,7 +558,7 @@ Part of G93-G122 epic: Unified Multi-Source Skill Ingestion (30 items).
 
 ## G109. Unified Multi-Source Skill Ingestion epic item G109
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -567,7 +567,7 @@ Part of G93-G122 epic: Unified Multi-Source Skill Ingestion (30 items).
 
 ## G110. Unified Multi-Source Skill Ingestion epic item G110
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -576,7 +576,7 @@ Part of G93-G122 epic: Unified Multi-Source Skill Ingestion (30 items).
 
 ## G111. Unified Multi-Source Skill Ingestion epic item G111
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -585,7 +585,7 @@ Part of G93-G122 epic: Unified Multi-Source Skill Ingestion (30 items).
 
 ## G112. Unified Multi-Source Skill Ingestion epic item G112
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -594,7 +594,7 @@ Part of G93-G122 epic: Unified Multi-Source Skill Ingestion (30 items).
 
 ## G113. Unified Multi-Source Skill Ingestion epic item G113
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -603,7 +603,7 @@ Part of G93-G122 epic: Unified Multi-Source Skill Ingestion (30 items).
 
 ## G114. Unified Multi-Source Skill Ingestion epic item G114
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -612,7 +612,7 @@ Part of G93-G122 epic: Unified Multi-Source Skill Ingestion (30 items).
 
 ## G115. Unified Multi-Source Skill Ingestion epic item G115
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -621,7 +621,7 @@ Part of G93-G122 epic: Unified Multi-Source Skill Ingestion (30 items).
 
 ## G116. Unified Multi-Source Skill Ingestion epic item G116
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -630,7 +630,7 @@ Part of G93-G122 epic: Unified Multi-Source Skill Ingestion (30 items).
 
 ## G117. Unified Multi-Source Skill Ingestion epic item G117
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -639,7 +639,7 @@ Part of G93-G122 epic: Unified Multi-Source Skill Ingestion (30 items).
 
 ## G118. Unified Multi-Source Skill Ingestion epic item G118
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -648,7 +648,7 @@ Part of G93-G122 epic: Unified Multi-Source Skill Ingestion (30 items).
 
 ## G119. Unified Multi-Source Skill Ingestion epic item G119
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -657,7 +657,7 @@ Part of G93-G122 epic: Unified Multi-Source Skill Ingestion (30 items).
 
 ## G120. Unified Multi-Source Skill Ingestion epic item G120
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -666,7 +666,7 @@ Part of G93-G122 epic: Unified Multi-Source Skill Ingestion (30 items).
 
 ## G121. Unified Multi-Source Skill Ingestion epic item G121
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -675,7 +675,7 @@ Part of G93-G122 epic: Unified Multi-Source Skill Ingestion (30 items).
 
 ## G122. Unified Multi-Source Skill Ingestion epic item G122
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -684,7 +684,7 @@ Part of G93-G122 epic: Unified Multi-Source Skill Ingestion (30 items).
 
 ## G123. G69 vs G93 architectural-overlap reconciliation
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Task
 **Severity:** medium
 **Created-By:** Claude
@@ -693,7 +693,7 @@ Reconcile GitHub Skills Source Ingestion epic with Unified Multi-Source Skill In
 
 ## G124. Auto-generated skills-tree documentation catalog item G124
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Task
 **Severity:** medium
 **Created-By:** Claude
@@ -702,7 +702,7 @@ Part of G124-G135 epic: auto-generated skills-tree documentation catalog with 12
 
 ## G125. Auto-generated skills-tree documentation catalog item G125
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Task
 **Severity:** medium
 **Created-By:** Claude
@@ -711,7 +711,7 @@ Part of G124-G135 epic: auto-generated skills-tree documentation catalog with 12
 
 ## G126. Auto-generated skills-tree documentation catalog item G126
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Task
 **Severity:** medium
 **Created-By:** Claude
@@ -720,7 +720,7 @@ Part of G124-G135 epic: auto-generated skills-tree documentation catalog with 12
 
 ## G127. Auto-generated skills-tree documentation catalog item G127
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Task
 **Severity:** medium
 **Created-By:** Claude
@@ -729,7 +729,7 @@ Part of G124-G135 epic: auto-generated skills-tree documentation catalog with 12
 
 ## G128. Auto-generated skills-tree documentation catalog item G128
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Task
 **Severity:** medium
 **Created-By:** Claude
@@ -738,7 +738,7 @@ Part of G124-G135 epic: auto-generated skills-tree documentation catalog with 12
 
 ## G129. Auto-generated skills-tree documentation catalog item G129
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Task
 **Severity:** medium
 **Created-By:** Claude
@@ -747,7 +747,7 @@ Part of G124-G135 epic: auto-generated skills-tree documentation catalog with 12
 
 ## G130. Auto-generated skills-tree documentation catalog item G130
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Task
 **Severity:** medium
 **Created-By:** Claude
@@ -756,7 +756,7 @@ Part of G124-G135 epic: auto-generated skills-tree documentation catalog with 12
 
 ## G131. Auto-generated skills-tree documentation catalog item G131
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Task
 **Severity:** medium
 **Created-By:** Claude
@@ -765,7 +765,7 @@ Part of G124-G135 epic: auto-generated skills-tree documentation catalog with 12
 
 ## G132. Auto-generated skills-tree documentation catalog item G132
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Task
 **Severity:** medium
 **Created-By:** Claude
@@ -774,7 +774,7 @@ Part of G124-G135 epic: auto-generated skills-tree documentation catalog with 12
 
 ## G133. Auto-generated skills-tree documentation catalog item G133
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Task
 **Severity:** medium
 **Created-By:** Claude
@@ -783,7 +783,7 @@ Part of G124-G135 epic: auto-generated skills-tree documentation catalog with 12
 
 ## G134. Auto-generated skills-tree documentation catalog item G134
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Task
 **Severity:** medium
 **Created-By:** Claude
@@ -792,7 +792,7 @@ Part of G124-G135 epic: auto-generated skills-tree documentation catalog with 12
 
 ## G135. Auto-generated skills-tree documentation catalog item G135
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Task
 **Severity:** medium
 **Created-By:** Claude
@@ -810,7 +810,7 @@ Enterprise-grade features for the skill system — additional integrations and c
 
 ## R01. Standard: build+run clean, 4-layer test coverage, paired mutations
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Task
 **Severity:** high
 **Created-By:** Claude
@@ -819,7 +819,7 @@ Build+run clean. 4-layer test coverage + paired mutations per Constitution §1/�
 
 ## R02. Universal + dynamic: create skills on demand for any technology
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -828,7 +828,7 @@ Not Android-specific. Create skills on demand for any technology set. Mentioned 
 
 ## R03. Clients: CLI, TUI, REST, Web, Desktop, Mobile
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -837,7 +837,7 @@ CLI, TUI, REST API, Web, Desktop (Win/macOS/Linux), Mobile (Android, iOS, Harmon
 
 ## R04. Agent interop: Claude Code, OpenCode, Kimi Code, HelixTrack
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -846,7 +846,7 @@ Usable from Claude Code (toolkit + aliases), OpenCode, Kimi Code, and HelixTrack
 
 ## R05. Incorporation analysis: research integration of R4 agents
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Task
 **Severity:** medium
 **Created-By:** Claude
@@ -855,7 +855,7 @@ In-depth research on how to integrate all of R4 properly. 4 research agents in f
 
 ## R06. Canonical use case: skill-creation wizard
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -864,7 +864,7 @@ User opens client → skill-creation wizard → enters tech set → submit → b
 
 ## R07. Model access: pluggable ModelProvider, not hardcoded OpenAI
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -873,7 +873,7 @@ Obtain quality models via LLMsVerifier, HelixLLM, Claude Toolkit aliases. Plugga
 
 ## R08. Exhaustive testing: all test types + Challenges + HelixQA
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Task
 **Severity:** high
 **Created-By:** Claude
@@ -882,7 +882,7 @@ Every unit covered by ALL supported test types PLUS Challenges and HelixQA test 
 
 ## R09. Submodule resolution + sync: parent-dir versions have priority
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Task
 **Severity:** medium
 **Created-By:** Claude
@@ -891,7 +891,7 @@ All deps live under submodules/<snake_case>/ OR reuse from parent dir. Parent-di
 
 ## R10. Docs Chain: fully incorporate the Docs Chain submodule
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Task
 **Severity:** high
 **Created-By:** Claude
@@ -900,7 +900,7 @@ Fully incorporate the Docs Chain submodule (.docs_chain) per Constitution §11.4
 
 ## R11. Zero bluff anywhere: positive-evidence-only everywhere
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Task
 **Severity:** high
 **Created-By:** Claude
@@ -909,7 +909,7 @@ No false results, faulty results, or faulty codebase. No bluff of any kind. Posi
 
 ## R12. OpenDesign for all design artifacts
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** medium
 **Created-By:** Claude
@@ -918,7 +918,7 @@ Every client design/styling/diagrams/illustrations MUST use OpenDesign. Deliver 
 
 ## R13. Validation skill corpus: 35+ technologies must validate end-to-end
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -927,7 +927,7 @@ System must create + validate corpus: android, java, kotlin, python, go, typescr
 
 ## R14. Git-versioned + real-time growth via MCP/ACP/plugins
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -936,7 +936,7 @@ Every skill is Git-versionable (TOML per SPEC §4.2). MCP/ACP/plugins trigger re
 
 ## R15. systemctl user scope + ops scripts integration
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Task
 **Severity:** medium
 **Created-By:** Claude
@@ -945,7 +945,7 @@ System MUST integrate via systemctl (user scope) + ops scripts for deployment an
 
 ## R16. Skill granularity and composition: decomposable big technologies
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -954,7 +954,7 @@ Big technologies MUST be decomposable into smaller composable skills. Umbrella/c
 
 ## R17. Exhaustive gaps/risks remediation + total test coverage
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Task
 **Severity:** high
 **Created-By:** Claude
@@ -963,7 +963,7 @@ ALL gaps, weak spots, danger-zones MUST be investigated and fixed. Total test co
 
 ## R18. Full documentation delivery, always in sync
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Task
 **Severity:** high
 **Created-By:** Claude
@@ -972,7 +972,7 @@ Whole project MUST ship complete documentation always in sync. §11.4.12/§11.4.
 
 ## R19. Anthropic API support as first-class ModelProvider
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Feature
 **Severity:** high
 **Created-By:** Claude
@@ -981,7 +981,7 @@ Besides full OpenAI support, Anthropic Messages API MUST be a first-class ModelP
 
 ## R20. Containers submodule for all containerization
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Task
 **Severity:** medium
 **Created-By:** Claude
@@ -990,7 +990,7 @@ All containerization MUST use the containers submodule per Constitution §11.4.7
 
 ## R21. Adopt reusable Helix-family practices
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Task
 **Severity:** medium
 **Created-By:** Claude
@@ -999,7 +999,7 @@ Survey the Helix ecosystem and adopt reusable practices, patterns, and component
 
 ## R22. Catalogue-first incorporation from vasic-digital + HelixDevelopment
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Task
 **Severity:** medium
 **Created-By:** Claude
@@ -1008,7 +1008,7 @@ Before building new components, check existing catalogues in vasic-digital and H
 
 ## R23. Full constitutional compliance, no violations, no bluff
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Task
 **Severity:** high
 **Created-By:** Claude
@@ -1017,7 +1017,7 @@ Every aspect of the project MUST comply with the Helix Constitution. No violatio
 
 ## R24. Every operator request always respected + recorded, zero request-loss
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Task
 **Severity:** high
 **Created-By:** Claude
@@ -1026,10 +1026,388 @@ Every operator request/prompt MUST be captured, tracked, and processed. §11.4.1
 
 ## R25. Canonical project key hxs, used everywhere
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Task
 **Severity:** medium
 **Created-By:** Claude
 
 Project key 'hxs' MUST be used consistently across all configurations, prefixes, and identifiers.
+
+## G16. sandbox_type=wasm never uses WASM; Docker sandbox has conflicting mounts
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Bug
+**Severity:** medium
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G17. Weak/committed default DB password; config validation misses enums
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Bug
+**Severity:** medium
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G18. CORS allowlist unreachable on live path; SPEC omits allowed_origins
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Bug
+**Severity:** medium
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G19. SPEC.md config sample uses -- comments (invalid TOML)
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Bug
+**Severity:** medium
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G20. Auto-expand fabricates placeholder skills without LLM
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Bug
+**Severity:** medium
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G21. Resource verification is shallow (HEAD-only, fail-open)
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Bug
+**Severity:** medium
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G22. No rate limiting/auth on live server; Brotli flush errors ignored
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Bug
+**Severity:** medium
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G23. Migrations loaded from cwd-relative path; failure only warns
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Bug
+**Severity:** medium
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G24. Health/metrics/version unauthenticated; /metrics exposes Prometheus
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Bug
+**Severity:** low
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G25. RemoveDependency ignores name-lookup errors
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Bug
+**Severity:** low
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G26. VAR:-default cannot resolve to intentionally-empty value
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Bug
+**Severity:** low
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G27. sanitizeTableName silently strips instead of rejecting
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Bug
+**Severity:** low
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G28. Anthropic Messages API as first-class LLMClient provider
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Feature
+**Severity:** medium
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G30. learn_from_project returns job ID that can never be status-checked
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Bug
+**Severity:** medium
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G33. Store.ExportToTOML swallows DB error
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Bug
+**Severity:** low
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G34. Unchecked rid.(string) type assertion in request-id middleware
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Bug
+**Severity:** low
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G36. SSRF blocklist: non-zero 0.0.0.0/8 hosts not explicitly blocked
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Bug
+**Severity:** low
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G37. Import-skills path honors client status on dead api.Server router
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Bug
+**Severity:** low
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G38. Request-history auto-capture hook not yet wired
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Task
+**Severity:** low
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G44. Missing revision headers on most docs
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Task
+**Severity:** medium
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G45. Status/type/reopens closed-vocabulary not enforced
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Task
+**Severity:** medium
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G46. Shell scripts lack companion docs
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Task
+**Severity:** low
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G47. Gxx id scheme vs ATM-NNN naming
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Task
+**Severity:** medium
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G48. README lacks Tracked-Items doc-link section
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Task
+**Severity:** low
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G49. No QWEN.md/GEMINI.md mirrors
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Task
+**Severity:** low
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G51. Silent migration-state desync from psql error handling
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Bug
+**Severity:** medium
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G52. Health-probe repoint + ARCHITECTURE.md doc-drift
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Bug
+**Severity:** low
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G53. WaitForVectorIndexReady catalog-query correction
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Bug
+**Severity:** low
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G54. gofmt drift in internal/validation/pipeline.go
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Task
+**Severity:** low
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G55. Phantom OpenAPI/doc-listed routes unimplemented
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Bug
+**Severity:** medium
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G56. docker-compose deployment contract broken
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Bug
+**Severity:** medium
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G58. Placeholder finding — needs real investigation
+
+**Status:** Obsolete (→ Fixed.md)
+**Type:** Bug
+**Severity:** medium
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G60. Search conflict-oracle uses ranked Search instead of GetByName
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Bug
+**Severity:** medium
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G61. Two divergent /health implementations
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Task
+**Severity:** medium
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G62. 20 files with gofmt drift project-wide
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Task
+**Severity:** low
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G64. Additional ops-script issues
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Bug
+**Severity:** medium
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G65. Additional migration issues
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Bug
+**Severity:** medium
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G66. Seed corpus missing 3 prerequisite TOMLs
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Bug
+**Severity:** medium
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G67. qa-results gitignore vs curated QA evidence policy conflict
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Task
+**Severity:** low
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G68. RemoveDependency coarse delete should be relation-type-aware
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Bug
+**Severity:** low
+**Created-By:** Claude
+
+Auto-imported from GAPS_AND_RISKS_REGISTER.md during G40 Phase 1 completion.
+
+## G39. Rootful container runtime default in Makefile
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Bug
+**Severity:** high
+**Created-By:** Claude
+
+Makefile uses rootful docker instead of rootless podman per §11.4.161. Fixed: switched to rootless podman.
+
+## G41. Zero hooks wired in settings.local.json
+
+**Status:** Fixed (→ Fixed.md)
+**Type:** Task
+**Severity:** high
+**Created-By:** Claude
+
+guard-forbidden-commands.sh PreToolUse guard not installed. Fixed: hooks wired in settings.local.json.
 
