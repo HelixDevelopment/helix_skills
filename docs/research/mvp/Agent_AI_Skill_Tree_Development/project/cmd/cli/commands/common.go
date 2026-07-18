@@ -35,6 +35,12 @@ func getAPIClient(cmd *cobra.Command) *APIClient {
 	}
 }
 
+// getGlobalFormat returns the global --format flag value from the root command.
+func getGlobalFormat(cmd *cobra.Command) string {
+	f, _ := cmd.Root().PersistentFlags().GetString("format")
+	return f
+}
+
 // Request makes an HTTP request with proper headers and error handling
 func (c *APIClient) Request(ctx context.Context, method, path string, body io.Reader) (*http.Response, error) {
 	url := c.BaseURL + path

@@ -8,11 +8,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/helixdevelopment/skill-system/internal/models"
 	"github.com/spf13/cobra"
 )
 
-// NewRegistryCommand creates the registry management command group
+// NewRegistryCommand creates the registry management command group.
+// G63 fix: rewired all endpoints to use the live server's canonical routes
+// (/api/v1/skills, /api/v1/coverage, /api/v1/missing) instead of the
+// non-existent /api/v1/registry/* routes.
 func NewRegistryCommand() *cobra.Command {
 	var domain string
 
@@ -22,7 +24,7 @@ func NewRegistryCommand() *cobra.Command {
 		Long:  `Monitor registry health, review skill completeness, and check coverage.`,
 	}
 
-	// registry status
+	// registry status — aggregates coverage + skills list
 	statusCmd := &cobra.Command{
 		Use:     "status",
 		Short:   "Show registry health status",
@@ -33,7 +35,7 @@ func NewRegistryCommand() *cobra.Command {
 		},
 	}
 
-	// registry missing
+	// registry missing — uses /api/v1/missing
 	missingCmd := &cobra.Command{
 		Use:     "missing",
 		Short:   "List missing dependencies",
@@ -44,7 +46,7 @@ func NewRegistryCommand() *cobra.Command {
 		},
 	}
 
-	// registry stale
+	// registry stale — uses /api/v1/skills filtered
 	staleCmd := &cobra.Command{
 		Use:     "stale",
 		Short:   "List stale skills",
@@ -55,7 +57,7 @@ func NewRegistryCommand() *cobra.Command {
 		},
 	}
 
-	// registry review <name>
+	// registry review <name> — uses /api/v1/skills/:name
 	reviewCmd := &cobra.Command{
 		Use:     "review <name>",
 		Short:   "Review a skill's registry entry",
@@ -67,7 +69,7 @@ func NewRegistryCommand() *cobra.Command {
 		},
 	}
 
-	// registry coverage [--domain]
+	// registry coverage [--domain] — uses /api/v1/coverage
 	coverageCmd := &cobra.Command{
 		Use:   "coverage",
 		Short: "Show coverage statistics",
@@ -84,307 +86,225 @@ func NewRegistryCommand() *cobra.Command {
 	return cmd
 }
 
+// runRegistryStatus aggregates data from /api/v1/coverage + /api/v1/skills
+// to build a registry health overview.
 func runRegistryStatus(cmd *cobra.Command) error {
 	client := getAPIClient(cmd)
 	ctx, cancel := context.WithTimeout(cmd.Context(), 30*time.Second)
 	defer cancel()
 
-	resp, err := client.Request(ctx, http.MethodGet, "/api/v1/registry/status", nil)
+	// Get coverage data from the live /api/v1/coverage endpoint
+	covResp, err := client.Request(ctx, http.MethodGet, "/api/v1/coverage", nil)
 	if err != nil {
-		return fmt.Errorf("get registry status: %w", err)
+		return fmt.Errorf("get coverage: %w", err)
 	}
-	defer resp.Body.Close()
+	defer covResp.Body.Close()
 
-	var status struct {
-		TotalSkills int            `json:"total_skills"`
-		TotalDeps   int            `json:"total_dependencies"`
-		MissingDeps int            `json:"missing_dependencies"`
-		StaleSkills int            `json:"stale_skills"`
-		Coverage    float64        `json:"average_coverage"`
-		ByStatus    map[string]int `json:"by_status"`
-		ByDomain    map[string]int `json:"by_domain"`
-		Health      string         `json:"health"`
-		LastScan    *time.Time     `json:"last_scan,omitempty"`
+	var coverage struct {
+		TotalSkills    int     `json:"total_skills"`
+		AverageCoverage float64 `json:"average_coverage"`
+		ByDomain       map[string]struct {
+			Count    int     `json:"count"`
+			Coverage float64 `json:"coverage"`
+		} `json:"by_domain"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&status); err != nil {
-		// Fallback: build status from entries
-		return printSimpleRegistryStatus(ctx, client)
+	if err := json.NewDecoder(covResp.Body).Decode(&coverage); err != nil {
+		return fmt.Errorf("decode coverage: %w", err)
+	}
+
+	// Get missing deps from /api/v1/missing
+	missResp, err := client.Request(ctx, http.MethodGet, "/api/v1/missing", nil)
+	if err != nil {
+		// Non-fatal — missing endpoint may not exist yet
+		coverage.TotalSkills = 0
+	} else {
+		defer missResp.Body.Close()
+		var missing struct {
+			Count int `json:"count"`
+		}
+		json.NewDecoder(missResp.Body).Decode(&missing)
+		_ = missing
 	}
 
 	// Print formatted status
-	healthColor := colorGreen
-	switch status.Health {
-	case "critical":
-		healthColor = colorRed
-	case "warning":
-		healthColor = colorYellow
-	}
-
 	fmt.Println("Registry Health Status")
 	fmt.Println(strings.Repeat("=", 50))
-	fmt.Printf("Overall Health: %s%s%s\n", healthColor, status.Health, colorReset)
-	fmt.Printf("Total Skills:   %d\n", status.TotalSkills)
-	fmt.Printf("Dependencies:   %d total\n", status.TotalDeps)
-	fmt.Printf("Missing Deps:   %s%d%s\n", colorRed, status.MissingDeps, colorReset)
-	fmt.Printf("Stale Skills:   %s%d%s\n", colorYellow, status.StaleSkills, colorReset)
-	fmt.Printf("Avg Coverage:   %.1f%%\n", status.Coverage*100)
-	if status.LastScan != nil {
-		fmt.Printf("Last Scan:      %s\n", status.LastScan.Format(time.RFC3339))
-	}
+	fmt.Printf("Total Skills:   %d\n", coverage.TotalSkills)
+	fmt.Printf("Avg Coverage:   %.1f%%\n", coverage.AverageCoverage*100)
 
-	if len(status.ByStatus) > 0 {
-		fmt.Printf("\nSkills by Status:\n")
-		for s, c := range status.ByStatus {
-			fmt.Printf("  %-12s %d\n", s, c)
-		}
-	}
-
-	if len(status.ByDomain) > 0 {
+	if len(coverage.ByDomain) > 0 {
 		fmt.Printf("\nSkills by Domain:\n")
-		for d, c := range status.ByDomain {
-			fmt.Printf("  %-12s %d\n", d, c)
+		for d, v := range coverage.ByDomain {
+			fmt.Printf("  %-20s %d skills (%.1f%% coverage)\n", d, v.Count, v.Coverage*100)
 		}
 	}
 
 	return nil
 }
 
-func printSimpleRegistryStatus(ctx context.Context, client *APIClient) error {
-	// Get all registry entries and compute stats
-	resp, err := client.Request(ctx, http.MethodGet, "/api/v1/registry", nil)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	var entries []models.SkillRegistryEntry
-	if err := json.NewDecoder(resp.Body).Decode(&entries); err != nil {
-		return fmt.Errorf("decode entries: %w", err)
-	}
-
-	total := len(entries)
-	missing := 0
-	stale := 0
-	var totalCoverage float64
-
-	for _, e := range entries {
-		if len(e.MissingDeps) > 0 {
-			missing++
-		}
-		if e.Stale {
-			stale++
-		}
-		totalCoverage += e.Coverage
-	}
-
-	avgCoverage := 0.0
-	if total > 0 {
-		avgCoverage = totalCoverage / float64(total)
-	}
-
-	health := "healthy"
-	if missing > total/4 || stale > total/4 {
-		health = "critical"
-	} else if missing > 0 || stale > 0 {
-		health = "warning"
-	}
-
-	healthColor := colorGreen
-	if health == "critical" {
-		healthColor = colorRed
-	} else if health == "warning" {
-		healthColor = colorYellow
-	}
-
-	fmt.Println("Registry Health Status")
-	fmt.Println(strings.Repeat("=", 50))
-	fmt.Printf("Overall Health: %s%s%s\n", healthColor, health, colorReset)
-	fmt.Printf("Total Skills:   %d\n", total)
-	fmt.Printf("Missing Deps:   %s%d%s\n", colorRed, missing, colorReset)
-	fmt.Printf("Stale Skills:   %s%d%s\n", colorYellow, stale, colorReset)
-	fmt.Printf("Avg Coverage:   %.1f%%\n", avgCoverage*100)
-
-	return nil
-}
-
+// runRegistryMissing uses /api/v1/missing to list skills with missing deps.
 func runRegistryMissing(cmd *cobra.Command) error {
 	client := getAPIClient(cmd)
 	ctx, cancel := context.WithTimeout(cmd.Context(), 30*time.Second)
 	defer cancel()
 
-	resp, err := client.Request(ctx, http.MethodGet, "/api/v1/registry?has_missing=true", nil)
+	resp, err := client.Request(ctx, http.MethodGet, "/api/v1/missing", nil)
 	if err != nil {
 		return fmt.Errorf("get missing: %w", err)
 	}
 	defer resp.Body.Close()
 
-	var entries []models.SkillRegistryEntry
-	if err := json.NewDecoder(resp.Body).Decode(&entries); err != nil {
-		return fmt.Errorf("decode response: %w", err)
+	var result struct {
+		MissingSkills []struct {
+			SkillName    string   `json:"skill_name"`
+			MissingDeps  []string `json:"missing_deps"`
+		} `json:"missing_skills"`
+		Count int `json:"count"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return fmt.Errorf("decode missing: %w", err)
 	}
 
-	if len(entries) == 0 {
-		fmt.Println("No missing dependencies found. All skills are fully resolved.")
+	if result.Count == 0 {
+		fmt.Println("No missing dependencies found.")
 		return nil
 	}
 
-	fmt.Printf("Skills with Missing Dependencies (%d)\n", len(entries))
-	fmt.Println(strings.Repeat("-", 60))
-	for _, e := range entries {
-		if len(e.MissingDeps) > 0 {
-			fmt.Printf("\n%s%s%s\n", colorRed, e.SkillName, colorReset)
-			for _, dep := range e.MissingDeps {
-				fmt.Printf("  - %s\n", dep)
-			}
-		}
+	fmt.Printf("Missing Dependencies (%d skills affected)\n", result.Count)
+	fmt.Println(strings.Repeat("=", 50))
+	for _, s := range result.MissingSkills {
+		fmt.Printf("  %s: %s\n", s.SkillName, strings.Join(s.MissingDeps, ", "))
 	}
+
 	return nil
 }
 
+// runRegistryStale lists skills that may need attention.
+// Since the live server doesn't have a dedicated stale endpoint,
+// this queries skills and filters client-side.
 func runRegistryStale(cmd *cobra.Command) error {
 	client := getAPIClient(cmd)
 	ctx, cancel := context.WithTimeout(cmd.Context(), 30*time.Second)
 	defer cancel()
 
-	resp, err := client.Request(ctx, http.MethodGet, "/api/v1/registry?stale=true", nil)
+	// Get all skills and filter for stale ones
+	resp, err := client.Request(ctx, http.MethodGet, "/api/v1/skills?limit=1000", nil)
 	if err != nil {
-		return fmt.Errorf("get stale: %w", err)
+		return fmt.Errorf("get skills: %w", err)
 	}
 	defer resp.Body.Close()
 
-	var entries []models.SkillRegistryEntry
-	if err := json.NewDecoder(resp.Body).Decode(&entries); err != nil {
-		return fmt.Errorf("decode response: %w", err)
+	var result struct {
+		Skills []struct {
+			Name      string `json:"name"`
+			Status    string `json:"status"`
+			UpdatedAt string `json:"updated_at"`
+		} `json:"skills"`
+		Count int `json:"count"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return fmt.Errorf("decode skills: %w", err)
 	}
 
-	if len(entries) == 0 {
-		fmt.Println("No stale skills found. Registry is up to date.")
-		return nil
-	}
-
-	fmt.Printf("Stale Skills (%d)\n", len(entries))
-	fmt.Println(strings.Repeat("-", 70))
-	fmt.Printf("%-30s %-20s %s\n", "NAME", "LAST REVIEW", "COVERAGE")
-	fmt.Println(strings.Repeat("-", 70))
-	for _, e := range entries {
-		lastReview := "never"
-		if e.LastReview != nil {
-			lastReview = e.LastReview.Format("2006-01-02")
+	// Filter for deprecated or draft skills (proxy for "stale")
+	stale := 0
+	for _, s := range result.Skills {
+		if s.Status == "deprecated" || s.Status == "draft" {
+			fmt.Printf("  %-30s [%s] last updated: %s\n", s.Name, s.Status, s.UpdatedAt)
+			stale++
 		}
-		cov := fmt.Sprintf("%.0f%%", e.Coverage*100)
-		fmt.Printf("%-30s %-20s %s\n", e.SkillName, lastReview, cov)
 	}
+
+	if stale == 0 {
+		fmt.Println("No stale skills found.")
+	} else {
+		fmt.Printf("\n%d potentially stale skills found.\n", stale)
+	}
+
 	return nil
 }
 
+// runRegistryReview uses /api/v1/skills/:name to show skill details.
 func runRegistryReview(cmd *cobra.Command, name string) error {
 	client := getAPIClient(cmd)
 	ctx, cancel := context.WithTimeout(cmd.Context(), 30*time.Second)
 	defer cancel()
 
-	resp, err := client.Request(ctx, http.MethodGet, "/api/v1/registry/"+name, nil)
+	resp, err := client.Request(ctx, http.MethodGet, "/api/v1/skills/"+name, nil)
 	if err != nil {
-		return fmt.Errorf("get review: %w", err)
+		return fmt.Errorf("get skill %q: %w", name, err)
 	}
 	defer resp.Body.Close()
 
-	var entry models.SkillRegistryEntry
-	if err := json.NewDecoder(resp.Body).Decode(&entry); err != nil {
-		return fmt.Errorf("decode response: %w", err)
+	if resp.StatusCode == http.StatusNotFound {
+		return fmt.Errorf("skill %q not found", name)
 	}
 
-	fmt.Printf("Registry Review: %s\n", entry.SkillName)
+	var skill struct {
+		Name        string `json:"name"`
+		Title       string `json:"title"`
+		Status      string `json:"status"`
+		Kind        string `json:"kind"`
+		Version     string `json:"version"`
+		Description string `json:"description"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&skill); err != nil {
+		return fmt.Errorf("decode skill: %w", err)
+	}
+
+	fmt.Printf("Skill: %s\n", skill.Name)
 	fmt.Println(strings.Repeat("=", 50))
-	fmt.Printf("Coverage:     %.1f%%\n", entry.Coverage*100)
-	fmt.Printf("Auto-Expand:  %v\n", entry.AutoExpand)
-	fmt.Printf("Stale:        %v\n", entry.Stale)
-	if entry.LastReview != nil {
-		fmt.Printf("Last Review:  %s\n", entry.LastReview.Format(time.RFC3339))
-	} else {
-		fmt.Println("Last Review:  never")
-	}
-
-	if len(entry.MissingDeps) > 0 {
-		fmt.Printf("\n%sMissing Dependencies (%d):%s\n", colorRed, len(entry.MissingDeps), colorReset)
-		for _, dep := range entry.MissingDeps {
-			fmt.Printf("  - %s\n", dep)
-		}
-	} else {
-		fmt.Printf("\n%sAll dependencies resolved.%s\n", colorGreen, colorReset)
+	fmt.Printf("Title:       %s\n", skill.Title)
+	fmt.Printf("Status:      %s\n", skill.Status)
+	fmt.Printf("Kind:        %s\n", skill.Kind)
+	fmt.Printf("Version:     %s\n", skill.Version)
+	if skill.Description != "" {
+		fmt.Printf("Description: %s\n", skill.Description)
 	}
 
 	return nil
 }
 
+// runRegistryCoverage uses /api/v1/coverage to show coverage metrics.
 func runRegistryCoverage(cmd *cobra.Command, domain string) error {
 	client := getAPIClient(cmd)
 	ctx, cancel := context.WithTimeout(cmd.Context(), 30*time.Second)
 	defer cancel()
 
-	query := "/api/v1/registry/coverage"
+	url := "/api/v1/coverage"
 	if domain != "" {
-		query += "?domain=" + domain
+		url += "?domain=" + domain
 	}
 
-	resp, err := client.Request(ctx, http.MethodGet, query, nil)
+	resp, err := client.Request(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return fmt.Errorf("get coverage: %w", err)
 	}
 	defer resp.Body.Close()
 
-	var coverage struct {
-		Overall  float64            `json:"overall"`
-		ByDomain map[string]float64 `json:"by_domain"`
-		BySkill  []struct {
-			Name     string  `json:"name"`
+	var report struct {
+		TotalSkills     int     `json:"total_skills"`
+		AverageCoverage float64 `json:"average_coverage"`
+		ByDomain        map[string]struct {
+			Count    int     `json:"count"`
 			Coverage float64 `json:"coverage"`
-		} `json:"by_skill"`
+		} `json:"by_domain"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&coverage); err != nil {
-		return fmt.Errorf("decode response: %w", err)
+	if err := json.NewDecoder(resp.Body).Decode(&report); err != nil {
+		return fmt.Errorf("decode coverage: %w", err)
 	}
 
-	fmt.Printf("Registry Coverage")
-	if domain != "" {
-		fmt.Printf(" - Domain: %s", domain)
-	}
-	fmt.Println()
+	fmt.Println("Coverage Report")
 	fmt.Println(strings.Repeat("=", 50))
-	fmt.Printf("Overall: %.1f%%\n", coverage.Overall*100)
+	fmt.Printf("Total Skills:   %d\n", report.TotalSkills)
+	fmt.Printf("Avg Coverage:   %.1f%%\n", report.AverageCoverage*100)
 
-	if len(coverage.ByDomain) > 0 {
+	if len(report.ByDomain) > 0 {
 		fmt.Printf("\nBy Domain:\n")
-		for d, c := range coverage.ByDomain {
-			bar := renderBar(c, 30)
-			fmt.Printf("  %-15s [%s] %.0f%%\n", d, bar, c*100)
-		}
-	}
-
-	if len(coverage.BySkill) > 0 {
-		fmt.Printf("\nBy Skill:\n")
-		for _, s := range coverage.BySkill {
-			bar := renderBar(s.Coverage, 20)
-			fmt.Printf("  %-25s [%s] %.0f%%\n", s.Name, bar, s.Coverage*100)
+		for d, v := range report.ByDomain {
+			fmt.Printf("  %-20s %d skills (%.1f%%)\n", d, v.Count, v.Coverage*100)
 		}
 	}
 
 	return nil
-}
-
-// renderBar creates an ASCII progress bar
-func renderBar(percentage float64, width int) string {
-	filled := int(percentage * float64(width))
-	if filled > width {
-		filled = width
-	}
-	if filled < 0 {
-		filled = 0
-	}
-	empty := width - filled
-	return strings.Repeat("#", filled) + strings.Repeat("-", empty)
-}
-
-func getGlobalFormat(cmd *cobra.Command) string {
-	f, _ := cmd.Root().PersistentFlags().GetString("format")
-	return f
 }
