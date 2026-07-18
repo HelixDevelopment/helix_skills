@@ -101,9 +101,9 @@ func runRegistryStatus(cmd *cobra.Command) error {
 	defer covResp.Body.Close()
 
 	var coverage struct {
-		TotalSkills    int     `json:"total_skills"`
+		TotalSkills     int     `json:"total_skills"`
 		AverageCoverage float64 `json:"average_coverage"`
-		ByDomain       map[string]struct {
+		ByDomain        map[string]struct {
 			Count    int     `json:"count"`
 			Coverage float64 `json:"coverage"`
 		} `json:"by_domain"`
@@ -156,8 +156,8 @@ func runRegistryMissing(cmd *cobra.Command) error {
 
 	var result struct {
 		MissingSkills []struct {
-			SkillName    string   `json:"skill_name"`
-			MissingDeps  []string `json:"missing_deps"`
+			SkillName   string   `json:"skill_name"`
+			MissingDeps []string `json:"missing_deps"`
 		} `json:"missing_skills"`
 		Count int `json:"count"`
 	}

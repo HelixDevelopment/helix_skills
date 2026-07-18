@@ -303,10 +303,10 @@ func (m *Metrics) RecordTenantAuditEntry(tenantID, action string) {
 // callers (middleware, hooks) can record tenant events without touching
 // the full Metrics struct.
 type TenantMetrics struct {
-	requestsTotal         *prometheus.CounterVec
+	requestsTotal          *prometheus.CounterVec
 	rateLimitRejectedTotal *prometheus.CounterVec
-	auditEntriesTotal     *prometheus.CounterVec
-	enabled               bool
+	auditEntriesTotal      *prometheus.CounterVec
+	enabled                bool
 }
 
 // NewTenantMetrics returns a TenantMetrics backed by the counters in the

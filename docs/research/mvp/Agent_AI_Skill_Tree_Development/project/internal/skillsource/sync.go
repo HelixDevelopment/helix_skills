@@ -578,4 +578,3 @@ func unmarshalConfig(raw []byte, out interface{}) error {
 	}
 	return nil
 }
-

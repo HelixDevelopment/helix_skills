@@ -33,20 +33,20 @@ type skillValidator interface {
 
 // MCPServer wraps the mcp-go server with application-specific dependencies.
 type MCPServer struct {
-	server            *server.MCPServer
-	skillStore        *skill.Store
-	registry          *registry.Registry
-	pool              *db.Pool
-	cfg               *config.Config
-	logger            *zap.Logger
-	transport         string // "stdio" | "http" | "both" | "acp"
-	stdio             *StdioTransport
-	http              *HTTPTransport
-	acp               *ACPAdapter
-	validator         skillValidator
-	validationEnabled bool
-	codeGraphResults   *codeGraphStore // in-memory cache for codegraph_analyze results
-	skillSourceStore   *skillsource.Store       // DB-backed skill source registry (G74)
+	server             *server.MCPServer
+	skillStore         *skill.Store
+	registry           *registry.Registry
+	pool               *db.Pool
+	cfg                *config.Config
+	logger             *zap.Logger
+	transport          string // "stdio" | "http" | "both" | "acp"
+	stdio              *StdioTransport
+	http               *HTTPTransport
+	acp                *ACPAdapter
+	validator          skillValidator
+	validationEnabled  bool
+	codeGraphResults   *codeGraphStore           // in-memory cache for codegraph_analyze results
+	skillSourceStore   *skillsource.Store        // DB-backed skill source registry (G74)
 	sourceOrchestrator *skillsource.Orchestrator // source sync orchestrator (G82)
 }
 

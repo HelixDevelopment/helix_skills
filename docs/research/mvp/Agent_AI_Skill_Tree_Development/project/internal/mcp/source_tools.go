@@ -42,36 +42,36 @@ import (
 type SourceType string
 
 const (
-	SourceTypeGitHub    SourceType = "github"
+	SourceTypeGitHub     SourceType = "github"
 	SourceTypeFilesystem SourceType = "filesystem"
-	SourceTypeURL       SourceType = "url"
+	SourceTypeURL        SourceType = "url"
 )
 
 // SourceStatus tracks the lifecycle state of a registered skill source.
 type SourceStatus string
 
 const (
-	SourceStatusActive      SourceStatus = "active"
-	SourceStatusSyncing     SourceStatus = "syncing"
-	SourceStatusError       SourceStatus = "error"
-	SourceStatusDisabled    SourceStatus = "disabled"
+	SourceStatusActive   SourceStatus = "active"
+	SourceStatusSyncing  SourceStatus = "syncing"
+	SourceStatusError    SourceStatus = "error"
+	SourceStatusDisabled SourceStatus = "disabled"
 )
 
 // SkillSource is one registered skill source. It mirrors the fields the
 // not-yet-implemented skill_sources database table will carry, held in
 // memory for now.
 type SkillSource struct {
-	ID          string      `json:"id"`
-	Name        string      `json:"name"`
-	SourceType  SourceType  `json:"source_type"`
-	Config      map[string]interface{} `json:"config"`
-	Status      SourceStatus `json:"status"`
-	LastSyncAt  *time.Time  `json:"last_sync_at,omitempty"`
-	LastError   string      `json:"last_error,omitempty"`
-	SkillCount  int         `json:"skill_count"`
-	Enabled     bool        `json:"enabled"`
-	CreatedAt   time.Time   `json:"created_at"`
-	UpdatedAt   time.Time   `json:"updated_at"`
+	ID         string                 `json:"id"`
+	Name       string                 `json:"name"`
+	SourceType SourceType             `json:"source_type"`
+	Config     map[string]interface{} `json:"config"`
+	Status     SourceStatus           `json:"status"`
+	LastSyncAt *time.Time             `json:"last_sync_at,omitempty"`
+	LastError  string                 `json:"last_error,omitempty"`
+	SkillCount int                    `json:"skill_count"`
+	Enabled    bool                   `json:"enabled"`
+	CreatedAt  time.Time              `json:"created_at"`
+	UpdatedAt  time.Time              `json:"updated_at"`
 }
 
 // ---------------------------------------------------------------------------
@@ -406,16 +406,16 @@ func (s *MCPServer) registerSourceSync() {
 		)
 
 		return s.newToolResult(map[string]interface{}{
-			"success":      true,
-			"source_id":    sourceID,
-			"name":         src.Name,
-			"fetched":      result.Fetched,
-			"parsed":       result.Parsed,
-			"imported":     result.Imported,
-			"skipped":      result.Skipped,
-			"errors":       result.Errors,
-			"status":       string(skillsource.SyncStatusCompleted),
-			"duration_ms":  result.Duration.Milliseconds(),
+			"success":     true,
+			"source_id":   sourceID,
+			"name":        src.Name,
+			"fetched":     result.Fetched,
+			"parsed":      result.Parsed,
+			"imported":    result.Imported,
+			"skipped":     result.Skipped,
+			"errors":      result.Errors,
+			"status":      string(skillsource.SyncStatusCompleted),
+			"duration_ms": result.Duration.Milliseconds(),
 		}), nil
 	})
 }

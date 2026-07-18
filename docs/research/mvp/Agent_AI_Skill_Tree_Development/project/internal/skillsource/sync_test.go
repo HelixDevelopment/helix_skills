@@ -53,7 +53,7 @@ func (m *mockSourceStore) UpdateSyncStatus(_ context.Context, id uuid.UUID, stat
 
 // mockSkillStore implements SkillStoreWriter for orchestrator tests.
 type mockSkillStore struct {
-	skills  map[string]*models.Skill
+	skills    map[string]*models.Skill
 	createErr error // injected error for Create
 	getErr    error // injected error for GetByName
 }
@@ -487,9 +487,9 @@ func TestIsSKILLMD(t *testing.T) {
 		{"SKILL.md", true},
 		{"skills/SKILL.md", true},
 		{"deep/nested/path/SKILL.md", true},
-		{"skill.md", true},          // case-insensitive
-		{"Skill.md", true},          // case-insensitive
-		{"skills/skill.md", true},   // case-insensitive
+		{"skill.md", true},        // case-insensitive
+		{"Skill.md", true},        // case-insensitive
+		{"skills/skill.md", true}, // case-insensitive
 		{"README.md", false},
 		{"skill.json", false},
 		{"SKILL.md.bak", false},

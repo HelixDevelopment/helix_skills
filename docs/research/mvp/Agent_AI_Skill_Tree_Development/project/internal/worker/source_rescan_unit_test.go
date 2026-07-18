@@ -27,8 +27,8 @@ import (
 // tests can assert both "was it called with the right args" and "did the
 // handler thread the result through correctly".
 type spySourceSyncer struct {
-	called   int32
-	gotID    uuid.UUID
+	called    int32
+	gotID     uuid.UUID
 	retResult *skillsource.SyncResult
 	retErr    error
 }
